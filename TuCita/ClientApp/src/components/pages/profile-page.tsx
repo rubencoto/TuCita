@@ -1,0 +1,550 @@
+import { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Switch } from '../ui/switch';
+import { Separator } from '../ui/separator';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Lock, 
+  Bell, 
+  Shield, 
+  Camera,
+  Save,
+  Eye,
+  EyeOff,
+  Calendar,
+  Settings
+} from 'lucide-react';
+import { toast } from 'sonner@2.0.3';
+
+interface ProfilePageProps {
+  user: any;
+  onUpdateUser: (userData: any) => void;
+}
+
+export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
+  const [activeTab, setActiveTab] = useState('personal');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const [personalInfo, setPersonalInfo] = useState({
+    firstName: user.name.split(' ')[0] || '',
+    lastName: user.name.split(' ').slice(1).join(' ') || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    birthDate: '1990-01-01', // Mock data
+    gender: 'male', // Mock data
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  const [notifications, setNotifications] = useState({
+    emailReminders: true,
+    smsReminders: true,
+    appointmentConfirmations: true,
+    healthTips: false,
+    promotions: false,
+  });
+
+  const [privacy, setPrivacy] = useState({
+    shareDataWithDoctors: true,
+    allowMarketingEmails: false,
+    dataRetention: '2years',
+  });
+
+  const handleSavePersonalInfo = () => {
+    const updatedUser = {
+      ...user,
+      name: `${personalInfo.firstName} ${personalInfo.lastName}`,
+      email: personalInfo.email,
+      phone: personalInfo.phone,
+    };
+    
+    onUpdateUser(updatedUser);
+    setIsEditing(false);
+    
+    toast.success('Información personal actualizada', {
+      description: 'Tus datos han sido guardados exitosamente.',
+    });
+  };
+
+  const handleChangePassword = () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+    
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+    
+    toast.success('Contraseña actualizada', {
+      description: 'Tu contraseña ha sido cambiada exitosamente.',
+    });
+  };
+
+  const handleSaveNotifications = () => {
+    toast.success('Configuración de notificaciones guardada', {
+      description: 'Tus preferencias han sido actualizadas.',
+    });
+  };
+
+  const handleSavePrivacy = () => {
+    toast.success('Configuración de privacidad guardada', {
+      description: 'Tus preferencias han sido actualizadas.',
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-muted">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Mi Perfil
+          </h1>
+          <p className="text-muted-foreground">
+            Gestiona tu información personal y preferencias de cuenta
+          </p>
+        </div>
+
+        {/* Profile Header Card */}
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+              <div className="relative">
+                <ImageWithFallback
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-24 h-24 rounded-full object-cover"
+                />
+                <button className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors">
+                  <Camera className="h-4 w-4" />
+                </button>
+              </div>
+              
+              <div className="text-center sm:text-left flex-1">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  {user.name}
+                </h2>
+                <p className="text-muted-foreground">{user.email}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Miembro desde octubre 2024
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" size="sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Ver Historial
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Profile Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="personal">
+              <User className="h-4 w-4 mr-2" />
+              Información Personal
+            </TabsTrigger>
+            <TabsTrigger value="security">
+              <Lock className="h-4 w-4 mr-2" />
+              Seguridad
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="h-4 w-4 mr-2" />
+              Notificaciones
+            </TabsTrigger>
+            <TabsTrigger value="privacy">
+              <Shield className="h-4 w-4 mr-2" />
+              Privacidad
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Personal Information Tab */}
+          <TabsContent value="personal">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Información Personal</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                >
+                  {isEditing ? 'Cancelar' : 'Editar'}
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">Nombre</Label>
+                    <Input
+                      id="firstName"
+                      value={personalInfo.firstName}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, firstName: e.target.value }))}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Apellidos</Label>
+                    <Input
+                      id="lastName"
+                      value={personalInfo.lastName}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, lastName: e.target.value }))}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Correo Electrónico</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={personalInfo.email}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, email: e.target.value }))}
+                      disabled={!isEditing}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={personalInfo.phone}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, phone: e.target.value }))}
+                      disabled={!isEditing}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={personalInfo.birthDate}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, birthDate: e.target.value }))}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Género</Label>
+                    <select
+                      id="gender"
+                      value={personalInfo.gender}
+                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, gender: e.target.value }))}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground disabled:opacity-50"
+                    >
+                      <option value="male">Masculino</option>
+                      <option value="female">Femenino</option>
+                      <option value="other">Otro</option>
+                      <option value="prefer-not-to-say">Prefiero no decir</option>
+                    </select>
+                  </div>
+                </div>
+
+                {isEditing && (
+                  <div className="flex gap-2 pt-4">
+                    <Button onClick={handleSavePersonalInfo}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Guardar Cambios
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuración de Seguridad</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-4">Cambiar Contraseña</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword">Contraseña Actual</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="currentPassword"
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                          className="pl-10 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? 'text' : 'password'}
+                          value={passwordForm.newPassword}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                          className="pl-10 pr-10"
+                          placeholder="Mínimo 8 caracteres"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          className="pl-10 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button onClick={handleChangePassword}>
+                      Cambiar Contraseña
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-4">Autenticación de Dos Factores</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-foreground">Protege tu cuenta con verificación adicional</p>
+                      <p className="text-xs text-muted-foreground">Recibe códigos por SMS o aplicación</p>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Preferencias de Notificaciones</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Recordatorios por Email</p>
+                      <p className="text-sm text-muted-foreground">Recibe recordatorios de citas por correo</p>
+                    </div>
+                    <Switch
+                      checked={notifications.emailReminders}
+                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, emailReminders: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Recordatorios por SMS</p>
+                      <p className="text-sm text-muted-foreground">Recibe recordatorios de citas por mensaje</p>
+                    </div>
+                    <Switch
+                      checked={notifications.smsReminders}
+                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, smsReminders: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Confirmaciones de Citas</p>
+                      <p className="text-sm text-muted-foreground">Notificaciones cuando se confirme una cita</p>
+                    </div>
+                    <Switch
+                      checked={notifications.appointmentConfirmations}
+                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, appointmentConfirmations: checked }))}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Consejos de Salud</p>
+                      <p className="text-sm text-muted-foreground">Recibe tips y consejos médicos semanales</p>
+                    </div>
+                    <Switch
+                      checked={notifications.healthTips}
+                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, healthTips: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Promociones y Ofertas</p>
+                      <p className="text-sm text-muted-foreground">Notificaciones sobre descuentos especiales</p>
+                    </div>
+                    <Switch
+                      checked={notifications.promotions}
+                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, promotions: checked }))}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveNotifications}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Preferencias
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Privacy Tab */}
+          <TabsContent value="privacy">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuración de Privacidad</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Compartir Datos con Médicos</p>
+                      <p className="text-sm text-muted-foreground">Permite a los médicos acceder a tu historial</p>
+                    </div>
+                    <Switch
+                      checked={privacy.shareDataWithDoctors}
+                      onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, shareDataWithDoctors: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Emails de Marketing</p>
+                      <p className="text-sm text-muted-foreground">Recibir comunicaciones promocionales</p>
+                    </div>
+                    <Switch
+                      checked={privacy.allowMarketingEmails}
+                      onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, allowMarketingEmails: checked }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Retención de Datos</Label>
+                    <select
+                      value={privacy.dataRetention}
+                      onChange={(e) => setPrivacy(prev => ({ ...prev, dataRetention: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                    >
+                      <option value="1year">1 año</option>
+                      <option value="2years">2 años</option>
+                      <option value="5years">5 años</option>
+                      <option value="indefinite">Indefinido</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      Tiempo que mantendremos tus datos después de eliminar tu cuenta
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="font-medium text-destructive">Zona de Peligro</h3>
+                  <div className="border border-destructive/20 rounded-lg p-4 space-y-4">
+                    <div>
+                      <p className="font-medium">Descargar Mis Datos</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Obtén una copia de toda tu información personal
+                      </p>
+                      <Button variant="outline" size="sm">
+                        Solicitar Descarga
+                      </Button>
+                    </div>
+                    
+                    <div>
+                      <p className="font-medium text-destructive">Eliminar Cuenta</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Esta acción no se puede deshacer. Se eliminará toda tu información.
+                      </p>
+                      <Button variant="destructive" size="sm">
+                        Eliminar Cuenta
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Button onClick={handleSavePrivacy}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Configuración
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
