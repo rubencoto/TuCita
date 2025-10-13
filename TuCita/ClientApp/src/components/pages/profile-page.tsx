@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -21,7 +21,9 @@ import {
   Calendar,
   Settings
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import profileService from '../../services/profileService';
+import type { AuthResponse } from '../../services/authService';
 
 interface ProfilePageProps {
   user: any;
@@ -34,14 +36,26 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
+  const [originalInfo, setOriginalInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    birthDate: '',
+    identification: '',
+    emergencyPhone: '',
+  });
+
   const [personalInfo, setPersonalInfo] = useState({
     firstName: user.name.split(' ')[0] || '',
     lastName: user.name.split(' ').slice(1).join(' ') || '',
     email: user.email || '',
     phone: user.phone || '',
-    birthDate: '1990-01-01', // Mock data
-    gender: 'male', // Mock data
+    birthDate: '',
+    identification: '',
+    emergencyPhone: '',
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -64,23 +78,69 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
     dataRetention: '2years',
   });
 
-  const handleSavePersonalInfo = () => {
-    const updatedUser = {
-      ...user,
-      name: `${personalInfo.firstName} ${personalInfo.lastName}`,
-      email: personalInfo.email,
-      phone: personalInfo.phone,
-    };
-    
-    onUpdateUser(updatedUser);
-    setIsEditing(false);
-    
-    toast.success('Información personal actualizada', {
-      description: 'Tus datos han sido guardados exitosamente.',
-    });
+  // Cargar perfil completo al montar el componente
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const profile = await profileService.getProfile();
+      
+      const profileData = {
+        firstName: profile.nombre || '',
+        lastName: profile.apellido || '',
+        email: profile.email || '',
+        phone: profile.telefono || '',
+        birthDate: profile.fechaNacimiento || '',
+        identification: profile.identificacion || '',
+        emergencyPhone: profile.telefonoEmergencia || '',
+      };
+
+      setPersonalInfo(profileData);
+      setOriginalInfo(profileData);
+    } catch (error) {
+      console.error('Error al cargar perfil:', error);
+      toast.error('Error al cargar el perfil');
+    }
   };
 
-  const handleChangePassword = () => {
+  const handleSavePersonalInfo = async () => {
+    setIsLoading(true);
+    
+    try {
+      const response = await profileService.updateProfile({
+        nombre: personalInfo.firstName,
+        apellido: personalInfo.lastName,
+        email: personalInfo.email,
+        telefono: personalInfo.phone || undefined,
+        fechaNacimiento: personalInfo.birthDate || undefined,
+        identificacion: personalInfo.identificacion || undefined,
+        telefonoEmergencia: personalInfo.emergencyPhone || undefined,
+      });
+      
+      // Actualizar el contexto del usuario en la aplicación
+      if (response.user) {
+        onUpdateUser(response.user);
+      }
+
+      setOriginalInfo(personalInfo);
+      
+      setIsEditing(false);
+      
+      toast.success('Información personal actualizada', {
+        description: 'Tus datos han sido guardados exitosamente.',
+      });
+    } catch (error: any) {
+      toast.error('Error al actualizar', {
+        description: error.message || 'No se pudo actualizar la información.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;
@@ -91,15 +151,31 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
       return;
     }
 
-    setPasswordForm({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
-    
-    toast.success('Contraseña actualizada', {
-      description: 'Tu contraseña ha sido cambiada exitosamente.',
-    });
+    setIsLoading(true);
+
+    try {
+      await profileService.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
+      });
+
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      
+      toast.success('Contraseña actualizada', {
+        description: 'Tu contraseña ha sido cambiada exitosamente.',
+      });
+    } catch (error: any) {
+      toast.error('Error al cambiar contraseña', {
+        description: error.message || 'No se pudo cambiar la contraseña.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveNotifications = () => {
@@ -192,6 +268,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(!isEditing)}
+                  disabled={isLoading}
                 >
                   {isEditing ? 'Cancelar' : 'Editar'}
                 </Button>
@@ -204,7 +281,8 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       id="firstName"
                       value={personalInfo.firstName}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, firstName: e.target.value }))}
-                      disabled={!isEditing}
+                      disabled={!isEditing || isLoading}
+                      placeholder={originalInfo.firstName || 'Ingresa tu nombre'}
                     />
                   </div>
                   <div className="space-y-2">
@@ -213,7 +291,8 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       id="lastName"
                       value={personalInfo.lastName}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, lastName: e.target.value }))}
-                      disabled={!isEditing}
+                      disabled={!isEditing || isLoading}
+                      placeholder={originalInfo.lastName || 'Ingresa tus apellidos'}
                     />
                   </div>
                 </div>
@@ -227,8 +306,9 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       type="email"
                       value={personalInfo.email}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, email: e.target.value }))}
-                      disabled={!isEditing}
+                      disabled={!isEditing || isLoading}
                       className="pl-10"
+                      placeholder={originalInfo.email || 'correo@ejemplo.com'}
                     />
                   </div>
                 </div>
@@ -242,47 +322,55 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       type="tel"
                       value={personalInfo.phone}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, phone: e.target.value }))}
-                      disabled={!isEditing}
+                      disabled={!isEditing || isLoading}
                       className="pl-10"
+                      placeholder={originalInfo.phone || '+506 1234-5678'}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                    <Input
-                      id="birthDate"
-                      type="date"
-                      value={personalInfo.birthDate}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, birthDate: e.target.value }))}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Género</Label>
-                    <select
-                      id="gender"
-                      value={personalInfo.gender}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, gender: e.target.value }))}
-                      disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground disabled:opacity-50"
-                    >
-                      <option value="male">Masculino</option>
-                      <option value="female">Femenino</option>
-                      <option value="other">Otro</option>
-                      <option value="prefer-not-to-say">Prefiero no decir</option>
-                    </select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                  <Input
+                    id="birthDate"
+                    type="date"
+                    value={personalInfo.birthDate}
+                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, birthDate: e.target.value }))}
+                    disabled={!isEditing || isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="identification">Identificación</Label>
+                  <Input
+                    id="identification"
+                    type="text"
+                    value={personalInfo.identification}
+                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, identification: e.target.value }))}
+                    disabled={!isEditing || isLoading}
+                    placeholder={originalInfo.identification || 'Cédula o pasaporte'}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyPhone">Teléfono de Emergencia</Label>
+                  <Input
+                    id="emergencyPhone"
+                    type="tel"
+                    value={personalInfo.emergencyPhone}
+                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, emergencyPhone: e.target.value }))}
+                    disabled={!isEditing || isLoading}
+                    placeholder={originalInfo.emergencyPhone || 'Contacto de emergencia'}
+                  />
                 </div>
 
                 {isEditing && (
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleSavePersonalInfo}>
+                    <Button onClick={handleSavePersonalInfo} disabled={isLoading}>
                       <Save className="h-4 w-4 mr-2" />
-                      Guardar Cambios
+                      {isLoading ? 'Guardando...' : 'Guardar Cambios'}
                     </Button>
-                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isLoading}>
                       Cancelar
                     </Button>
                   </div>
@@ -311,11 +399,14 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                           value={passwordForm.currentPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                           className="pl-10 pr-10"
+                          disabled={isLoading}
+                          placeholder="Ingresa tu contraseña actual"
                         />
                         <button
                           type="button"
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          disabled={isLoading}
                         >
                           {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -333,11 +424,13 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                           className="pl-10 pr-10"
                           placeholder="Mínimo 8 caracteres"
+                          disabled={isLoading}
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          disabled={isLoading}
                         >
                           {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -354,19 +447,22 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                           value={passwordForm.confirmPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                           className="pl-10 pr-10"
+                          disabled={isLoading}
+                          placeholder="Repite tu nueva contraseña"
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          disabled={isLoading}
                         >
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
 
-                    <Button onClick={handleChangePassword}>
-                      Cambiar Contraseña
+                    <Button onClick={handleChangePassword} disabled={isLoading}>
+                      {isLoading ? 'Cambiando...' : 'Cambiar Contraseña'}
                     </Button>
                   </div>
                 </div>
@@ -402,7 +498,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={notifications.emailReminders}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, emailReminders: checked }))}
+                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, emailReminders: checked }))}
                     />
                   </div>
 
@@ -413,7 +509,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={notifications.smsReminders}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, smsReminders: checked }))}
+                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, smsReminders: checked }))}
                     />
                   </div>
 
@@ -424,7 +520,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={notifications.appointmentConfirmations}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, appointmentConfirmations: checked }))}
+                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, appointmentConfirmations: checked }))}
                     />
                   </div>
 
@@ -437,7 +533,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={notifications.healthTips}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, healthTips: checked }))}
+                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, healthTips: checked }))}
                     />
                   </div>
 
@@ -448,7 +544,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={notifications.promotions}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, promotions: checked }))}
+                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, promotions: checked }))}
                     />
                   </div>
                 </div>
@@ -476,7 +572,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={privacy.shareDataWithDoctors}
-                      onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, shareDataWithDoctors: checked }))}
+                      onCheckedChange={(checked: boolean) => setPrivacy(prev => ({ ...prev, shareDataWithDoctors: checked }))}
                     />
                   </div>
 
@@ -487,7 +583,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                     <Switch
                       checked={privacy.allowMarketingEmails}
-                      onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, allowMarketingEmails: checked }))}
+                      onCheckedChange={(checked: boolean) => setPrivacy(prev => ({ ...prev, allowMarketingEmails: checked }))}
                     />
                   </div>
 
