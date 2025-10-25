@@ -43,9 +43,6 @@ public class DoctorsController : ControllerBase
                 experience = d.ExperienceYears,
                 location = d.Location ?? "No especificado",
                 direccion = d.Direccion,
-                ciudad = d.Ciudad,
-                provincia = d.Provincia,
-                pais = d.Pais,
                 availableSlots = new[] { "9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM" },
                 about = d.Biografia ?? "Información no disponible",
                 telefono = d.Telefono
@@ -64,7 +61,7 @@ public class DoctorsController : ControllerBase
     {
         try
         {
-            if (!ulong.TryParse(id, out var doctorId))
+            if (!long.TryParse(id, out var doctorId))
             {
                 return BadRequest(new { message = "ID de doctor inválido" });
             }
@@ -89,9 +86,6 @@ public class DoctorsController : ControllerBase
                 experience = doctor.ExperienceYears,
                 location = doctor.Location ?? "No especificado",
                 direccion = doctor.Direccion,
-                ciudad = doctor.Ciudad,
-                provincia = doctor.Provincia,
-                pais = doctor.Pais,
                 availableSlots = new[] { "9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM" },
                 about = doctor.About,
                 telefono = doctor.Telefono,
@@ -125,7 +119,7 @@ public class DoctorsController : ControllerBase
     {
         try
         {
-            if (!ulong.TryParse(doctorId, out var docId))
+            if (!long.TryParse(doctorId, out var docId))
             {
                 return BadRequest(new { message = "ID de doctor inválido" });
             }

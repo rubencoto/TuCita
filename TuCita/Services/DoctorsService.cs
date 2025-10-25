@@ -8,9 +8,9 @@ namespace TuCita.Services;
 public interface IDoctorsService
 {
     Task<IEnumerable<DoctorDto>> GetDoctorsAsync(string? especialidad = null, string? ciudad = null);
-    Task<DoctorDetailDto?> GetDoctorByIdAsync(ulong id);
+    Task<DoctorDetailDto?> GetDoctorByIdAsync(long id);
     Task<IEnumerable<string>> GetSpecialtiesAsync();
-    Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(ulong doctorId, DateTime fecha);
+    Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(long doctorId, DateTime fecha);
 }
 
 public class DoctorsService : IDoctorsService
@@ -43,7 +43,7 @@ public class DoctorsService : IDoctorsService
 
             if (!string.IsNullOrEmpty(ciudad))
             {
-                query = query.Where(pm => pm.Ciudad != null && pm.Ciudad.Contains(ciudad));
+                query = query.Where(pm => pm.Direccion != null && pm.Direccion.Contains(ciudad));
             }
 
             var medicos = await query.ToListAsync();
@@ -61,10 +61,7 @@ public class DoctorsService : IDoctorsService
                 NumeroLicencia = pm.NumeroLicencia,
                 Biografia = pm.Biografia,
                 Direccion = pm.Direccion,
-                Ciudad = pm.Ciudad,
-                Provincia = pm.Provincia,
-                Pais = pm.Pais,
-                Location = BuildLocationString(pm),
+                Location = pm.Direccion,
                 Telefono = pm.Usuario?.Telefono,
                 Rating = CalculateRating(),
                 ReviewCount = CalculateReviewCount(),
@@ -82,7 +79,7 @@ public class DoctorsService : IDoctorsService
         }
     }
 
-    public async Task<DoctorDetailDto?> GetDoctorByIdAsync(ulong id)
+    public async Task<DoctorDetailDto?> GetDoctorByIdAsync(long id)
     {
         try
         {
@@ -107,10 +104,7 @@ public class DoctorsService : IDoctorsService
                 NumeroLicencia = medico.NumeroLicencia,
                 Biografia = medico.Biografia,
                 Direccion = medico.Direccion,
-                Ciudad = medico.Ciudad,
-                Provincia = medico.Provincia,
-                Pais = medico.Pais,
-                Location = BuildLocationString(medico),
+                Location = medico.Direccion,
                 Telefono = medico.Usuario?.Telefono,
                 Email = medico.Usuario?.Email,
                 Rating = CalculateRating(),
@@ -147,7 +141,7 @@ public class DoctorsService : IDoctorsService
         }
     }
 
-    public async Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(ulong doctorId, DateTime fecha)
+    public async Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(long doctorId, DateTime fecha)
     {
         try
         {
@@ -179,22 +173,6 @@ public class DoctorsService : IDoctorsService
     }
 
     // Helper methods
-    private static string BuildLocationString(PerfilMedico medico)
-    {
-        var parts = new List<string>();
-        
-        if (!string.IsNullOrEmpty(medico.Ciudad))
-            parts.Add(medico.Ciudad);
-            
-        if (!string.IsNullOrEmpty(medico.Provincia))
-            parts.Add(medico.Provincia);
-
-        if (!string.IsNullOrEmpty(medico.Pais))
-            parts.Add(medico.Pais);
-            
-        return string.Join(", ", parts);
-    }
-
     private static double CalculateRating()
     {
         // TODO: Implementar cálculo real basado en reviews

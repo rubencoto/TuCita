@@ -13,7 +13,7 @@ public interface IAuthService
 {
     Task<AuthResult> LoginAsync(LoginRequestDto request);
     Task<AuthResult> RegisterAsync(RegisterRequestDto request);
-    Task<Usuario?> GetUserByIdAsync(ulong userId);
+    Task<Usuario?> GetUserByIdAsync(long userId);
     Task<AuthResult> RequestPasswordResetAsync(string email);
     Task<AuthResult> ValidateResetTokenAsync(string token);
     Task<AuthResult> ResetPasswordAsync(ResetPasswordDto request);
@@ -24,6 +24,8 @@ public class AuthService : IAuthService
     private readonly TuCitaDbContext _context;
     private readonly ILogger<AuthService> _logger;
     private readonly IEmailService _emailService;
+    // TODO: Implement distributed cache for password reset tokens
+    // private readonly IDistributedCache _cache;
 
     public AuthService(
         TuCitaDbContext context,
@@ -116,8 +118,7 @@ public class AuthService : IAuthService
                 UsuarioId = usuario.Id,
                 RolId = rolPaciente.Id,
                 Usuario = usuario,
-                Rol = rolPaciente,
-                AsignadoEn = DateTime.UtcNow
+                Rol = rolPaciente
             };
 
             _context.RolesUsuarios.Add(rolUsuario);
@@ -176,7 +177,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<Usuario?> GetUserByIdAsync(ulong userId)
+    public async Task<Usuario?> GetUserByIdAsync(long userId)
     {
         return await _context.Usuarios
             .Include(u => u.RolesUsuarios)
@@ -201,12 +202,10 @@ public class AuthService : IAuthService
             // Generar token único con GUID
             var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"); // Token más largo y seguro
             
-            // Guardar token en la base de datos con fecha de expiración (10 minutos)
-            usuario.TokenRecuperacion = token;
-            usuario.TokenRecuperacionExpira = DateTime.UtcNow.AddMinutes(10);
-            usuario.ActualizadoEn = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
+            // TODO: Store token in distributed cache (Redis/Memory Cache) with expiration
+            // For now, we'll use a workaround or implement a separate password_reset_tokens table
+            // Example: await _cache.SetStringAsync($"reset:{token}", usuario.Id.ToString(), 
+            //          new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) });
 
             // Enviar email con el enlace
             await _emailService.SendPasswordResetLinkAsync(usuario.Email, token, usuario.Nombre);
@@ -226,32 +225,17 @@ public class AuthService : IAuthService
     {
         try
         {
-            var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.TokenRecuperacion == token);
+            // TODO: Validate token from distributed cache
+            // Example: var userId = await _cache.GetStringAsync($"reset:{token});
+            // if (string.IsNullOrEmpty(userId)) return invalid result
 
-            if (usuario == null)
-            {
-                return new AuthResult { Success = false, Message = "Token inválido" };
-            }
-
-            // Verificar fecha de expiración
-            if (usuario.TokenRecuperacionExpira == null || usuario.TokenRecuperacionExpira < DateTime.UtcNow)
-            {
-                return new AuthResult { Success = false, Message = "El enlace ha expirado" };
-            }
-
+            // For now, return a generic message
+            _logger.LogWarning("Password reset token validation not fully implemented. Token: {Token}", token.Substring(0, Math.Min(token.Length, 10)));
+            
             return new AuthResult 
             { 
-                Success = true, 
-                Message = "Token válido",
-                User = new AuthResponseDto
-                {
-                    Id = usuario.Id,
-                    Email = usuario.Email,
-                    Name = $"{usuario.Nombre} {usuario.Apellido}",
-                    Phone = usuario.Telefono,
-                    Token = string.Empty
-                }
+                Success = false, 
+                Message = "La funcionalidad de recuperación de contraseña requiere configuración adicional (Redis/Cache)"
             };
         }
         catch (Exception ex)
@@ -265,32 +249,17 @@ public class AuthService : IAuthService
     {
         try
         {
-            var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.TokenRecuperacion == request.Token);
+            // TODO: Implement with distributed cache
+            // Example:
+            // var userIdStr = await _cache.GetStringAsync($"reset:{request.Token});
+            // if (string.IsNullOrEmpty(userIdStr)) return invalid result
+            // var userId = long.Parse(userIdStr);
+            // var usuario = await _context.Usuarios.FindAsync(userId);
+            // ... update password
+            // await _cache.RemoveAsync($"reset:{request.Token}");
 
-            if (usuario == null)
-            {
-                return new AuthResult { Success = false, Message = "Token inválido" };
-            }
-
-            // Verificar token de seguridad
-            var validationResult = await ValidateResetTokenAsync(request.Token);
-            if (!validationResult.Success)
-            {
-                return new AuthResult { Success = false, Message = validationResult.Message };
-            }
-
-            // Actualizar contraseña
-            usuario.PasswordHash = HashPassword(request.NuevaPassword);
-            usuario.TokenRecuperacion = null;
-            usuario.TokenRecuperacionExpira = null;
-            usuario.ActualizadoEn = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Contraseña restablecida exitosamente para usuario ID: {UsuarioId}", usuario.Id);
-
-            return new AuthResult { Success = true, Message = "Contraseña restablecida exitosamente" };
+            _logger.LogWarning("Password reset not fully implemented");
+            return new AuthResult { Success = false, Message = "La funcionalidad de recuperación de contraseña requiere configuración adicional (Redis/Cache)" };
         }
         catch (Exception ex)
         {
@@ -301,7 +270,7 @@ public class AuthService : IAuthService
 
     private string GenerateJwtToken(Usuario usuario)
     {
-        // ? Leer configuración desde variables de entorno
+        // Leer configuración desde variables de entorno
         var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") 
             ?? throw new InvalidOperationException("JWT_KEY no configurada en .env");
         var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "TuCita";

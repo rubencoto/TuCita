@@ -18,42 +18,42 @@ namespace TuCita.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.10")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("TuCita.Models.AgendaTurno", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<DateTime>("ActualizadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("actualizado_en");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("estado");
 
                     b.Property<DateTime>("Fin")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("fin");
 
                     b.Property<DateTime>("Inicio")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("inicio");
 
-                    b.Property<ulong>("MedicoId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("medico_id");
 
                     b.HasKey("Id");
@@ -65,53 +65,53 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Cita", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<DateTime>("ActualizadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("actualizado_en");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
-                    b.Property<ulong>("CreadoPor")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("CreadoPor")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("creado_por");
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("estado");
 
                     b.Property<DateTime>("Fin")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("fin");
 
                     b.Property<DateTime>("Inicio")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("inicio");
 
-                    b.Property<ulong>("MedicoId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("medico_id");
 
                     b.Property<string>("Motivo")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
+                        .HasColumnType("nvarchar(200)")
                         .HasColumnName("motivo");
 
-                    b.Property<ulong>("PacienteId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("PacienteId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("paciente_id");
 
-                    b.Property<ulong>("TurnoId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("TurnoId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("turno_id");
 
                     b.HasKey("Id");
@@ -129,30 +129,30 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Diagnostico", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
-                    b.Property<ulong>("CitaId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("CitaId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("cita_id");
 
                     b.Property<string>("Codigo")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("codigo");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)")
+                        .HasColumnType("nvarchar(300)")
                         .HasColumnName("descripcion");
 
                     b.HasKey("Id");
@@ -164,21 +164,21 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Especialidad", b =>
                 {
-                    b.Property<uint>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int unsigned")
+                        .HasColumnType("bigint")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<uint>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("varchar(120)")
+                        .HasColumnType("nvarchar(120)")
                         .HasColumnName("nombre");
 
                     b.HasKey("Id");
@@ -191,12 +191,12 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.MedicoEspecialidad", b =>
                 {
-                    b.Property<ulong>("MedicoId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("medico_id");
 
-                    b.Property<uint>("EspecialidadId")
-                        .HasColumnType("int unsigned")
+                    b.Property<long>("EspecialidadId")
+                        .HasColumnType("bigint")
                         .HasColumnName("especialidad_id");
 
                     b.HasKey("MedicoId", "EspecialidadId");
@@ -208,23 +208,23 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.NotaClinica", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
-                    b.Property<ulong>("CitaId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("CitaId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("cita_id");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
-                    b.Property<ulong>("MedicoId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("medico_id");
 
                     b.Property<string>("Nota")
@@ -232,8 +232,8 @@ namespace TuCita.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("nota");
 
-                    b.Property<ulong>("PacienteId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("PacienteId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("paciente_id");
 
                     b.HasKey("Id");
@@ -249,20 +249,20 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Notificacion", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<string>("Canal")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("canal");
 
-                    b.Property<ulong?>("CitaId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal?>("CitaId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("cita_id");
 
                     b.Property<string>("Contenido")
@@ -270,29 +270,29 @@ namespace TuCita.Migrations
                         .HasColumnName("contenido");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<bool>("Enviada")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("enviada");
 
                     b.Property<DateTime?>("EnviadaEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("enviada_en");
 
                     b.Property<string>("Error")
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)")
+                        .HasColumnType("nvarchar(300)")
                         .HasColumnName("error");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("tipo");
 
-                    b.Property<ulong>("UsuarioId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
@@ -306,12 +306,12 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.PerfilMedico", b =>
                 {
-                    b.Property<ulong>("UsuarioId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("usuario_id");
 
                     b.Property<DateTime>("ActualizadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("actualizado_en");
 
                     b.Property<string>("Biografia")
@@ -320,39 +320,39 @@ namespace TuCita.Migrations
 
                     b.Property<string>("Ciudad")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("ciudad");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Direccion")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
+                        .HasColumnType("nvarchar(200)")
                         .HasColumnName("direccion");
 
                     b.Property<double?>("Latitud")
-                        .HasColumnType("double")
+                        .HasColumnType("float")
                         .HasColumnName("latitud");
 
                     b.Property<double?>("Longitud")
-                        .HasColumnType("double")
+                        .HasColumnType("float")
                         .HasColumnName("longitud");
 
                     b.Property<string>("NumeroLicencia")
                         .HasMaxLength(60)
-                        .HasColumnType("varchar(60)")
+                        .HasColumnType("nvarchar(60)")
                         .HasColumnName("numero_licencia");
 
                     b.Property<string>("Pais")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("pais");
 
                     b.Property<string>("Provincia")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("provincia");
 
                     b.HasKey("UsuarioId");
@@ -362,16 +362,16 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.PerfilPaciente", b =>
                 {
-                    b.Property<ulong>("UsuarioId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("usuario_id");
 
                     b.Property<DateTime>("ActualizadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("actualizado_en");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<DateOnly?>("FechaNacimiento")
@@ -380,12 +380,12 @@ namespace TuCita.Migrations
 
                     b.Property<string>("Identificacion")
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)")
+                        .HasColumnType("nvarchar(30)")
                         .HasColumnName("identificacion");
 
                     b.Property<string>("TelefonoEmergencia")
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)")
+                        .HasColumnType("nvarchar(30)")
                         .HasColumnName("telefono_emergencia");
 
                     b.HasKey("UsuarioId");
@@ -395,19 +395,19 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Receta", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
-                    b.Property<ulong>("CitaId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("CitaId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("cita_id");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Indicaciones")
@@ -423,41 +423,41 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.RecetaItem", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<string>("Dosis")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
+                        .HasColumnType("nvarchar(80)")
                         .HasColumnName("dosis");
 
                     b.Property<string>("Duracion")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
+                        .HasColumnType("nvarchar(80)")
                         .HasColumnName("duracion");
 
                     b.Property<string>("Frecuencia")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
+                        .HasColumnType("nvarchar(80)")
                         .HasColumnName("frecuencia");
 
                     b.Property<string>("Medicamento")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)")
+                        .HasColumnType("nvarchar(150)")
                         .HasColumnName("medicamento");
 
                     b.Property<string>("Notas")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
+                        .HasColumnType("nvarchar(200)")
                         .HasColumnName("notas");
 
-                    b.Property<ulong>("RecetaId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("RecetaId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("receta_id");
 
                     b.HasKey("Id");
@@ -469,25 +469,25 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Rol", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<DateTime>("ActualizadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("actualizado_en");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)")
+                        .HasColumnType("nvarchar(30)")
                         .HasColumnName("nombre");
 
                     b.HasKey("Id");
@@ -500,16 +500,16 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.RolUsuario", b =>
                 {
-                    b.Property<ulong>("UsuarioId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("usuario_id");
 
-                    b.Property<ulong>("RolId")
-                        .HasColumnType("bigint unsigned")
+                    b.Property<decimal>("RolId")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("rol_id");
 
                     b.Property<DateTime>("AsignadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("asignado_en");
 
                     b.HasKey("UsuarioId", "RolId");
@@ -521,69 +521,69 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Usuario", b =>
                 {
-                    b.Property<ulong>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
+                        .HasColumnType("decimal(20,0)")
                         .HasColumnName("id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<ulong>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("activo");
 
                     b.Property<DateTime>("ActualizadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("actualizado_en");
 
                     b.Property<string>("Apellido")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
+                        .HasColumnType("nvarchar(80)")
                         .HasColumnName("apellido");
 
                     b.Property<DateTime>("CreadoEn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)")
+                        .HasColumnType("nvarchar(150)")
                         .HasColumnName("email");
 
                     b.Property<string>("EmailNormalizado")
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)")
+                        .HasColumnType("nvarchar(150)")
                         .HasColumnName("email_normalizado")
-                        .HasComputedColumnSql("LOWER(email)", true);
+                        .HasComputedColumnSql("LOWER([email])", true);
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
+                        .HasColumnType("nvarchar(80)")
                         .HasColumnName("nombre");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("password_hash");
 
                     b.Property<string>("Telefono")
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)")
+                        .HasColumnType("nvarchar(30)")
                         .HasColumnName("telefono");
 
                     b.Property<string>("TokenRecuperacion")
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("token_recuperacion");
 
                     b.Property<DateTime?>("TokenRecuperacionExpira")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("token_recuperacion_expira");
 
                     b.HasKey("Id");

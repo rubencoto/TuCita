@@ -19,13 +19,12 @@ public static class DbInitializer
             return; // Ya hay roles, no hacer nada
         }
 
-        // Crear roles básicos
+        // Crear roles básicos (según el schema de Azure SQL)
         var roles = new[]
         {
-            new Rol { Nombre = "PACIENTE", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow },
-            new Rol { Nombre = "MEDICO", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow },
-            new Rol { Nombre = "RECEPCION", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow },
-            new Rol { Nombre = "ADMIN", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow }
+            new Rol { Nombre = "PACIENTE" },
+            new Rol { Nombre = "MEDICO" },
+            new Rol { Nombre = "ADMIN" }
         };
 
         await context.Roles.AddRangeAsync(roles);
@@ -44,9 +43,7 @@ public static class DbInitializer
         {
             rolPaciente = new Rol 
             { 
-                Nombre = "PACIENTE",
-                CreadoEn = DateTime.UtcNow,
-                ActualizadoEn = DateTime.UtcNow
+                Nombre = "PACIENTE"
             };
             
             context.Roles.Add(rolPaciente);
@@ -66,18 +63,19 @@ public static class DbInitializer
             return; // Ya hay especialidades
         }
 
+        // Especialidades según el schema de Azure SQL
         var especialidades = new[]
         {
-            new Especialidad { Nombre = "Cardiología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Dermatología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Pediatría", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Medicina General", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Traumatología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Ginecología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Oftalmología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Odontología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Psiquiatría", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Neurología", CreadoEn = DateTime.UtcNow }
+            new Especialidad { Nombre = "Medicina General" },
+            new Especialidad { Nombre = "Cardiología" },
+            new Especialidad { Nombre = "Neurología" },
+            new Especialidad { Nombre = "Pediatría" },
+            new Especialidad { Nombre = "Dermatología" },
+            new Especialidad { Nombre = "Ortopedia" },
+            new Especialidad { Nombre = "Oftalmología" },
+            new Especialidad { Nombre = "Ginecología" },
+            new Especialidad { Nombre = "Psiquiatría" },
+            new Especialidad { Nombre = "Endocrinología" }
         };
 
         await context.Especialidades.AddRangeAsync(especialidades);
@@ -97,20 +95,17 @@ public static class DbInitializer
             return;
         }
 
-        // Aplicar migraciones pendientes (mejor que EnsureCreated)
-        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-        if (pendingMigrations.Any())
-        {
-            Console.WriteLine($"?? Aplicando {pendingMigrations.Count()} migración(es) pendiente(s)...");
-            await context.Database.MigrateAsync();
-        }
+        Console.WriteLine("? Conexión a Azure SQL exitosa");
+
+        // NOTA: No usar migraciones, se asume que el schema ya existe en Azure SQL
+        // El script SQL debe ejecutarse manualmente en Azure SQL Database
         
-        // Inicializar roles
+        // Inicializar roles si no existen
         await InitializeRolesAsync(context);
         
-        // Inicializar especialidades
+        // Inicializar especialidades si no existen
         await InitializeEspecialidadesAsync(context);
         
-        Console.WriteLine("? Base de datos inicializada correctamente");
+        Console.WriteLine("? Datos iniciales verificados/insertados correctamente");
     }
 }

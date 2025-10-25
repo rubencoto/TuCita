@@ -106,11 +106,11 @@ public class ProfileController : ControllerBase
     /// <summary>
     /// Obtener el ID del usuario autenticado desde el token JWT
     /// </summary>
-    private ulong? GetCurrentUserId()
+    private long? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         
-        if (ulong.TryParse(userIdClaim, out var userId))
+        if (long.TryParse(userIdClaim, out var userId))
         {
             return userId;
         }

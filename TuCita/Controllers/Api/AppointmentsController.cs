@@ -25,7 +25,7 @@ public class AppointmentsController : ControllerBase
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
@@ -40,9 +40,8 @@ public class AppointmentsController : ControllerBase
                 doctorSpecialty = a.Especialidad,
                 date = a.Inicio.ToString("yyyy-MM-dd"),
                 time = a.Inicio.ToString("HH:mm"),
-                location = a.CiudadMedico ?? "No especificado",
+                location = a.DireccionMedico ?? "No especificado",
                 direccion = a.DireccionMedico,
-                ciudad = a.CiudadMedico,
                 status = a.Estado,
                 motivo = a.Motivo,
                 inicio = a.Inicio,
@@ -69,7 +68,7 @@ public class AppointmentsController : ControllerBase
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
@@ -89,9 +88,8 @@ public class AppointmentsController : ControllerBase
                 doctorSpecialty = newAppointment.Especialidad,
                 date = newAppointment.Inicio.ToString("yyyy-MM-dd"),
                 time = newAppointment.Inicio.ToString("HH:mm"),
-                location = newAppointment.CiudadMedico ?? "No especificado",
+                location = newAppointment.DireccionMedico ?? "No especificado",
                 direccion = newAppointment.DireccionMedico,
-                ciudad = newAppointment.CiudadMedico,
                 status = newAppointment.Estado,
                 motivo = newAppointment.Motivo,
                 inicio = newAppointment.Inicio,
@@ -116,14 +114,14 @@ public class AppointmentsController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            if (!ulong.TryParse(id, out var appointmentId))
+            if (!long.TryParse(id, out var appointmentId))
             {
                 return BadRequest(new { message = "ID de cita inválido" });
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
@@ -148,14 +146,14 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
-            if (!ulong.TryParse(id, out var appointmentId))
+            if (!long.TryParse(id, out var appointmentId))
             {
                 return BadRequest(new { message = "ID de cita inválido" });
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
