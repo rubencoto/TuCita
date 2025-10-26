@@ -66,7 +66,7 @@ class AuthService {
       
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Credenciales inválidas');
+      throw new Error(error.response?.data?.message || 'Credenciales invï¿½lidas');
     }
   }
 
@@ -102,7 +102,7 @@ class AuthService {
     try {
       await axios.post(`${API_URL}/request-password-reset`, data);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Error al solicitar recuperación de contraseña');
+      throw new Error(error.response?.data?.message || 'Error al solicitar recuperaciï¿½n de contraseï¿½a');
     }
   }
 
@@ -111,7 +111,7 @@ class AuthService {
       const response = await axios.post(`${API_URL}/validate-reset-token`, data);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Token inválido o expirado');
+      throw new Error(error.response?.data?.message || 'Token invï¿½lido o expirado');
     }
   }
 
@@ -119,7 +119,7 @@ class AuthService {
     try {
       await axios.post(`${API_URL}/reset-password`, data);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Error al restablecer contraseña');
+      throw new Error(error.response?.data?.message || 'Error al restablecer contraseï¿½a');
     }
   }
 

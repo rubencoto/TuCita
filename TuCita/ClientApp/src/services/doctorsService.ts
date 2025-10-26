@@ -57,7 +57,7 @@ const doctorsService = {
   },
 
   /**
-   * Obtener detalles de un doctor específico
+   * Obtener detalles de un doctor especï¿½fico
    */
   async getDoctorById(id: number): Promise<Doctor | null> {
     try {
@@ -83,7 +83,7 @@ const doctorsService = {
   },
 
   /**
-   * Obtener turnos disponibles para un doctor en una sede específica
+   * Obtener turnos disponibles para un doctor en una sede especï¿½fica
    */
   async getAvailableSlots(
     doctorId: number,

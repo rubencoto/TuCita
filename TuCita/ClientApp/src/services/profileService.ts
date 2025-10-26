@@ -31,7 +31,7 @@ export interface ProfileResponse {
 
 class ProfileService {
   /**
-   * Obtener información del perfil del usuario autenticado
+   * Obtener informaciï¿½n del perfil del usuario autenticado
    */
   async getProfile(): Promise<ProfileResponse> {
     try {
@@ -43,7 +43,7 @@ class ProfileService {
   }
 
   /**
-   * Actualizar información del perfil
+   * Actualizar informaciï¿½n del perfil
    */
   async updateProfile(data: UpdateProfileRequest): Promise<any> {
     try {
@@ -55,13 +55,13 @@ class ProfileService {
   }
 
   /**
-   * Cambiar contraseña del usuario
+   * Cambiar contraseï¿½a del usuario
    */
   async changePassword(data: ChangePasswordRequest): Promise<void> {
     try {
       await axiosInstance.post('/profile/change-password', data);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Error al cambiar la contraseña');
+      throw new Error(error.response?.data?.message || 'Error al cambiar la contraseï¿½a');
     }
   }
 }

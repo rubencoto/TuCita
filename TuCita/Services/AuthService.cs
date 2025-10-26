@@ -280,12 +280,19 @@ public class AuthService : IAuthService
         var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        // Build claims list
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new Claim(ClaimTypes.Email, usuario.Email),
             new Claim(ClaimTypes.Name, $"{usuario.Nombre} {usuario.Apellido}")
         };
+
+        // Add role claims - CRITICAL for authorization
+        foreach (var rolUsuario in usuario.RolesUsuarios)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, rolUsuario.Rol.Nombre));
+        }
 
         var token = new JwtSecurityToken(
             issuer: jwtIssuer,

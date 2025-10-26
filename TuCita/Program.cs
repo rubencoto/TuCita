@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 using TuCita.Data;
 using TuCita.Services;
 using DotNetEnv;
@@ -73,9 +76,18 @@ builder.Services.AddScoped<IAppointmentsService, AppointmentsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IDatabaseTestService, DatabaseTestService>();
+builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
 
-// Add controllers
-builder.Services.AddControllers();
+// Add controllers with JSON options for UTF-8
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Permitir caracteres Unicode (tildes, ñ, etc.) sin escape
+        options.JsonSerializerOptions.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+        // Configuración adicional de JSON
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+    });
 
 // Add SPA services
 builder.Services.AddSpaStaticFiles(configuration =>

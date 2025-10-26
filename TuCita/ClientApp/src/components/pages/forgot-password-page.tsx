@@ -32,7 +32,7 @@ export function ForgotPasswordPage({ onNavigate }: ForgotPasswordPageProps) {
     }
 
     if (!validateEmail(email)) {
-      setErrors({ email: 'Por favor ingresa un correo electrónico v�lido' });
+      setErrors({ email: 'Por favor ingresa un correo electrónico válido' });
       return;
     }
 
@@ -42,12 +42,12 @@ export function ForgotPasswordPage({ onNavigate }: ForgotPasswordPageProps) {
       await authService.requestPasswordReset({ email });
       
       setIsSuccess(true);
-      toast.success('Correo de recuperaci�n enviado', {
-        description: 'Si el correo está registrado, recibir�s un enlace de recuperación',
+      toast.success('Correo de recuperación enviado', {
+        description: 'Si el correo está registrado, recibirás un enlace de recuperación',
       });
     } catch (error: any) {
       toast.error('Error al enviar correo', {
-        description: error.message || 'Ha ocurrido un error. Int�ntalo de nuevo m�s tarde.',
+        description: error.message || 'Ha ocurrido un error. Inténtalo de nuevo más tarde.',
       });
     } finally {
       setIsLoading(false);
@@ -89,7 +89,7 @@ export function ForgotPasswordPage({ onNavigate }: ForgotPasswordPageProps) {
               <ul className="list-disc list-inside text-left space-y-1">
                 <li>Revisa tu carpeta de spam</li>
                 <li>Verifica que el correo sea correcto</li>
-                <li>Int�ntalo de nuevo m�s tarde</li>
+                <li>Inténtalo de nuevo más tarde</li>
               </ul>
             </div>
             

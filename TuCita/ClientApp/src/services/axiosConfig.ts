@@ -14,16 +14,16 @@ axios.interceptors.request.use(
   }
 );
 
-// Interceptor para manejar errores de autenticación
+// Interceptor para manejar errores de autenticaciï¿½n
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expirado o inválido
+      // Token expirado o invï¿½lido
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Solo redirigir si no estamos ya en la página de login
+      // Solo redirigir si no estamos ya en la pï¿½gina de login
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

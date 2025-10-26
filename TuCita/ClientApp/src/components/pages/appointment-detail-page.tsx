@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Stethoscope,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
@@ -28,6 +29,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '../ui/breadcrumb';
+import { toast } from 'sonner';
+import medicalHistoryService, { CitaDetalleDto } from '../../services/medicalHistoryService';
 
 interface AppointmentDetailPageProps {
   appointment: any;
@@ -36,107 +39,50 @@ interface AppointmentDetailPageProps {
 
 export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDetailPageProps) {
   const [activeTab, setActiveTab] = useState('diagnostics');
+  const [citaDetalle, setCitaDetalle] = useState<CitaDetalleDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data clínica para la cita
-  const clinicalData = {
-    diagnostics: [
-      {
-        id: '1',
-        code: 'J06.9',
-        description: 'Infección aguda de las vías respiratorias superiores',
-        date: appointment.date,
-        severity: 'Leve',
-      },
-      {
-        id: '2',
-        code: 'R50.9',
-        description: 'Fiebre no especificada',
-        date: appointment.date,
-        severity: 'Moderado',
-      },
-    ],
-    clinicalNotes: [
-      {
-        id: '1',
-        timestamp: `${appointment.date} - ${appointment.time}`,
-        note: 'Paciente acude por cuadro de 3 días de evolución caracterizado por fiebre de 38.5°C, dolor de garganta y congestión nasal. Niega otros síntomas. Sin antecedentes de alergias medicamentosas.',
-        author: appointment.doctorName,
-      },
-      {
-        id: '2',
-        timestamp: `${appointment.date} - ${appointment.time}`,
-        note: 'Exploración física: TA 120/80, FC 78 lpm, Temp 37.8°C. Faringe eritematosa sin exudado. Adenopatías cervicales pequeñas bilaterales. Auscultación pulmonar sin alteraciones.',
-        author: appointment.doctorName,
-      },
-      {
-        id: '3',
-        timestamp: `${appointment.date} - ${appointment.time}`,
-        note: 'Plan: Se indica tratamiento sintomático. Reposo relativo. Abundantes líquidos. Control en 5 días o antes si presenta datos de alarma.',
-        author: appointment.doctorName,
-      },
-    ],
-    prescriptions: [
-      {
-        id: '1',
-        medication: 'Paracetamol',
-        dose: '500 mg',
-        frequency: 'Cada 8 horas',
-        duration: '5 días',
-        notes: 'Tomar después de los alimentos',
-      },
-      {
-        id: '2',
-        medication: 'Loratadina',
-        dose: '10 mg',
-        frequency: 'Cada 24 horas',
-        duration: '7 días',
-        notes: 'Tomar en las mañanas',
-      },
-      {
-        id: '3',
-        medication: 'Ambroxol',
-        dose: '30 mg',
-        frequency: 'Cada 12 horas',
-        duration: '5 días',
-        notes: 'Tomar con abundante agua',
-      },
-    ],
-    documents: [
-      {
-        id: '1',
-        name: 'Receta Médica',
-        type: 'PDF',
-        size: '245 KB',
-        date: appointment.date,
-      },
-      {
-        id: '2',
-        name: 'Resultados de Laboratorio',
-        type: 'PDF',
-        size: '1.2 MB',
-        date: appointment.date,
-      },
-      {
-        id: '3',
-        name: 'Orden de Estudios',
-        type: 'PDF',
-        size: '180 KB',
-        date: appointment.date,
-      },
-    ],
+  // Cargar detalles de la cita al montar el componente
+  useEffect(() => {
+    loadAppointmentDetail();
+  }, [appointment?.id]);
+
+  const loadAppointmentDetail = async () => {
+    if (!appointment?.id) {
+      setError('ID de cita no vÃ¡lido');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const appointmentId = typeof appointment.id === 'string' 
+        ? parseInt(appointment.id) 
+        : appointment.id;
+        
+      const detail = await medicalHistoryService.getAppointmentDetail(appointmentId);
+      setCitaDetalle(detail);
+    } catch (err: any) {
+      console.error('Error al cargar detalle de cita:', err);
+      setError(err.message || 'Error al cargar el detalle de la cita');
+      toast.error('Error al cargar el detalle de la cita');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const statusConfig = {
+    ATENDIDA: { label: 'Atendida', color: 'bg-green-100 text-green-800' },
+    CANCELADA: { label: 'Cancelada', color: 'bg-red-100 text-red-800' },
+    PENDIENTE: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
+    CONFIRMADA: { label: 'Confirmada', color: 'bg-blue-100 text-blue-800' },
     completed: { label: 'Atendida', color: 'bg-green-100 text-green-800' },
     cancelled: { label: 'Cancelada', color: 'bg-red-100 text-red-800' },
     pending: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
     confirmed: { label: 'Confirmada', color: 'bg-blue-100 text-blue-800' },
-  };
-
-  const severityColors = {
-    Leve: 'bg-green-100 text-green-800',
-    Moderado: 'bg-yellow-100 text-yellow-800',
-    Severo: 'bg-red-100 text-red-800',
   };
 
   const EmptySection = ({ message }: { message: string }) => (
@@ -145,6 +91,77 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
       <p className="text-muted-foreground">{message}</p>
     </div>
   );
+
+  const LoadingState = () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+        <p className="text-muted-foreground">Cargando detalles de la cita...</p>
+      </div>
+    </div>
+  );
+
+  const ErrorState = () => (
+    <Card>
+      <CardContent className="py-12 text-center">
+        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">
+          Error al cargar la cita
+        </h3>
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <div className="flex gap-2 justify-center">
+          <Button onClick={() => onNavigate('medical-history')} variant="outline">
+            Volver al historial
+          </Button>
+          <Button onClick={loadAppointmentDetail}>
+            Reintentar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Button
+            variant="ghost"
+            onClick={() => onNavigate('medical-history')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al historial
+          </Button>
+          <LoadingState />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !citaDetalle) {
+    return (
+      <div className="min-h-screen bg-muted">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Button
+            variant="ghost"
+            onClick={() => onNavigate('medical-history')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al historial
+          </Button>
+          <ErrorState />
+        </div>
+      </div>
+    );
+  }
+
+  const formattedDate = medicalHistoryService.formatDate(citaDetalle.inicio);
+  const formattedTime = new Date(citaDetalle.inicio).toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
   return (
     <div className="min-h-screen bg-muted">
@@ -167,7 +184,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                   onClick={() => onNavigate('medical-history')}
                   className="cursor-pointer hover:text-primary"
                 >
-                  Historial Médico
+                  Historial MÃ©dico
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -178,7 +195,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
           </Breadcrumb>
         </div>
 
-        {/* Header con botón volver */}
+        {/* Header con botÃ³n volver */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -189,28 +206,28 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
             Volver al historial
           </Button>
           <h1 className="text-3xl font-bold text-foreground">
-            Detalle de Cita Médica
+            Detalle de Cita MÃ©dica
           </h1>
         </div>
 
-        {/* Información principal de la cita */}
+        {/* InformaciÃ³n principal de la cita */}
         <Card className="mb-6">
           <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              {/* Información del doctor y cita */}
+            <div className="flex flex-col lg:flex-row lg:items-start lg:items-start lg:justify-between gap-6">
+              {/* InformaciÃ³n del doctor y cita */}
               <div className="flex-1 space-y-4">
                 <div className="flex items-center space-x-4">
-                  <ImageWithFallback
-                    src={appointment.doctorImage}
-                    alt={appointment.doctorName}
-                    className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/20"
-                  />
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
+                    <span className="text-2xl font-semibold text-primary">
+                      {citaDetalle.nombreMedico.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </span>
+                  </div>
                   <div>
                     <h2 className="text-xl font-bold text-foreground">
-                      Dr. {appointment.doctorName}
+                      {citaDetalle.nombreMedico}
                     </h2>
                     <p className="text-muted-foreground">
-                      {appointment.doctorSpecialty}
+                      {citaDetalle.especialidad || 'Especialidad General'}
                     </p>
                   </div>
                 </div>
@@ -222,7 +239,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                     <Calendar className="h-5 w-5 text-primary" />
                     <div>
                       <p className="text-sm text-muted-foreground">Fecha</p>
-                      <p className="font-medium text-foreground">{appointment.date}</p>
+                      <p className="font-medium text-foreground">{formattedDate}</p>
                     </div>
                   </div>
 
@@ -230,36 +247,44 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                     <Clock className="h-5 w-5 text-primary" />
                     <div>
                       <p className="text-sm text-muted-foreground">Hora</p>
-                      <p className="font-medium text-foreground">{appointment.time}</p>
+                      <p className="font-medium text-foreground">{formattedTime}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Ubicación</p>
-                      <p className="font-medium text-foreground">{appointment.location}</p>
+                  {citaDetalle.direccionMedico && (
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">UbicaciÃ³n</p>
+                        <p className="font-medium text-foreground">{citaDetalle.direccionMedico}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center space-x-3">
                     <Stethoscope className="h-5 w-5 text-primary" />
                     <div>
                       <p className="text-sm text-muted-foreground">Estado</p>
-                      <Badge className={statusConfig[appointment.status as keyof typeof statusConfig]?.color}>
-                        {statusConfig[appointment.status as keyof typeof statusConfig]?.label}
+                      <Badge className={statusConfig[citaDetalle.estado as keyof typeof statusConfig]?.color || 'bg-gray-100 text-gray-800'}>
+                        {statusConfig[citaDetalle.estado as keyof typeof statusConfig]?.label || citaDetalle.estado}
                       </Badge>
                     </div>
                   </div>
                 </div>
+
+                {citaDetalle.motivo && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Motivo de la consulta</p>
+                      <p className="text-foreground">{citaDetalle.motivo}</p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Acciones */}
               <div className="flex flex-col gap-2 lg:min-w-[180px]">
-                <Button variant="outline" className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Descargar resumen
-                </Button>
                 <Button variant="outline" className="w-full" onClick={() => window.print()}>
                   <Printer className="h-4 w-4 mr-2" />
                   Imprimir
@@ -269,55 +294,74 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
           </CardContent>
         </Card>
 
-        {/* Pestañas de información clínica */}
+        {/* PestaÃ±as de informaciÃ³n clÃ­nica */}
         <Card>
           <CardContent className="p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6">
                 <TabsTrigger value="diagnostics" className="flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
-                  <span className="hidden sm:inline">Diagnósticos</span>
+                  <span className="hidden sm:inline">DiagnÃ³sticos</span>
                   <span className="sm:hidden">Diagn.</span>
+                  {citaDetalle.diagnosticos.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {citaDetalle.diagnosticos.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="notes" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">Notas Clínicas</span>
+                  <span className="hidden sm:inline">Notas ClÃ­nicas</span>
                   <span className="sm:hidden">Notas</span>
+                  {citaDetalle.notasClinicas.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {citaDetalle.notasClinicas.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="prescriptions" className="flex items-center gap-2">
                   <Pill className="h-4 w-4" />
                   <span className="hidden sm:inline">Recetas</span>
                   <span className="sm:hidden">Recetas</span>
+                  {citaDetalle.recetas.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {citaDetalle.recetas.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="documents" className="flex items-center gap-2">
                   <File className="h-4 w-4" />
                   <span className="hidden sm:inline">Documentos</span>
                   <span className="sm:hidden">Docs</span>
+                  {citaDetalle.documentos.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {citaDetalle.documentos.length}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               </TabsList>
 
-              {/* Diagnósticos */}
+              {/* DiagnÃ³sticos */}
               <TabsContent value="diagnostics" className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-foreground">Diagnósticos Registrados</h3>
+                  <h3 className="text-lg font-medium text-foreground">DiagnÃ³sticos Registrados</h3>
                 </div>
                 
-                {appointment.status === 'completed' && clinicalData.diagnostics.length > 0 ? (
+                {citaDetalle.diagnosticos.length > 0 ? (
                   <div className="space-y-3">
-                    {clinicalData.diagnostics.map((diagnosis) => (
-                      <Card key={diagnosis.id}>
+                    {citaDetalle.diagnosticos.map((diagnostico) => (
+                      <Card key={diagnostico.id}>
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline">{diagnosis.code}</Badge>
-                                <Badge className={severityColors[diagnosis.severity as keyof typeof severityColors]}>
-                                  {diagnosis.severity}
-                                </Badge>
+                                {diagnostico.codigo && (
+                                  <Badge variant="outline">{diagnostico.codigo}</Badge>
+                                )}
                               </div>
-                              <p className="font-medium text-foreground">{diagnosis.description}</p>
+                              <p className="font-medium text-foreground">{diagnostico.descripcion}</p>
                               <p className="text-sm text-muted-foreground mt-1">
-                                Registrado: {diagnosis.date}
+                                Registrado: {medicalHistoryService.formatDateTime(diagnostico.fecha)}
                               </p>
                             </div>
                           </div>
@@ -326,35 +370,37 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                     ))}
                   </div>
                 ) : (
-                  <EmptySection message="No se registraron diagnósticos para esta cita" />
+                  <EmptySection message="No se registraron diagnÃ³sticos para esta cita" />
                 )}
               </TabsContent>
 
-              {/* Notas Clínicas */}
+              {/* Notas ClÃ­nicas */}
               <TabsContent value="notes" className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-foreground">Notas y Observaciones</h3>
                 </div>
 
-                {appointment.status === 'completed' && clinicalData.clinicalNotes.length > 0 ? (
+                {citaDetalle.notasClinicas.length > 0 ? (
                   <div className="space-y-4">
-                    {clinicalData.clinicalNotes.map((note, index) => (
-                      <div key={note.id} className="relative pl-6 pb-6 border-l-2 border-primary/30 last:pb-0">
+                    {citaDetalle.notasClinicas.map((nota, index) => (
+                      <div key={nota.id} className="relative pl-6 pb-6 border-l-2 border-primary/30 last:pb-0">
                         <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-primary border-4 border-background" />
                         <Card>
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <p className="text-sm text-muted-foreground">{note.timestamp}</p>
-                              <p className="text-sm font-medium text-primary">Dr. {note.author}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {medicalHistoryService.formatDateTime(nota.fecha)}
+                              </p>
+                              <p className="text-sm font-medium text-primary">{citaDetalle.nombreMedico}</p>
                             </div>
-                            <p className="text-foreground leading-relaxed">{note.note}</p>
+                            <p className="text-foreground leading-relaxed whitespace-pre-wrap">{nota.contenido}</p>
                           </CardContent>
                         </Card>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <EmptySection message="Aún no hay notas clínicas para esta cita" />
+                  <EmptySection message="AÃºn no hay notas clÃ­nicas para esta cita" />
                 )}
               </TabsContent>
 
@@ -364,30 +410,48 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                   <h3 className="text-lg font-medium text-foreground">Medicamentos Recetados</h3>
                 </div>
 
-                {appointment.status === 'completed' && clinicalData.prescriptions.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Medicamento</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Dosis</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Frecuencia</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Duración</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Notas</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clinicalData.prescriptions.map((prescription) => (
-                          <tr key={prescription.id} className="border-b border-border hover:bg-muted/50">
-                            <td className="py-3 px-4 font-medium text-foreground">{prescription.medication}</td>
-                            <td className="py-3 px-4 text-foreground">{prescription.dose}</td>
-                            <td className="py-3 px-4 text-foreground">{prescription.frequency}</td>
-                            <td className="py-3 px-4 text-foreground">{prescription.duration}</td>
-                            <td className="py-3 px-4 text-muted-foreground text-sm">{prescription.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {citaDetalle.recetas.length > 0 ? (
+                  <div className="space-y-4">
+                    {citaDetalle.recetas.map((receta) => (
+                      <Card key={receta.id}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Receta del {medicalHistoryService.formatDate(receta.fecha)}</CardTitle>
+                          </div>
+                          {receta.indicaciones && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              <span className="font-medium">Indicaciones:</span> {receta.indicaciones}
+                            </p>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-border">
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Medicamento</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Dosis</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Frecuencia</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">DuraciÃ³n</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Notas</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {receta.medicamentos.map((med) => (
+                                  <tr key={med.id} className="border-b border-border hover:bg-muted/50">
+                                    <td className="py-3 px-4 font-medium text-foreground">{med.medicamento}</td>
+                                    <td className="py-3 px-4 text-foreground">{med.dosis || '-'}</td>
+                                    <td className="py-3 px-4 text-foreground">{med.frecuencia || '-'}</td>
+                                    <td className="py-3 px-4 text-foreground">{med.duracion || '-'}</td>
+                                    <td className="py-3 px-4 text-muted-foreground text-sm">{med.notas || '-'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 ) : (
                   <EmptySection message="No se prescribieron medicamentos en esta cita" />
@@ -400,23 +464,35 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                   <h3 className="text-lg font-medium text-foreground">Documentos Adjuntos</h3>
                 </div>
 
-                {appointment.status === 'completed' && clinicalData.documents.length > 0 ? (
+                {citaDetalle.documentos.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {clinicalData.documents.map((document) => (
-                      <Card key={document.id} className="hover:shadow-md transition-shadow">
+                    {citaDetalle.documentos.map((documento) => (
+                      <Card key={documento.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                           <div className="flex items-center space-x-4">
                             <div className="bg-primary/10 rounded-lg p-3">
                               <File className="h-8 w-8 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground truncate">{document.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {document.type} • {document.size}
+                              <p className="font-medium text-foreground truncate">{documento.nombreArchivo}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {medicalHistoryService.getCategoryLabel(documento.categoria)}
+                                </Badge>
+                                <p className="text-sm text-muted-foreground">
+                                  {medicalHistoryService.formatFileSize(documento.tamanoBytes)}
+                                </p>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {medicalHistoryService.formatDate(documento.fechaSubida)}
                               </p>
-                              <p className="text-xs text-muted-foreground mt-1">{document.date}</p>
+                              {documento.notas && (
+                                <p className="text-xs text-muted-foreground mt-1 truncate">
+                                  {documento.notas}
+                                </p>
+                              )}
                             </div>
-                            <Button size="sm" variant="ghost">
+                            <Button size="sm" variant="ghost" title="Descargar documento">
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>
