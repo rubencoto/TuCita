@@ -1,427 +1,236 @@
-# TuCitaOnline ??
+# TuCita - Sistema de Gestión de Citas Médicas
 
-Sistema de gestión de citas médicas en línea desarrollado con .NET 8 y React + TypeScript.
+**Rama:** `web/feature/ruben/epic-2-us-5-diagnosticos`
 
-[![.NET Version](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![React Version](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com/)
+## ?? Resumen
 
-## ?? Descripción
+Esta rama implementa el **Módulo de Historial Médico** completo para TuCita, incluyendo la integración frontend-backend para gestionar diagnósticos, notas clínicas, recetas y documentos médicos asociados a las citas atendidas.
 
-TuCitaOnline es una plataforma web completa para la gestión de citas médicas que conecta pacientes con médicos, permitiendo agendar, gestionar y hacer seguimiento de consultas médicas de manera eficiente.
+---
 
-## ??? Arquitectura del Sistema
+## ? Características Implementadas
 
-### Backend (.NET 8)
-- **Framework**: ASP.NET Core 8.0
-- **ORM**: Entity Framework Core 8.0.10
-- **Base de datos**: MySQL 8.0 (DigitalOcean Managed Database)
-- **Autenticación**: JWT (JSON Web Tokens)
-- **Patrón de arquitectura**: MVC + Repository Pattern con Services
+### Backend (ASP.NET Core 8)
 
-### Frontend (React + TypeScript)
-- **Framework**: React 18.3.1 con TypeScript 5.7.2
-- **Build Tool**: Vite 6.3.5
-- **UI Components**: Radix UI + Tailwind CSS
-- **State Management**: React Hooks
-- **HTTP Client**: Axios 1.12.2
-- **Routing**: React Router
+#### ? DTOs Creados
+- **DiagnosticoDto.cs** - Estructura de diagnósticos con códigos ICD
+- **NotaClinicaDto.cs** - Notas clínicas con timestamps
+- **RecetaDto.cs** - Prescripciones médicas con medicamentos y dosis
+- **DocumentoDto.cs** - Documentos médicos con categorización
+- **HistorialMedicoDto.cs** - Vista consolidada del historial del paciente
 
-## ?? Estructura de la Base de Datos
+#### ? Servicios
+- **MedicalHistoryService.cs** - Lógica de negocio para gestión de historiales médicos
+  - Obtener historial por paciente
+  - Detalles de cita específica
+  - CRUD de diagnósticos, notas, recetas y documentos
+  - Control de permisos basado en roles
 
-### Diagrama de Entidades
+#### ? API Controller
+- **MedicalHistoryController.cs** - Endpoints REST
+  - `GET /api/historial/paciente/{idPaciente}` - Historial del paciente
+  - `GET /api/historial/cita/{idCita}` - Detalle de cita
+  - `POST /api/historial/nota` - Crear nota clínica
+  - `POST /api/historial/diagnostico` - Crear diagnóstico
+  - `POST /api/historial/receta` - Crear prescripción
+  - `POST /api/historial/documento` - Subir documento
+  - `DELETE /api/historial/documento/{id}` - Eliminar documento
 
-```
-???????????????????????????????????????????????????????????????????
-?                    SISTEMA DE IDENTIDAD Y SEGURIDAD             ?
-???????????????????????????????????????????????????????????????????
+---
 
-    usuarios                roles               roles_usuarios
-????????????????       ????????????         ????????????????
-? id (PK)      ?       ? id (PK)  ?         ? usuario_id   ?
-? email        ????????? nombre   ??????????? rol_id       ?
-? password_hash?       ????????????         ? asignado_en  ?
-? nombre       ?                             ????????????????
-? apellido     ?
-? telefono     ?
-? activo       ?
-? token_recuperacion      ?
-? token_recuperacion_expira?
-????????????????
+### Frontend (Next.js + TypeScript)
 
-???????????????????????????????????????????????????????????????????
-?                         PERFILES DE USUARIO                     ?
-???????????????????????????????????????????????????????????????????
+#### ? Servicio de Integración
+- **medicalHistoryService.ts** - Capa de abstracción para API
+  - Type-safe interfaces que coinciden con DTOs del backend
+  - Manejo automático de tokens JWT
+  - Métodos helper para formateo de datos
+  - Gestión de errores centralizada
 
-   perfil_paciente                    perfil_medico
-????????????????????              ????????????????????
-? usuario_id (PK)  ?              ? usuario_id (PK)  ?
-? fecha_nacimiento ?              ? numero_licencia  ?
-? identificacion   ?              ? biografia        ?
-? telefono_emergencia?            ? direccion        ?
-????????????????????              ? ciudad           ?
-                                  ? provincia        ?
-                                  ? pais             ?
-                                  ? latitud          ?
-                                  ? longitud         ?
-                                  ????????????????????
+#### ? Páginas Actualizadas
+- **medical-history-page.tsx** - Vista principal del historial médico
+  - Carga de datos en tiempo real desde backend
+  - Filtros por fecha, especialidad, estado y doctor
+  - Estadísticas y contadores
+  - Estados de carga y error
+  - Badges informativos (diagnósticos, recetas, documentos)
 
-???????????????????????????????????????????????????????????????????
-?                           CATÁLOGOS                             ?
-???????????????????????????????????????????????????????????????????
+- **appointment-detail-page.tsx** - Vista detallada de cita
+  - Navegación con breadcrumbs
+  - Interfaz con tabs para cada tipo de registro médico
+  - Visualización de diagnósticos, notas, recetas y documentos
+  - Funcionalidad de impresión
+  - Formateo de fechas y tamaños de archivo
 
-    especialidades              medico_especialidad
-????????????????              ????????????????????
-? id (PK)      ?              ? medico_id        ?
-? nombre       ???????????????? especialidad_id  ?
-????????????????              ????????????????????
+---
 
-???????????????????????????????????????????????????????????????????
-?                      GESTIÓN DE CITAS                           ?
-???????????????????????????????????????????????????????????????????
+## ?? Seguridad y Autorización
 
-    agenda_turnos                    citas
-????????????????????           ????????????????????
-? id (PK)          ?           ? id (PK)          ?
-? medico_id (FK)   ????????????? turno_id (FK)    ?
-? inicio           ?           ? medico_id (FK)   ?
-? fin              ?           ? paciente_id (FK) ?
-? estado           ?           ? estado           ?
-?  - DISPONIBLE    ?           ?  - PENDIENTE     ?
-?  - RESERVADO     ?           ?  - CONFIRMADA    ?
-?  - BLOQUEADO     ?           ?  - CANCELADA     ?
-????????????????????           ?  - REPROGRAMADA  ?
-                               ?  - ATENDIDA      ?
-                               ?  - NO_ASISTE     ?
-                               ? motivo           ?
-                               ? creado_por (FK)  ?
-                               ????????????????????
+### Roles Implementados
 
-???????????????????????????????????????????????????????????????????
-?                    INFORMACIÓN CLÍNICA                          ?
-???????????????????????????????????????????????????????????????????
+#### PACIENTE
+- ? Ver su propio historial médico
+- ? Ver detalles de sus citas
+- ? No puede crear registros médicos
 
-   notas_clinicas              diagnosticos              recetas
-????????????????           ????????????????        ????????????????
-? id (PK)      ?           ? id (PK)      ?        ? id (PK)      ?
-? cita_id (FK) ?           ? cita_id (FK) ?        ? cita_id (FK) ?
-? medico_id    ?           ? codigo       ?        ? indicaciones ?
-? paciente_id  ?           ? descripcion  ?        ????????????????
-? nota         ?           ????????????????                ?
-????????????????                                           ?
-                                                    receta_items
-                                                ????????????????????
-                                                ? id (PK)          ?
-                                                ? receta_id (FK)   ?
-                                                ? medicamento      ?
-                                                ? dosis            ?
-                                                ? frecuencia       ?
-                                                ? duracion         ?
-                                                ? notas            ?
-                                                ????????????????????
+#### DOCTOR
+- ? Ver historial de cualquier paciente
+- ? Crear diagnósticos, notas y recetas
+- ? Subir documentos para sus propias citas
 
-???????????????????????????????????????????????????????????????????
-?                        NOTIFICACIONES                           ?
-???????????????????????????????????????????????????????????????????
+#### ADMIN
+- ? Acceso completo a todas las funcionalidades
 
-      notificaciones
-??????????????????????
-? id (PK)            ?
-? usuario_id (FK)    ?
-? cita_id (FK)       ?
-? canal              ?
-?  - CORREO          ?
-?  - SMS             ?
-?  - PUSH            ?
-?  - WEBHOOK         ?
-? tipo               ?
-?  - CREADA          ?
-?  - CONFIRMADA      ?
-?  - CANCELADA       ?
-?  - REPROGRAMADA    ?
-? contenido (JSON)   ?
-? enviada            ?
-? error              ?
-??????????????????????
-```
+### Autenticación
+- JWT tokens con validación automática
+- Interceptor de axios para inyección de tokens
+- Manejo de expiración y redirección automática
+- Protección CSRF no requerida (JWT stateless)
 
-### Tablas Principales
+---
 
-#### **Usuarios y Seguridad**
-| Tabla | Descripción | Campos Principales |
-|-------|-------------|-------------------|
-| `usuarios` | Información básica de todos los usuarios del sistema | email, password_hash, nombre, apellido, token_recuperacion |
-| `roles` | Catálogo de roles del sistema (Admin, Médico, Paciente) | nombre |
-| `roles_usuarios` | Relación muchos a muchos entre usuarios y roles | usuario_id, rol_id |
+## ?? Características de UI/UX
 
-#### **Perfiles**
-| Tabla | Descripción | Campos Principales |
-|-------|-------------|-------------------|
-| `perfil_paciente` | Información adicional de pacientes | fecha_nacimiento, identificacion, telefono_emergencia |
-| `perfil_medico` | Información adicional de médicos | numero_licencia, biografia, direccion, coordenadas GPS |
-| `medico_especialidad` | Especialidades de cada médico | medico_id, especialidad_id |
+- ? Diseño responsive (móvil, tablet, desktop)
+- ? Estados de carga con spinners
+- ? Mensajes de error amigables
+- ? Estados vacíos informativos
+- ? Accesibilidad (ARIA labels, navegación por teclado)
+- ? Contraste de colores conforme a estándares
+- ? Tooltips y ayudas contextuales
 
-#### **Gestión de Citas**
-| Tabla | Descripción | Campos Principales |
-|-------|-------------|-------------------|
-| `especialidades` | Catálogo de especialidades médicas | nombre |
-| `agenda_turnos` | Slots de tiempo disponibles por médico | medico_id, inicio, fin, estado |
-| `citas` | Citas agendadas entre pacientes y médicos | turno_id, medico_id, paciente_id, estado, motivo |
+---
 
-#### **Información Clínica**
-| Tabla | Descripción | Campos Principales |
-|-------|-------------|-------------------|
-| `notas_clinicas` | Notas médicas de cada consulta | cita_id, medico_id, nota |
-| `diagnosticos` | Diagnósticos de cada cita | cita_id, codigo, descripcion |
-| `recetas` | Recetas médicas emitidas | cita_id, indicaciones |
-| `receta_items` | Medicamentos de cada receta | receta_id, medicamento, dosis, frecuencia |
+## ??? Configuración Técnica
 
-#### **Notificaciones**
-| Tabla | Descripción | Campos Principales |
-|-------|-------------|-------------------|
-| `notificaciones` | Registro de notificaciones enviadas | usuario_id, cita_id, canal, tipo, enviada |
+### Backend
+- .NET 8
+- Entity Framework Core
+- SQL Server / Azure SQL Database
+- JWT Authentication
+- Inyección de dependencias
 
-## ?? Enumeraciones del Sistema
+### Frontend
+- Next.js 14+
+- TypeScript
+- Axios para HTTP requests
+- Tailwind CSS para estilos
+- Lucide React para iconos
 
-### EstadoTurno
-- `DISPONIBLE` - Turno disponible para agendar
-- `RESERVADO` - Turno ocupado con una cita
-- `BLOQUEADO` - Turno no disponible (médico no disponible)
+---
 
-### EstadoCita
-- `PENDIENTE` - Cita agendada pero no confirmada
-- `CONFIRMADA` - Cita confirmada por ambas partes
-- `CANCELADA` - Cita cancelada
-- `REPROGRAMADA` - Cita reprogramada a otro horario
-- `ATENDIDA` - Cita completada
-- `NO_ASISTE` - Paciente no asistió a la cita
-
-### CanalNotificacion
-- `CORREO` - Notificación por email
-- `SMS` - Notificación por mensaje de texto
-- `PUSH` - Notificación push en la app
-- `WEBHOOK` - Notificación vía webhook
-
-### TipoNotificacion
-- `CREADA` - Notificación de cita creada
-- `CONFIRMADA` - Notificación de cita confirmada
-- `CANCELADA` - Notificación de cita cancelada
-- `REPROGRAMADA` - Notificación de cita reprogramada
-
-## ?? API Endpoints
-
-### ?? Autenticación (`/api/auth`)
-
-| Método | Endpoint | Descripción | Auth Requerida |
-|--------|----------|-------------|----------------|
-| POST | `/api/auth/register` | Registrar nuevo usuario | ? |
-| POST | `/api/auth/login` | Iniciar sesión | ? |
-| POST | `/api/auth/forgot-password` | Solicitar recuperación de contraseña | ? |
-| POST | `/api/auth/reset-password` | Restablecer contraseña con código | ? |
-| GET | `/api/auth/me` | Obtener información del usuario actual | ? |
-
-### ????? Médicos (`/api/doctors`)
-
-| Método | Endpoint | Descripción | Auth Requerida |
-|--------|----------|-------------|----------------|
-| GET | `/api/doctors` | Listar todos los médicos | ? |
-| GET | `/api/doctors/{id}` | Obtener detalle de un médico | ? |
-| GET | `/api/doctors/{id}/turnos` | Obtener turnos disponibles de un médico | ? |
-| GET | `/api/doctors/search` | Buscar médicos por especialidad, nombre, ubicación | ? |
-
-### ?? Citas (`/api/appointments`)
-
-| Método | Endpoint | Descripción | Auth Requerida |
-|--------|----------|-------------|----------------|
-| GET | `/api/appointments` | Listar citas del usuario autenticado | ? |
-| GET | `/api/appointments/{id}` | Obtener detalle de una cita | ? |
-| POST | `/api/appointments` | Crear una nueva cita | ? |
-| PUT | `/api/appointments/{id}` | Actualizar una cita | ? |
-| DELETE | `/api/appointments/{id}` | Cancelar una cita | ? |
-| PUT | `/api/appointments/{id}/confirm` | Confirmar una cita | ? |
-
-### ?? Email (`/api/email`)
-
-| Método | Endpoint | Descripción | Auth Requerida |
-|--------|----------|-------------|----------------|
-| POST | `/api/email/test` | Enviar email de prueba | ? (Admin) |
-
-### ?? Health Check (`/api/health`)
-
-| Método | Endpoint | Descripción | Auth Requerida |
-|--------|----------|-------------|----------------|
-| GET | `/api/health` | Verificar estado de la aplicación y BD | ? |
-| GET | `/api/health/database-info` | Información de la base de datos | ? |
-| GET | `/api/health/test-connection` | Probar conexión a la base de datos | ? |
-
-## ?? Estructura del Proyecto
-
-```
-TuCita/
-??? Controllers/
-?   ??? Api/
-?       ??? AuthController.cs           # Autenticación y recuperación de contraseña
-?       ??? DoctorsController.cs        # Gestión de médicos
-?       ??? AppointmentsController.cs   # Gestión de citas
-?       ??? EmailController.cs          # Envío de emails
-?       ??? HealthController.cs         # Health checks
-?
-??? Services/
-?   ??? AuthService.cs                  # Lógica de autenticación
-?   ??? DoctorsService.cs               # Lógica de médicos
-?   ??? AppointmentsService.cs          # Lógica de citas
-?   ??? EmailService.cs                 # Servicio de envío de emails
-?
-??? Models/
-?   ??? DatabaseModels.cs               # Modelos de base de datos (EF Core)
-?   ??? ErrorViewModel.cs               # Modelo de errores
-?
-??? DTOs/
-?   ??? Auth/
-?   ?   ??? LoginRequestDto.cs
-?   ?   ??? RegisterRequestDto.cs
-?   ?   ??? AuthResponseDto.cs
-?   ?   ??? PasswordRecoveryDtos.cs
-?   ??? Doctors/
-?   ?   ??? DoctorDto.cs
-?   ?   ??? DoctorDetailDto.cs
-?   ?   ??? AgendaTurnoDto.cs
-?   ??? Appointments/
-?       ??? CitaDto.cs
-?       ??? CreateAppointmentRequest.cs
-?       ??? UpdateAppointmentRequest.cs
-?
-??? Data/
-?   ??? TuCitaDbContext.cs              # Contexto de Entity Framework
-?   ??? DbInitializer.cs                # Inicializador de datos
-?
-??? Migrations/                         # Migraciones de Entity Framework
-?
-??? ClientApp/                          # Frontend React + TypeScript
-?   ??? src/
-?   ?   ??? components/
-?   ?   ?   ??? pages/
-?   ?   ?       ??? auth-page.tsx       # Página de login/registro
-?   ?   ?       ??? forgot-password-page.tsx
-?   ?   ?       ??? reset-password-page.tsx
-?   ?   ?       ??? search-page.tsx     # Búsqueda de médicos
-?   ?   ?       ??? appointments-page.tsx
-?   ?   ??? services/
-?   ?   ?   ??? authService.ts
-?   ?   ?   ??? appointmentsService.ts
-?   ?   ?   ??? axiosConfig.ts
-?   ?   ??? main.tsx
-?   ??? package.json
-?   ??? tsconfig.json
-?   ??? vite.config.ts
-?
-??? Program.cs                          # Configuración principal
-??? appsettings.json                    # Configuración de la aplicación
-??? .env                                # Variables de entorno
-??? TuCita.csproj                       # Archivo del proyecto
-```
-
-## ??? Tecnologías y Paquetes
-
-### Backend (.NET)
-```xml
-<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
-<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10" />
-<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
-<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.1.2" />
-<PackageReference Include="DotNetEnv" Version="3.1.1" />
-<PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="8.0.10" />
-```
-
-### Frontend (React)
-- **UI Framework**: Radix UI (componentes accesibles)
-- **Styling**: Tailwind CSS + tailwindcss-animate
-- **Forms**: React Hook Form
-- **HTTP**: Axios
-- **Icons**: Lucide React
-- **Carousel**: Embla Carousel
-- **Notifications**: Sonner
-- **Themes**: next-themes
-- **Charts**: Recharts
-
-## ?? Configuración e Instalación
+## ?? Inicio Rápido
 
 ### Prerrequisitos
 - .NET 8 SDK
 - Node.js 18+
-- MySQL 8.0
-- Visual Studio 2022 o VS Code
+- SQL Server o Azure SQL Database
 
-### Variables de Entorno (.env)
+### Configuración del Backend
 
-Crear un archivo `.env` en la raíz del proyecto:
+1. **Navegar al directorio del proyecto:**
+   ```bash
+   cd TuCita
+   ```
 
-```env
-# Database Configuration (DigitalOcean)
-DB_SERVER=tu-servidor.db.ondigitalocean.com
-DB_PORT=25060
-DB_NAME=tco_db
-DB_USER=tu_usuario
-DB_PASSWORD=tu_contraseña_segura
+2. **Configurar la cadena de conexión:**
+   
+   Editar el archivo `.env` o `appsettings.json`:
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "tu-cadena-de-conexion"
+     }
+   }
+   ```
 
-# JWT Configuration
-JWT_KEY=tu_clave_secreta_muy_larga_y_segura_minimo_32_caracteres
-JWT_ISSUER=TuCita
-JWT_AUDIENCE=TuCitaUsers
+3. **Ejecutar migraciones:**
+   ```bash
+   dotnet ef database update
+   ```
 
-# Email Configuration (Gmail SMTP)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USERNAME=tu_email@gmail.com
-EMAIL_PASSWORD=tu_app_password
-EMAIL_FROM=tu_email@gmail.com
-EMAIL_FROM_NAME=TuCitaOnline
-```
+4. **Iniciar el servidor:**
+   ```bash
+   dotnet run
+   ```
 
-### Instalación
+### Configuración del Frontend
 
-1. **Clonar el repositorio**
-```bash
-git clone https://github.com/rubencoto/TuCita.git
-cd TuCita
-```
+1. **Navegar al directorio del cliente:**
+   ```bash
+   cd TuCita/ClientApp
+   ```
 
-2. **Configurar variables de entorno**
-```bash
-cp .env.example .env
-# Editar .env con tus credenciales
-```
+2. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-3. **Instalar dependencias del backend**
-```bash
-dotnet restore
-```
+3. **Iniciar el servidor de desarrollo:**
+   ```bash
+   npm run dev
+   ```
 
-4. **Instalar dependencias del frontend**
-```bash
-cd ClientApp
-npm install
-cd ..
-```
+4. **Abrir en el navegador:**
+   ```
+   http://localhost:3000
+   ```
 
-5. **Aplicar migraciones a la base de datos**
-```bash
-dotnet ef database update
-```
+---
 
-6. **Ejecutar la aplicación**
-```bash
-dotnet run
-```
+## ?? Documentación Adicional
 
-La aplicación estará disponible en:
-- Backend API: `https://localhost:7089`
-- Frontend: `http://localhost:3000` (Vite dev server)
+- [Documentación Completa del Módulo](MEDICAL_HISTORY_MODULE_DOCUMENTATION.md)
+- [Referencia Rápida de la API](MEDICAL_HISTORY_API_QUICK_REFERENCE.md)
+- [Guía de Integración Frontend-Backend](FRONTEND_BACKEND_INTEGRATION_GUIDE.md)
+- [Lista de Verificación de Pruebas](TESTING_CHECKLIST_MEDICAL_HISTORY.md)
+- [Guía de Inicio Rápido](QUICK_START_GUIDE.md)
 
-## ?? Estado del Proyecto
+---
+
+## ?? Pruebas
+
+### Probar Historial Médico
+
+1. **Iniciar sesión como paciente**
+2. **Navegar a "Historial Médico"**
+3. **Verificar que los datos se cargan correctamente**
+4. **Probar filtros (fecha, especialidad, estado)**
+5. **Hacer clic en "Ver Detalles" de una cita**
+6. **Verificar que todos los tabs muestran información correcta**
+
+### Probar Creación de Registros Médicos (Doctores)
+
+1. **Iniciar sesión como doctor**
+2. **Acceder a una cita atendida**
+3. **Crear un diagnóstico**
+4. **Agregar una nota clínica**
+5. **Crear una receta**
+6. **Subir un documento**
+
+---
+
+## ?? Solución de Problemas
+
+### Error: "Usuario no autenticado"
+- Verificar que el token existe en localStorage
+- Verificar que el token no ha expirado (60 minutos por defecto)
+
+### Error: "Error al cargar historial médico"
+- Verificar que el backend está ejecutándose
+- Verificar la configuración de CORS
+
+### Historial médico vacío
+- Solo se muestran citas con estado "ATENDIDA"
+- Verificar que existen datos de prueba con citas completadas
+
+### Error de permisos
+- Verificar que el usuario tiene el rol correcto
+- Verificar que el JWT token incluye los claims de rol
+
+---
+
+## ?? Estado de Implementación
 
 ### ? Funcionalidades Implementadas
 
@@ -469,6 +278,14 @@ La aplicación estará disponible en:
 - [x] Página de gestión de citas
 - [x] Integración con API backend
 - [x] Manejo de autenticación con tokens
+
+#### Historial Médico
+- [x] Visualización de historial médico
+- [x] Registro de diagnósticos
+- [x] Creación de notas clínicas
+- [x] Emisión de recetas médicas
+- [x] Gestión de documentos médicos
+- [x] Seguridad y control de acceso por roles
 
 ### ?? En Desarrollo
 
