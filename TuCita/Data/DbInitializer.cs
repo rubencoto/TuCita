@@ -19,13 +19,12 @@ public static class DbInitializer
             return; // Ya hay roles, no hacer nada
         }
 
-        // Crear roles básicos
+        // Crear roles básicos (según el schema de Azure SQL)
         var roles = new[]
         {
-            new Rol { Nombre = "PACIENTE", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow },
-            new Rol { Nombre = "MEDICO", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow },
-            new Rol { Nombre = "RECEPCION", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow },
-            new Rol { Nombre = "ADMIN", CreadoEn = DateTime.UtcNow, ActualizadoEn = DateTime.UtcNow }
+            new Rol { Nombre = "PACIENTE" },
+            new Rol { Nombre = "MEDICO" },
+            new Rol { Nombre = "ADMIN" }
         };
 
         await context.Roles.AddRangeAsync(roles);
@@ -44,9 +43,7 @@ public static class DbInitializer
         {
             rolPaciente = new Rol 
             { 
-                Nombre = "PACIENTE",
-                CreadoEn = DateTime.UtcNow,
-                ActualizadoEn = DateTime.UtcNow
+                Nombre = "PACIENTE"
             };
             
             context.Roles.Add(rolPaciente);
@@ -90,6 +87,7 @@ public static class DbInitializer
             return; // Ya hay especialidades
         }
 
+        // Especialidades según el schema de Azure SQL
         var especialidades = new[]
         {
             new Especialidad { Nombre = "Cardiología", CreadoEn = DateTime.UtcNow },
@@ -289,10 +287,10 @@ public static class DbInitializer
             await context.Database.MigrateAsync();
         }
         
-        // Inicializar roles
+        // Inicializar roles si no existen
         await InitializeRolesAsync(context);
         
-        // Inicializar especialidades
+        // Inicializar especialidades si no existen
         await InitializeEspecialidadesAsync(context);
         
         // Inicializar médicos de prueba (solo en desarrollo)

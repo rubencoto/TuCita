@@ -19,11 +19,14 @@ public class TuCitaDbContext : DbContext
     public DbSet<MedicoEspecialidad> MedicosEspecialidades { get; set; }
     public DbSet<AgendaTurno> AgendaTurnos { get; set; }
     public DbSet<Cita> Citas { get; set; }
-    public DbSet<Notificacion> Notificaciones { get; set; }
     public DbSet<NotaClinica> NotasClinicas { get; set; }
     public DbSet<Diagnostico> Diagnosticos { get; set; }
     public DbSet<Receta> Recetas { get; set; }
     public DbSet<RecetaItem> RecetaItems { get; set; }
+    public DbSet<AzureAlmacenConfig> AzureAlmacenConfigs { get; set; }
+    public DbSet<DocumentoClinico> DocumentosClinicos { get; set; }
+    public DbSet<DocumentoEtiqueta> DocumentoEtiquetas { get; set; }
+    public DbSet<DocumentoDescarga> DocumentoDescargas { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,11 +48,13 @@ public class TuCitaDbContext : DbContext
         
         modelBuilder.Entity<AgendaTurno>()
             .Property(e => e.Estado)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasMaxLength(50);
 
         modelBuilder.Entity<Cita>()
             .Property(e => e.Estado)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasMaxLength(50);
 
         modelBuilder.Entity<Notificacion>()
             .Property(e => e.Canal)
@@ -164,8 +169,8 @@ public class TuCitaDbContext : DbContext
         modelBuilder.Entity<Notificacion>()
             .HasOne(n => n.Cita)
             .WithMany()
-            .HasForeignKey(n => n.CitaId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .HasForeignKey(c => c.CreadoPor)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Relaciones uno a uno para perfiles
         modelBuilder.Entity<PerfilPaciente>()
