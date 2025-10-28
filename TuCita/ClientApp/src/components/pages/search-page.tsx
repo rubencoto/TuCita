@@ -61,7 +61,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
       if (filters.specialty || filters.location) {
         const data = await doctorsService.getDoctors({
           especialidad: filters.specialty || undefined,
-          ciudad: filters.location || undefined,
+          location: filters.location || undefined,
         });
         setDoctors(data);
         
@@ -137,14 +137,16 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
   const transformDoctorForCard = (doctor: Doctor) => ({
     id: doctor.id.toString(),
     name: doctor.nombre,
-    specialty: doctor.especialidades[0] || 'Especialista',
-    hospital: doctor.sedes[0]?.nombre || 'Hospital',
-    location: doctor.sedes[0]?.location || 'Ubicación no disponible',
+    specialty: doctor.especialidades.length > 0 
+      ? doctor.especialidades.join(', ') 
+      : 'Especialista',
+    hospital: doctor.sedes[0]?.nombre || 'Consultorio',
+    location: doctor.sedes[0]?.location || doctor.sedes[0]?.direccion || 'Ubicación no disponible',
     rating: doctor.rating,
     reviewCount: doctor.reviewCount,
     image: doctor.imageUrl,
-    availableSlots: 0, // TODO: Implementar conteo de slots disponibles
-    nextAvailable: 'Consultar disponibilidad',
+    availableSlots: doctor.availableSlots || 0,
+    nextAvailable: doctor.nextAvailable || 'Consultar disponibilidad',
   });
 
   return (

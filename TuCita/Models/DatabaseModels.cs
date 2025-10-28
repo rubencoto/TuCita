@@ -176,24 +176,6 @@ public class PerfilMedico
     [Column("direccion")]
     public string? Direccion { get; set; }
 
-    [StringLength(100)]
-    [Column("ciudad")]
-    public string? Ciudad { get; set; }
-
-    [StringLength(100)]
-    [Column("provincia")]
-    public string? Provincia { get; set; }
-
-    [StringLength(100)]
-    [Column("pais")]
-    public string? Pais { get; set; }
-
-    [Column("longitud")]
-    public double? Longitud { get; set; }
-
-    [Column("latitud")]
-    public double? Latitud { get; set; }
-
     [Column("creado_en")]
     public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
 

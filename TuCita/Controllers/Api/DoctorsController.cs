@@ -16,11 +16,14 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetDoctors([FromQuery] string? specialty = null, [FromQuery] string? ciudad = null, [FromQuery] string? search = null)
+    public async Task<IActionResult> GetDoctors(
+        [FromQuery] string? specialty = null, 
+        [FromQuery] string? search = null,
+        [FromQuery] string? location = null)
     {
         try
         {
-            var doctors = await _doctorsService.GetDoctorsAsync(specialty, ciudad);
+            var doctors = await _doctorsService.GetDoctorsAsync(specialty, location);
 
             // Aplicar filtro de búsqueda por nombre si se proporciona
             if (!string.IsNullOrEmpty(search))
@@ -33,22 +36,31 @@ public class DoctorsController : ControllerBase
             // Formatear respuesta para compatibilidad con frontend
             var response = doctors.Select(d => new
             {
-                id = d.Id.ToString(),
-                name = d.Nombre,
-                specialty = string.Join(", ", d.Especialidades),
-                specialties = d.Especialidades,
-                image = d.ImageUrl,
-                rating = d.Rating,
-                reviewCount = d.ReviewCount,
-                experience = d.ExperienceYears,
-                location = d.Location ?? "No especificado",
-                direccion = d.Direccion,
-                ciudad = d.Ciudad,
-                provincia = d.Provincia,
-                pais = d.Pais,
-                availableSlots = new[] { "9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM" },
-                about = d.Biografia ?? "Información no disponible",
-                telefono = d.Telefono
+                id = d.Id,
+                nombre = d.Nombre,
+                especialidades = d.Especialidades,
+                imageUrl = d.ImageUrl,
+                experienceYears = d.ExperienceYears,
+                direccion = d.Direccion ?? "No especificado",
+                telefono = d.Telefono,
+                biografia = d.Biografia ?? "Información no disponible",
+                numeroLicencia = d.NumeroLicencia,
+                availableSlots = d.AvailableSlots,
+                nextAvailable = d.NextAvailable,
+                // Estructura de sedes para compatibilidad con frontend
+                sedes = new[]
+                {
+                    new
+                    {
+                        id = 1,
+                        nombre = "Consultorio Principal",
+                        direccion = d.Direccion,
+                        location = d.Direccion ?? "Ubicación no disponible",
+                        activa = true
+                    }
+                },
+                rating = 4.5,
+                reviewCount = 0
             });
 
             return Ok(response);
@@ -79,23 +91,30 @@ public class DoctorsController : ControllerBase
             // Formatear respuesta para compatibilidad con frontend
             var response = new
             {
-                id = doctor.Id.ToString(),
-                name = doctor.Nombre,
-                specialty = string.Join(", ", doctor.Especialidades),
-                specialties = doctor.Especialidades,
-                image = doctor.ImageUrl,
-                rating = doctor.Rating,
-                reviewCount = doctor.ReviewCount,
-                experience = doctor.ExperienceYears,
-                location = doctor.Location ?? "No especificado",
-                direccion = doctor.Direccion,
-                ciudad = doctor.Ciudad,
-                provincia = doctor.Provincia,
-                pais = doctor.Pais,
-                availableSlots = new[] { "9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM" },
-                about = doctor.About,
+                id = doctor.Id,
+                nombre = doctor.Nombre,
+                especialidades = doctor.Especialidades,
+                imageUrl = doctor.ImageUrl,
+                experienceYears = doctor.ExperienceYears,
+                direccion = doctor.Direccion ?? "No especificado",
                 telefono = doctor.Telefono,
-                email = doctor.Email
+                email = doctor.Email,
+                biografia = doctor.About,
+                numeroLicencia = doctor.NumeroLicencia,
+                // Estructura de sedes para compatibilidad con frontend
+                sedes = new[]
+                {
+                    new
+                    {
+                        id = 1,
+                        nombre = "Consultorio Principal",
+                        direccion = doctor.Direccion,
+                        location = doctor.Direccion ?? "Ubicación no disponible",
+                        activa = true
+                    }
+                },
+                rating = 4.5,
+                reviewCount = 0
             };
 
             return Ok(response);
@@ -121,7 +140,9 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{doctorId}/slots")]
-    public async Task<IActionResult> GetAvailableSlots(string doctorId, [FromQuery] string? fecha = null)
+    public async Task<IActionResult> GetAvailableSlots(
+        string doctorId, 
+        [FromQuery] string? fecha = null)
     {
         try
         {
@@ -151,7 +172,9 @@ public class DoctorsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+            Console.WriteLine($"Error en GetAvailableSlots: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "Error al obtener turnos disponibles", error = ex.Message });
         }
     }
 }

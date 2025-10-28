@@ -16,6 +16,9 @@
     
     <!-- No incluir archivos TypeScript en la compilación de C# -->
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)**\*.ts;$(SpaRoot)**\*.tsx</DefaultItemExcludes>
+    
+    <!-- Excluir Tools/HashGenerator de la compilación principal -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Tools\**\*.cs</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +26,11 @@
     <Content Remove="$(SpaRoot)**" />
     <None Remove="$(SpaRoot)**" />
     <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
+    
+    <!-- Excluir archivos de Tools -->
+    <Compile Remove="Tools\**" />
+    <EmbeddedResource Remove="Tools\**" />
+    <None Remove="Tools\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,7 +42,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+    <!-- SQL Server provider para Azure SQL Database y SQL Server local -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.1.2" />
   </ItemGroup>

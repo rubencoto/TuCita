@@ -13,10 +13,10 @@ import {
   CheckCircle,
   Phone,
   Mail,
-  MessageSquare,
   Heart
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { AgendaTurno } from '@/services/doctorsService';
 
 interface BookingPageProps {
   doctor: any;
@@ -24,14 +24,8 @@ interface BookingPageProps {
   onBookAppointment: (appointment: any) => void;
 }
 
-interface TimeSlot {
-  time: string;
-  available: boolean;
-  id: string;
-}
-
 export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPageProps) {
-  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slot: TimeSlot } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slot: AgendaTurno } | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
@@ -50,7 +44,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
     );
   }
 
-  const handleSlotSelect = (date: Date, timeSlot: TimeSlot) => {
+  const handleSlotSelect = (date: Date, timeSlot: AgendaTurno) => {
     setSelectedSlot({ date, slot: timeSlot });
   };
 
@@ -64,9 +58,9 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
     
     const newAppointment = {
       id: Date.now().toString(),
-      doctorName: doctor.name,
-      doctorSpecialty: doctor.specialty,
-      doctorImage: doctor.image,
+      doctorName: doctor.nombre,
+      doctorSpecialty: doctor.especialidades?.[0] || 'Especialidad General',
+      doctorImage: doctor.imageUrl,
       date: selectedSlot.date.toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
@@ -74,7 +68,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
         day: 'numeric',
       }),
       time: selectedSlot.slot.time,
-      location: `${doctor.hospital}, ${doctor.location}`,
+      location: doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada',
       status: 'confirmed' as const,
       type: 'consultation' as const,
     };
@@ -84,7 +78,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
     setIsBooking(false);
     
     toast.success('¡Cita confirmada exitosamente!', {
-      description: `Tu cita con Dr. ${doctor.name} ha sido agendada para el ${newAppointment.date} a las ${newAppointment.time}.`,
+      description: `Tu cita con ${doctor.nombre} ha sido agendada para el ${newAppointment.date} a las ${newAppointment.time}.`,
     });
   };
 
@@ -108,13 +102,13 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
             <div className="bg-accent rounded-lg p-6 mb-6">
               <div className="flex items-center space-x-4 mb-4">
                 <ImageWithFallback
-                  src={doctor.image}
-                  alt={doctor.name}
+                  src={doctor.imageUrl}
+                  alt={doctor.nombre}
                   className="w-16 h-16 rounded-full object-cover"
                 />
                 <div className="text-left">
-                  <h3 className="font-semibold">Dr. {doctor.name}</h3>
-                  <p className="text-muted-foreground">{doctor.specialty}</p>
+                  <h3 className="font-semibold">{doctor.nombre}</h3>
+                  <p className="text-muted-foreground">{doctor.especialidades?.[0] || 'Especialidad General'}</p>
                 </div>
               </div>
               
@@ -134,7 +128,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                 </div>
                 <div className="flex items-center space-x-2 sm:col-span-2">
                   <MapPin className="h-4 w-4 text-primary" />
-                  <span>{doctor.hospital}, {doctor.location}</span>
+                  <span>{doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada'}</span>
                 </div>
               </div>
             </div>
@@ -183,12 +177,12 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                 {/* Doctor Profile */}
                 <div className="text-center">
                   <ImageWithFallback
-                    src={doctor.image}
-                    alt={doctor.name}
+                    src={doctor.imageUrl}
+                    alt={doctor.nombre}
                     className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
                   />
-                  <h3 className="text-xl font-semibold">Dr. {doctor.name}</h3>
-                  <p className="text-muted-foreground">{doctor.specialty}</p>
+                  <h3 className="text-xl font-semibold">{doctor.nombre}</h3>
+                  <p className="text-muted-foreground">{doctor.especialidades?.[0] || 'Especialidad General'}</p>
                   
                   <div className="flex items-center justify-center space-x-1 mt-2">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -200,13 +194,15 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                 {/* Hospital Info */}
                 <div className="space-y-3">
                   <div>
-                    <h4 className="font-medium mb-2">Hospital</h4>
-                    <p className="text-muted-foreground">{doctor.hospital}</p>
+                    <h4 className="font-medium mb-2">Consultorio</h4>
+                    <p className="text-muted-foreground">
+                      {doctor.sedes?.[0]?.nombre || 'Consultorio Principal'}
+                    </p>
                   </div>
                   
                   <div className="flex items-center space-x-2 text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    <span>{doctor.location}</span>
+                    <span>{doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada'}</span>
                   </div>
                 </div>
 
@@ -214,24 +210,30 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                 <div className="space-y-3 pt-4 border-t border-border">
                   <h4 className="font-medium">Información de Contacto</h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      <span>+52 55 1234 5678</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      <span>contacto@{doctor.hospital.toLowerCase().replace(/\s/g, '')}.com</span>
-                    </div>
+                    {doctor.telefono && (
+                      <div className="flex items-center space-x-2 text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <span>{doctor.telefono}</span>
+                      </div>
+                    )}
+                    {doctor.email && (
+                      <div className="flex items-center space-x-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span>{doctor.email}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Availability Badge */}
-                <div className="pt-4 border-t border-border">
-                  <Badge variant="secondary" className="w-full justify-center py-2">
-                    <Heart className="h-4 w-4 mr-2" />
-                    {doctor.availableSlots} espacios disponibles
-                  </Badge>
-                </div>
+                {doctor.availableSlots > 0 && (
+                  <div className="pt-4 border-t border-border">
+                    <Badge variant="secondary" className="w-full justify-center py-2">
+                      <Heart className="h-4 w-4 mr-2" />
+                      {doctor.availableSlots} espacios disponibles
+                    </Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -240,7 +242,8 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
           <div className="lg:col-span-2">
             <div className="space-y-6">
               <AppointmentCalendar
-                doctorName={doctor.name}
+                doctorId={doctor.id}
+                doctorName={doctor.nombre}
                 onSelectSlot={handleSlotSelect}
                 selectedSlot={selectedSlot}
               />
@@ -260,11 +263,11 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span>Médico:</span>
-                          <span className="font-medium">Dr. {doctor.name}</span>
+                          <span className="font-medium">{doctor.nombre}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Especialidad:</span>
-                          <span className="font-medium">{doctor.specialty}</span>
+                          <span className="font-medium">{doctor.especialidades?.[0] || 'Especialidad General'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Fecha:</span>
@@ -283,7 +286,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                         </div>
                         <div className="flex justify-between">
                           <span>Ubicación:</span>
-                          <span className="font-medium">{doctor.hospital}</span>
+                          <span className="font-medium">{doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada'}</span>
                         </div>
                       </div>
                     </div>

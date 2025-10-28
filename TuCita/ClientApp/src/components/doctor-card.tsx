@@ -41,7 +41,7 @@ export function DoctorCard({ doctor, onViewSchedule }: DoctorCardProps) {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground truncate">
-                  Dr. {doctor.name}
+                  {doctor.name}
                 </h3>
                 <p className="text-muted-foreground">
                   {doctor.specialty}
@@ -51,8 +51,8 @@ export function DoctorCard({ doctor, onViewSchedule }: DoctorCardProps) {
               {/* Rating */}
               <div className="flex items-center space-x-1 ml-4">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{doctor.rating}</span>
-                <span className="text-muted-foreground">({doctor.reviewCount})</span>
+                <span className="font-medium">{doctor.rating.toFixed(1)}</span>
+                <span className="text-muted-foreground text-sm">({doctor.reviewCount})</span>
               </div>
             </div>
 
@@ -68,13 +68,11 @@ export function DoctorCard({ doctor, onViewSchedule }: DoctorCardProps) {
             </div>
 
             {/* Disponibilidad */}
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary" className="text-xs">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {doctor.availableSlots} espacios disponibles
-                </Badge>
-              </div>
+            <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
+              <Badge variant="secondary" className="text-xs">
+                <Calendar className="h-3 w-3 mr-1" />
+                {doctor.availableSlots} espacio{doctor.availableSlots !== 1 ? 's' : ''} disponible{doctor.availableSlots !== 1 ? 's' : ''}
+              </Badge>
               <p className="text-xs text-muted-foreground">
                 Próximo: {doctor.nextAvailable}
               </p>

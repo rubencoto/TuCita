@@ -30,6 +30,7 @@ public class DoctorsService : IDoctorsService
                 .Include(pm => pm.Usuario)
                 .Include(pm => pm.EspecialidadesMedico)
                     .ThenInclude(me => me.Especialidad)
+                .Include(pm => pm.AgendaTurnos)
                 .AsQueryable();
 
             // Aplicar filtros solo si el usuario está activo
@@ -43,7 +44,7 @@ public class DoctorsService : IDoctorsService
 
             if (!string.IsNullOrEmpty(ciudad))
             {
-                query = query.Where(pm => pm.Ciudad != null && pm.Ciudad.Contains(ciudad));
+                query = query.Where(pm => pm.Direccion != null && pm.Direccion.Contains(ciudad));
             }
 
             var medicos = await query.ToListAsync();
@@ -61,17 +62,13 @@ public class DoctorsService : IDoctorsService
                 NumeroLicencia = pm.NumeroLicencia,
                 Biografia = pm.Biografia,
                 Direccion = pm.Direccion,
-                Ciudad = pm.Ciudad,
-                Provincia = pm.Provincia,
-                Pais = pm.Pais,
-                Location = BuildLocationString(pm),
                 Telefono = pm.Usuario?.Telefono,
-                Rating = CalculateRating(),
-                ReviewCount = CalculateReviewCount(),
                 ImageUrl = pm.Usuario != null 
                     ? GetDoctorImageUrl(pm.Usuario.Nombre, pm.Usuario.Apellido) 
                     : GetDoctorImageUrl("Doctor", "Default"),
-                ExperienceYears = CalculateExperienceYears(pm.CreadoEn)
+                ExperienceYears = CalculateExperienceYears(pm.CreadoEn),
+                AvailableSlots = GetAvailableSlotsCount(pm.AgendaTurnos),
+                NextAvailable = GetNextAvailableSlot(pm.AgendaTurnos)
             }).ToList();
         }
         catch (Exception ex)
@@ -107,14 +104,8 @@ public class DoctorsService : IDoctorsService
                 NumeroLicencia = medico.NumeroLicencia,
                 Biografia = medico.Biografia,
                 Direccion = medico.Direccion,
-                Ciudad = medico.Ciudad,
-                Provincia = medico.Provincia,
-                Pais = medico.Pais,
-                Location = BuildLocationString(medico),
                 Telefono = medico.Usuario?.Telefono,
                 Email = medico.Usuario?.Email,
-                Rating = CalculateRating(),
-                ReviewCount = CalculateReviewCount(),
                 ImageUrl = medico.Usuario != null 
                     ? GetDoctorImageUrl(medico.Usuario.Nombre, medico.Usuario.Apellido) 
                     : GetDoctorImageUrl("Doctor", "Default"),
@@ -179,36 +170,6 @@ public class DoctorsService : IDoctorsService
     }
 
     // Helper methods
-    private static string BuildLocationString(PerfilMedico medico)
-    {
-        var parts = new List<string>();
-        
-        if (!string.IsNullOrEmpty(medico.Ciudad))
-            parts.Add(medico.Ciudad);
-            
-        if (!string.IsNullOrEmpty(medico.Provincia))
-            parts.Add(medico.Provincia);
-
-        if (!string.IsNullOrEmpty(medico.Pais))
-            parts.Add(medico.Pais);
-            
-        return string.Join(", ", parts);
-    }
-
-    private static double CalculateRating()
-    {
-        // TODO: Implementar cálculo real basado en reviews
-        var random = new Random();
-        return Math.Round(random.NextDouble() * (5.0 - 4.0) + 4.0, 1);
-    }
-
-    private static int CalculateReviewCount()
-    {
-        // TODO: Implementar conteo real de reviews
-        var random = new Random();
-        return random.Next(15, 150);
-    }
-
     private static string CalculateExperienceYears(DateTime creadoEn)
     {
         var years = DateTime.UtcNow.Year - creadoEn.Year;
@@ -216,6 +177,40 @@ public class DoctorsService : IDoctorsService
             years--;
             
         return years <= 0 ? "Nuevo" : $"{years} año{(years == 1 ? "" : "s")} de experiencia";
+    }
+
+    private static int GetAvailableSlotsCount(ICollection<AgendaTurno> turnos)
+    {
+        if (turnos == null) return 0;
+        
+        var today = DateTime.UtcNow.Date;
+        var nextWeek = today.AddDays(7);
+        
+        return turnos.Count(t => 
+            t.Estado == EstadoTurno.DISPONIBLE && 
+            t.Inicio >= today && 
+            t.Inicio < nextWeek);
+    }
+
+    private static string GetNextAvailableSlot(ICollection<AgendaTurno> turnos)
+    {
+        if (turnos == null) return "Consultar disponibilidad";
+        
+        var now = DateTime.UtcNow;
+        var nextSlot = turnos
+            .Where(t => t.Estado == EstadoTurno.DISPONIBLE && t.Inicio > now)
+            .OrderBy(t => t.Inicio)
+            .FirstOrDefault();
+
+        if (nextSlot == null) return "Consultar disponibilidad";
+
+        var days = (nextSlot.Inicio.Date - now.Date).Days;
+        
+        if (days == 0) return $"Hoy {nextSlot.Inicio:HH:mm}";
+        if (days == 1) return $"Mañana {nextSlot.Inicio:HH:mm}";
+        if (days < 7) return nextSlot.Inicio.ToString("dddd HH:mm");
+        
+        return nextSlot.Inicio.ToString("dd/MM HH:mm");
     }
 
     private static string GetDoctorImageUrl(string nombre, string apellido)

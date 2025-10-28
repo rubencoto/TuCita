@@ -8,13 +8,13 @@ public class DoctorDto
     public string? NumeroLicencia { get; set; }
     public string? Biografia { get; set; }
     public string? Direccion { get; set; }
-    public string? Ciudad { get; set; }
-    public string? Provincia { get; set; }
-    public string? Pais { get; set; }
-    public string? Location { get; set; }
     public string? Telefono { get; set; }
-    public double Rating { get; set; }
-    public int ReviewCount { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string ExperienceYears { get; set; } = string.Empty;
+    public decimal Rating { get; set; } = 4.5m;
+    public int ReviewCount { get; set; } = 0;
+    public string Hospital { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public int AvailableSlots { get; set; } = 0;
+    public string NextAvailable { get; set; } = string.Empty;
 }

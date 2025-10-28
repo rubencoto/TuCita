@@ -12,6 +12,8 @@ export interface Doctor {
   reviewCount: number;
   imageUrl: string;
   experienceYears: string;
+  availableSlots?: number;
+  nextAvailable?: string;
 }
 
 export interface Sede {
@@ -28,6 +30,7 @@ export interface Sede {
 
 export interface AgendaTurno {
   id: number;
+  time: string;
   inicio: string;
   fin: string;
   estado: string;
@@ -36,6 +39,7 @@ export interface AgendaTurno {
 export interface SearchFilters {
   especialidad?: string;
   ciudad?: string;
+  location?: string;
 }
 
 const doctorsService = {
@@ -45,8 +49,10 @@ const doctorsService = {
   async getDoctors(filters?: SearchFilters): Promise<Doctor[]> {
     try {
       const params = new URLSearchParams();
-      if (filters?.especialidad) params.append('especialidad', filters.especialidad);
-      if (filters?.ciudad) params.append('ciudad', filters.ciudad);
+      if (filters?.especialidad) params.append('specialty', filters.especialidad);
+      if (filters?.ciudad || filters?.location) {
+        params.append('location', filters.ciudad || filters.location || '');
+      }
 
       const response = await api.get(`/api/doctors?${params.toString()}`);
       return response.data;
@@ -83,17 +89,16 @@ const doctorsService = {
   },
 
   /**
-   * Obtener turnos disponibles para un doctor en una sede específica
+   * Obtener turnos disponibles para un doctor en una fecha específica
    */
   async getAvailableSlots(
     doctorId: number,
-    sedeId: number,
     fecha: Date
   ): Promise<AgendaTurno[]> {
     try {
       const fechaStr = fecha.toISOString().split('T')[0];
       const response = await api.get(
-        `/api/doctors/${doctorId}/available-slots?sedeId=${sedeId}&fecha=${fechaStr}`
+        `/api/doctors/${doctorId}/slots?fecha=${fechaStr}`
       );
       return response.data;
     } catch (error) {
@@ -101,6 +106,34 @@ const doctorsService = {
       return [];
     }
   },
+
+  /**
+   * Obtener turnos disponibles para un rango de fechas
+   */
+  async getAvailableSlotsRange(
+    doctorId: number,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Record<string, AgendaTurno[]>> {
+    try {
+      const slots: Record<string, AgendaTurno[]> = {};
+      const currentDate = new Date(startDate);
+      
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const daySlots = await doctorsService.getAvailableSlots(doctorId, new Date(currentDate));
+        if (daySlots.length > 0) {
+          slots[dateKey] = daySlots;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return slots;
+    } catch (error) {
+      console.error('Error al obtener turnos disponibles por rango:', error);
+      return {};
+    }
+  }
 };
 
 export default doctorsService;

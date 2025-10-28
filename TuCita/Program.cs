@@ -8,37 +8,34 @@ using TuCita.Services;
 using DotNetEnv;
 using System.Diagnostics;
 
-// ? Cargar variables de entorno desde el archivo .env
+// Cargar variables de entorno desde el archivo .env
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ? Construir cadena de conexión desde variables de entorno
+// Construir cadena de conexión para SQL Server desde variables de entorno
 var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? throw new InvalidOperationException("DB_SERVER no configurada en .env");
-var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "25060";
 var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME no configurada en .env");
 var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER no configurada en .env");
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD no configurada en .env");
 
-var connectionString = $"Server={dbServer};Port={dbPort};Database={dbName};User={dbUser};Password={dbPassword};SslMode=Required;AllowPublicKeyRetrieval=true;";
+// Cadena de conexión para SQL Server / Azure SQL Database
+var connectionString = $"Server={dbServer};Database={dbName};User Id={dbUser};Password={dbPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
 
-// ? Logging de diagnóstico para conexión a BD (sin exponer la contraseña completa)
-Console.WriteLine($"?? Configuración de conexión:");
-Console.WriteLine($"   Servidor: {dbServer}:{dbPort}");
+// Logging de diagnóstico para conexión a BD (sin exponer la contraseña completa)
+Console.WriteLine($"?? Configuración de conexión SQL Server:");
+Console.WriteLine($"   Servidor: {dbServer}");
 Console.WriteLine($"   Base de datos: {dbName}");
 Console.WriteLine($"   Usuario: {dbUser}");
 Console.WriteLine($"   Contraseña configurada: {!string.IsNullOrEmpty(dbPassword)} (longitud: {dbPassword?.Length ?? 0})");
-Console.WriteLine($"   SSL: Required");
+Console.WriteLine($"   Encrypt: True");
 
-// Add Entity Framework con cadena de conexión desde .env
+// Add Entity Framework con SQL Server
 builder.Services.AddDbContext<TuCitaDbContext>(options =>
-    options.UseMySql(
-        connectionString, 
-        ServerVersion.Parse("8.0.30") // Especifica la versión en lugar de AutoDetect
-    )
+    options.UseSqlServer(connectionString)
 );
 
-// ? Add JWT Authentication usando variables de entorno
+// Add JWT Authentication usando variables de entorno
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new InvalidOperationException("JWT_KEY no configurada en .env");
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "TuCita";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "TuCitaUsers";
@@ -86,7 +83,7 @@ builder.Services.AddSpaStaticFiles(configuration =>
 
 var app = builder.Build();
 
-// ?? Iniciar servidor Vite automáticamente en Development
+// Iniciar servidor Vite automáticamente en Development
 Process? viteProcess = null;
 if (app.Environment.IsDevelopment())
 {
@@ -153,11 +150,11 @@ using (var scope = app.Services.CreateScope())
         await DbInitializer.InitializeAsync(context);
         logger.LogInformation("? Sistema inicializado correctamente");
     }
-    catch (MySqlConnector.MySqlException ex)
+    catch (Microsoft.Data.SqlClient.SqlException ex)
     {
-        logger.LogError(ex, "? Error de conexión a MySQL. Verifica:");
+        logger.LogError(ex, "? Error de conexión a SQL Server. Verifica:");
         logger.LogError("   1. Credenciales correctas en .env");
-        logger.LogError("   2. IP {IP} está en 'Trusted Sources' de DigitalOcean", "186.64.212.238");
+        logger.LogError("   2. Firewall de Azure permite tu IP");
         logger.LogError("   3. Base de datos '{DbName}' existe", Environment.GetEnvironmentVariable("DB_NAME"));
         logger.LogError("   4. Usuario tiene permisos suficientes");
         logger.LogError("   Detalle: {Message}", ex.Message);
