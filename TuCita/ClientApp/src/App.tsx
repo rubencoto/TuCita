@@ -10,10 +10,12 @@ import { AppointmentsPage } from './components/pages/appointments-page';
 import { ProfilePage } from './components/pages/profile-page';
 import { ForgotPasswordPage } from './components/pages/forgot-password-page';
 import { ResetPasswordPage } from './components/pages/reset-password-page';
+import { MedicalHistoryPage } from './components/pages/medical-history-page';
+import { AppointmentDetailPage } from './components/pages/appointment-detail-page';
 import { authService, AuthResponse } from './services/authService';
 import appointmentsService from './services/appointmentsService';
 
-type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password';
+type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -185,6 +187,40 @@ export default function App() {
             onUpdateAppointment={handleUpdateAppointment}
             onCancelAppointment={handleCancelAppointment}
             loading={loading}
+          />
+        );
+      
+      case 'medical-history':
+        if (!isLoggedIn) {
+          return (
+            <AuthPage
+              mode="login"
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <MedicalHistoryPage
+            appointments={appointments}
+            onNavigate={handleNavigate}
+          />
+        );
+      
+      case 'appointment-detail':
+        if (!isLoggedIn) {
+          return (
+            <AuthPage
+              mode="login"
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <AppointmentDetailPage
+            appointment={pageData?.appointment}
+            onNavigate={handleNavigate}
           />
         );
       

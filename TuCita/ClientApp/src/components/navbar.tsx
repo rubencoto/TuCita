@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { Heart, Menu, X, User, Calendar, Search, Home } from 'lucide-react';
+import { Heart, Menu, X, User, Calendar, Search, Home, FileText } from 'lucide-react';
 
 interface NavbarProps {
   currentPage: string;
@@ -18,6 +18,7 @@ export function Navbar({ currentPage, onNavigate, isLoggedIn, onLogin, onLogout 
     { id: 'search', label: 'Buscar Médicos', icon: Search },
     ...(isLoggedIn ? [
       { id: 'appointments', label: 'Mis Citas', icon: Calendar },
+      { id: 'medical-history', label: 'Historial Médico', icon: FileText },
       { id: 'profile', label: 'Perfil', icon: User },
     ] : [])
   ];

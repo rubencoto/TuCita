@@ -7,10 +7,10 @@ namespace TuCita.Services;
 
 public interface IAppointmentsService
 {
-    Task<IEnumerable<CitaDto>> GetAppointmentsByPatientAsync(ulong pacienteId);
-    Task<CitaDto?> CreateAppointmentAsync(ulong pacienteId, CreateAppointmentRequest request);
-    Task<bool> CancelAppointmentAsync(ulong citaId, ulong usuarioId);
-    Task<bool> UpdateAppointmentAsync(ulong citaId, ulong usuarioId, UpdateAppointmentRequest request);
+    Task<IEnumerable<CitaDto>> GetAppointmentsByPatientAsync(long pacienteId);
+    Task<CitaDto?> CreateAppointmentAsync(long pacienteId, CreateAppointmentRequest request);
+    Task<bool> CancelAppointmentAsync(long citaId, long usuarioId);
+    Task<bool> UpdateAppointmentAsync(long citaId, long usuarioId, UpdateAppointmentRequest request);
 }
 
 public class AppointmentsService : IAppointmentsService
@@ -22,7 +22,7 @@ public class AppointmentsService : IAppointmentsService
         _context = context;
     }
 
-    public async Task<IEnumerable<CitaDto>> GetAppointmentsByPatientAsync(ulong pacienteId)
+    public async Task<IEnumerable<CitaDto>> GetAppointmentsByPatientAsync(long pacienteId)
     {
         try
         {
@@ -59,7 +59,7 @@ public class AppointmentsService : IAppointmentsService
         }
     }
 
-    public async Task<CitaDto?> CreateAppointmentAsync(ulong pacienteId, CreateAppointmentRequest request)
+    public async Task<CitaDto?> CreateAppointmentAsync(long pacienteId, CreateAppointmentRequest request)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -126,7 +126,7 @@ public class AppointmentsService : IAppointmentsService
         }
     }
 
-    public async Task<bool> CancelAppointmentAsync(ulong citaId, ulong usuarioId)
+    public async Task<bool> CancelAppointmentAsync(long citaId, long usuarioId)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -164,7 +164,7 @@ public class AppointmentsService : IAppointmentsService
         }
     }
 
-    public async Task<bool> UpdateAppointmentAsync(ulong citaId, ulong usuarioId, UpdateAppointmentRequest request)
+    public async Task<bool> UpdateAppointmentAsync(long citaId, long usuarioId, UpdateAppointmentRequest request)
     {
         try
         {

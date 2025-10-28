@@ -137,7 +137,7 @@ public class EmailService : IEmailService
 
         _logger.LogInformation("Enviando enlace de recuperación de contraseña a: {Email}", email);
         
-        return await EnviarEmailAsync(email, asunto, cuerpoHtml, "security@tucitaonline.org");
+        return await EnviarEmailAsync(email, asunto, cuerpoHtml, "@tucitaonline.org");
     }
 
     /// <summary>

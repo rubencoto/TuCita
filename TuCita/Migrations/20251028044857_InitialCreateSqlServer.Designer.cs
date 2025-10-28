@@ -12,8 +12,13 @@ using TuCita.Data;
 namespace TuCita.Migrations
 {
     [DbContext(typeof(TuCitaDbContext))]
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
     [Migration("20251028044857_InitialCreateSqlServer")]
     partial class InitialCreateSqlServer
+========
+    [Migration("20251025051926_InitialMigration")]
+    partial class InitialMigration
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,15 +40,24 @@ namespace TuCita.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<DateTime>("ActualizadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
                         .HasColumnName("actualizado_en");
 
                     b.Property<DateTime>("CreadoEn")
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+                        .HasColumnName("actualizado_en");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Estado")
                         .IsRequired()
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("estado");
 
@@ -57,6 +71,21 @@ namespace TuCita.Migrations
 
                     b.Property<long>("MedicoId")
                         .HasColumnType("bigint")
+========
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("estado");
+
+                    b.Property<DateTime>("Fin")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fin");
+
+                    b.Property<DateTime>("Inicio")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("inicio");
+
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("medico_id");
 
                     b.HasKey("Id");
@@ -77,6 +106,7 @@ namespace TuCita.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<DateTime>("ActualizadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
                         .HasColumnName("actualizado_en");
 
@@ -86,6 +116,17 @@ namespace TuCita.Migrations
 
                     b.Property<long>("CreadoPor")
                         .HasColumnType("bigint")
+========
+                        .HasColumnType("datetime2")
+                        .HasColumnName("actualizado_en");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("creado_en");
+
+                    b.Property<decimal>("CreadoPor")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_por");
 
                     b.Property<string>("Estado")
@@ -94,6 +135,7 @@ namespace TuCita.Migrations
                         .HasColumnName("estado");
 
                     b.Property<DateTime>("Fin")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
                         .HasColumnName("fin");
 
@@ -103,6 +145,17 @@ namespace TuCita.Migrations
 
                     b.Property<long>("MedicoId")
                         .HasColumnType("bigint")
+========
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fin");
+
+                    b.Property<DateTime>("Inicio")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("inicio");
+
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("medico_id");
 
                     b.Property<string>("Motivo")
@@ -110,8 +163,13 @@ namespace TuCita.Migrations
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("motivo");
 
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("PacienteId")
                         .HasColumnType("bigint")
+========
+                    b.Property<decimal>("PacienteId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("paciente_id");
 
                     b.Property<decimal>("TurnoId")
@@ -152,7 +210,11 @@ namespace TuCita.Migrations
                         .HasColumnName("codigo");
 
                     b.Property<DateTime>("CreadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Descripcion")
@@ -178,7 +240,11 @@ namespace TuCita.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Nombre")
@@ -197,8 +263,13 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.MedicoEspecialidad", b =>
                 {
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("MedicoId")
                         .HasColumnType("bigint")
+========
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("medico_id");
 
                     b.Property<long>("EspecialidadId")
@@ -226,11 +297,19 @@ namespace TuCita.Migrations
                         .HasColumnName("cita_id");
 
                     b.Property<DateTime>("CreadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
                         .HasColumnName("creado_en");
 
                     b.Property<long>("MedicoId")
                         .HasColumnType("bigint")
+========
+                        .HasColumnType("datetime2")
+                        .HasColumnName("creado_en");
+
+                    b.Property<decimal>("MedicoId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("medico_id");
 
                     b.Property<string>("Nota")
@@ -238,8 +317,13 @@ namespace TuCita.Migrations
                         .HasColumnType("NVARCHAR(MAX)")
                         .HasColumnName("nota");
 
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("PacienteId")
                         .HasColumnType("bigint")
+========
+                    b.Property<decimal>("PacienteId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("paciente_id");
 
                     b.HasKey("Id");
@@ -276,7 +360,11 @@ namespace TuCita.Migrations
                         .HasColumnName("contenido");
 
                     b.Property<DateTime>("CreadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<bool>("Enviada")
@@ -284,7 +372,11 @@ namespace TuCita.Migrations
                         .HasColumnName("enviada");
 
                     b.Property<DateTime?>("EnviadaEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("enviada_en");
 
                     b.Property<string>("Error")
@@ -297,8 +389,13 @@ namespace TuCita.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("tipo");
 
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("UsuarioId")
                         .HasColumnType("bigint")
+========
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
@@ -312,20 +409,39 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.PerfilMedico", b =>
                 {
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("UsuarioId")
                         .HasColumnType("bigint")
                         .HasColumnName("usuario_id");
 
                     b.Property<DateTime>("ActualizadoEn")
                         .HasColumnType("datetime2(6)")
+========
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("actualizado_en");
 
                     b.Property<string>("Biografia")
                         .HasColumnType("NVARCHAR(MAX)")
                         .HasColumnName("biografia");
 
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<DateTime>("CreadoEn")
                         .HasColumnType("datetime2(6)")
+========
+                    b.Property<string>("Ciudad")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ciudad");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Direccion")
@@ -333,11 +449,35 @@ namespace TuCita.Migrations
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("direccion");
 
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
+========
+                    b.Property<double?>("Latitud")
+                        .HasColumnType("float")
+                        .HasColumnName("latitud");
+
+                    b.Property<double?>("Longitud")
+                        .HasColumnType("float")
+                        .HasColumnName("longitud");
+
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                     b.Property<string>("NumeroLicencia")
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)")
                         .HasColumnName("numero_licencia");
 
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
+========
+                    b.Property<string>("Pais")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("pais");
+
+                    b.Property<string>("Provincia")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("provincia");
+
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                     b.HasKey("UsuarioId");
 
                     b.ToTable("perfil_medico");
@@ -345,6 +485,7 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.PerfilPaciente", b =>
                 {
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("UsuarioId")
                         .HasColumnType("bigint")
                         .HasColumnName("usuario_id");
@@ -355,6 +496,18 @@ namespace TuCita.Migrations
 
                     b.Property<DateTime>("CreadoEn")
                         .HasColumnType("datetime2(6)")
+========
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("actualizado_en");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<DateOnly?>("FechaNacimiento")
@@ -390,7 +543,11 @@ namespace TuCita.Migrations
                         .HasColumnName("cita_id");
 
                     b.Property<DateTime>("CreadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Indicaciones")
@@ -460,11 +617,19 @@ namespace TuCita.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<DateTime>("ActualizadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
                         .HasColumnName("actualizado_en");
 
                     b.Property<DateTime>("CreadoEn")
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+                        .HasColumnName("actualizado_en");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Nombre")
@@ -483,8 +648,13 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.RolUsuario", b =>
                 {
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("UsuarioId")
                         .HasColumnType("bigint")
+========
+                    b.Property<decimal>("UsuarioId")
+                        .HasColumnType("decimal(20,0)")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("usuario_id");
 
                     b.Property<decimal>("RolId")
@@ -492,7 +662,11 @@ namespace TuCita.Migrations
                         .HasColumnName("rol_id");
 
                     b.Property<DateTime>("AsignadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("asignado_en");
 
                     b.HasKey("UsuarioId", "RolId");
@@ -504,19 +678,32 @@ namespace TuCita.Migrations
 
             modelBuilder.Entity("TuCita.Models.Usuario", b =>
                 {
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+========
+                    b.Property<decimal>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(20,0)")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
 
                     b.Property<bool>("Activo")
                         .HasColumnType("bit")
                         .HasColumnName("activo");
 
                     b.Property<DateTime>("ActualizadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("actualizado_en");
 
                     b.Property<string>("Apellido")
@@ -526,7 +713,11 @@ namespace TuCita.Migrations
                         .HasColumnName("apellido");
 
                     b.Property<DateTime>("CreadoEn")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("creado_en");
 
                     b.Property<string>("Email")
@@ -566,7 +757,11 @@ namespace TuCita.Migrations
                         .HasColumnName("token_recuperacion");
 
                     b.Property<DateTime?>("TokenRecuperacionExpira")
+<<<<<<<< HEAD:TuCita/Migrations/20251028044857_InitialCreateSqlServer.Designer.cs
                         .HasColumnType("datetime2(6)")
+========
+                        .HasColumnType("datetime2")
+>>>>>>>> 725c626b4c1002f0b67baffafb1ea1a18c8ad2d5:TuCita/Migrations/20251025051926_InitialMigration.Designer.cs
                         .HasColumnName("token_recuperacion_expira");
 
                     b.HasKey("Id");

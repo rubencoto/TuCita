@@ -25,7 +25,7 @@ public class AppointmentsController : ControllerBase
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
@@ -68,7 +68,7 @@ public class AppointmentsController : ControllerBase
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
@@ -114,14 +114,14 @@ public class AppointmentsController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            if (!ulong.TryParse(id, out var appointmentId))
+            if (!long.TryParse(id, out var appointmentId))
             {
                 return BadRequest(new { message = "ID de cita inválido" });
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
@@ -146,14 +146,14 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
-            if (!ulong.TryParse(id, out var appointmentId))
+            if (!long.TryParse(id, out var appointmentId))
             {
                 return BadRequest(new { message = "ID de cita inválido" });
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (!ulong.TryParse(userIdClaim, out var userId))
+            if (!long.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }

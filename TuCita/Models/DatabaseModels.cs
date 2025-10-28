@@ -11,18 +11,12 @@ public class Rol
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Required]
     [StringLength(30)]
     [Column("nombre")]
     public string Nombre { get; set; } = string.Empty;
-
-    [Column("creado_en")]
-    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
-
-    [Column("actualizado_en")]
-    public DateTime ActualizadoEn { get; set; } = DateTime.UtcNow;
 
     // Navegación
     public virtual ICollection<RolUsuario> RolesUsuarios { get; set; } = new List<RolUsuario>();
@@ -34,7 +28,7 @@ public class Usuario
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Required]
     [StringLength(150)]
@@ -67,13 +61,6 @@ public class Usuario
     [Column("activo")]
     public bool Activo { get; set; } = true;
 
-    [StringLength(255)]
-    [Column("token_recuperacion")]
-    public string? TokenRecuperacion { get; set; }
-
-    [Column("token_recuperacion_expira")]
-    public DateTime? TokenRecuperacionExpira { get; set; }
-
     [Column("creado_en")]
     public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
 
@@ -90,13 +77,10 @@ public class Usuario
 public class RolUsuario
 {
     [Column("usuario_id")]
-    public ulong UsuarioId { get; set; }
+    public long UsuarioId { get; set; }
 
     [Column("rol_id")]
-    public ulong RolId { get; set; }
-
-    [Column("asignado_en")]
-    public DateTime AsignadoEn { get; set; } = DateTime.UtcNow;
+    public long RolId { get; set; }
 
     // Navegación
     [ForeignKey("UsuarioId")]
@@ -113,15 +97,12 @@ public class Especialidad
 {
     [Key]
     [Column("id")]
-    public uint Id { get; set; }
+    public int Id { get; set; }
 
     [Required]
     [StringLength(120)]
     [Column("nombre")]
     public string Nombre { get; set; } = string.Empty;
-
-    [Column("creado_en")]
-    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
 
     // Navegación
     public virtual ICollection<MedicoEspecialidad> MedicosEspecialidades { get; set; } = new List<MedicoEspecialidad>();
@@ -133,7 +114,7 @@ public class PerfilPaciente
 {
     [Key]
     [Column("usuario_id")]
-    public ulong UsuarioId { get; set; }
+    public long UsuarioId { get; set; }
 
     [Column("fecha_nacimiento")]
     public DateOnly? FechaNacimiento { get; set; }
@@ -163,13 +144,13 @@ public class PerfilMedico
 {
     [Key]
     [Column("usuario_id")]
-    public ulong UsuarioId { get; set; }
+    public long UsuarioId { get; set; }
 
     [StringLength(60)]
     [Column("numero_licencia")]
     public string? NumeroLicencia { get; set; }
 
-    [Column("biografia", TypeName = "TEXT")]
+    [Column("biografia")]
     public string? Biografia { get; set; }
 
     [StringLength(200)]
@@ -194,10 +175,10 @@ public class PerfilMedico
 public class MedicoEspecialidad
 {
     [Column("medico_id")]
-    public ulong MedicoId { get; set; }
+    public long MedicoId { get; set; }
 
     [Column("especialidad_id")]
-    public uint EspecialidadId { get; set; }
+    public int EspecialidadId { get; set; }
 
     // Navegación
     [ForeignKey("MedicoId")]
@@ -219,10 +200,9 @@ public enum EstadoCita
 {
     PENDIENTE,
     CONFIRMADA,
+    RECHAZADA,
     CANCELADA,
-    REPROGRAMADA,
-    ATENDIDA,
-    NO_ASISTE
+    ATENDIDA
 }
 
 [Table("agenda_turnos")]
@@ -230,10 +210,10 @@ public class AgendaTurno
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Column("medico_id")]
-    public ulong MedicoId { get; set; }
+    public long MedicoId { get; set; }
 
     [Column("inicio")]
     public DateTime Inicio { get; set; }
@@ -262,16 +242,16 @@ public class Cita
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Column("turno_id")]
-    public ulong TurnoId { get; set; }
+    public long TurnoId { get; set; }
 
     [Column("medico_id")]
-    public ulong MedicoId { get; set; }
+    public long MedicoId { get; set; }
 
     [Column("paciente_id")]
-    public ulong PacienteId { get; set; }
+    public long PacienteId { get; set; }
 
     [Column("estado")]
     public EstadoCita Estado { get; set; } = EstadoCita.PENDIENTE;
@@ -287,7 +267,7 @@ public class Cita
     public DateTime Fin { get; set; }
 
     [Column("creado_por")]
-    public ulong CreadoPor { get; set; }
+    public long CreadoPor { get; set; }
 
     [Column("creado_en")]
     public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
@@ -311,66 +291,7 @@ public class Cita
     public virtual ICollection<NotaClinica> NotasClinicas { get; set; } = new List<NotaClinica>();
     public virtual ICollection<Diagnostico> Diagnosticos { get; set; } = new List<Diagnostico>();
     public virtual ICollection<Receta> Recetas { get; set; } = new List<Receta>();
-}
-
-// === Notificaciones ===
-public enum CanalNotificacion
-{
-    CORREO,
-    SMS,
-    PUSH,
-    WEBHOOK
-}
-
-public enum TipoNotificacion
-{
-    CREADA,
-    CONFIRMADA,
-    CANCELADA,
-    REPROGRAMADA
-}
-
-[Table("notificaciones")]
-public class Notificacion
-{
-    [Key]
-    [Column("id")]
-    public ulong Id { get; set; }
-
-    [Column("usuario_id")]
-    public ulong UsuarioId { get; set; }
-
-    [Column("cita_id")]
-    public ulong? CitaId { get; set; }
-
-    [Column("canal")]
-    public CanalNotificacion Canal { get; set; } = CanalNotificacion.CORREO;
-
-    [Column("tipo")]
-    public TipoNotificacion Tipo { get; set; }
-
-    [Column("contenido", TypeName = "JSON")]
-    public string? Contenido { get; set; }
-
-    [Column("enviada")]
-    public bool Enviada { get; set; } = false;
-
-    [StringLength(300)]
-    [Column("error")]
-    public string? Error { get; set; }
-
-    [Column("creado_en")]
-    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
-
-    [Column("enviada_en")]
-    public DateTime? EnviadaEn { get; set; }
-
-    // Navegación
-    [ForeignKey("UsuarioId")]
-    public virtual Usuario Usuario { get; set; } = null!;
-
-    [ForeignKey("CitaId")]
-    public virtual Cita? Cita { get; set; }
+    public virtual ICollection<DocumentoClinico> Documentos { get; set; } = new List<DocumentoClinico>();
 }
 
 // === Clínico ===
@@ -379,19 +300,13 @@ public class NotaClinica
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Column("cita_id")]
-    public ulong CitaId { get; set; }
-
-    [Column("medico_id")]
-    public ulong MedicoId { get; set; }
-
-    [Column("paciente_id")]
-    public ulong PacienteId { get; set; }
+    public long CitaId { get; set; }
 
     [Required]
-    [Column("nota", TypeName = "TEXT")]
+    [Column("nota")]
     public string Nota { get; set; } = string.Empty;
 
     [Column("creado_en")]
@@ -400,12 +315,6 @@ public class NotaClinica
     // Navegación
     [ForeignKey("CitaId")]
     public virtual Cita Cita { get; set; } = null!;
-
-    [ForeignKey("MedicoId")]
-    public virtual PerfilMedico Medico { get; set; } = null!;
-
-    [ForeignKey("PacienteId")]
-    public virtual PerfilPaciente Paciente { get; set; } = null!;
 }
 
 [Table("diagnosticos")]
@@ -413,10 +322,10 @@ public class Diagnostico
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Column("cita_id")]
-    public ulong CitaId { get; set; }
+    public long CitaId { get; set; }
 
     [StringLength(20)]
     [Column("codigo")]
@@ -440,12 +349,12 @@ public class Receta
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Column("cita_id")]
-    public ulong CitaId { get; set; }
+    public long CitaId { get; set; }
 
-    [Column("indicaciones", TypeName = "TEXT")]
+    [Column("indicaciones")]
     public string? Indicaciones { get; set; }
 
     [Column("creado_en")]
@@ -463,10 +372,10 @@ public class RecetaItem
 {
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     [Column("receta_id")]
-    public ulong RecetaId { get; set; }
+    public long RecetaId { get; set; }
 
     [Required]
     [StringLength(150)]
@@ -492,4 +401,195 @@ public class RecetaItem
     // Navegación
     [ForeignKey("RecetaId")]
     public virtual Receta Receta { get; set; } = null!;
+}
+
+// === Azure Blob Storage ===
+[Table("azure_almacen_config")]
+[Index(nameof(Nombre), IsUnique = true)]
+public class AzureAlmacenConfig
+{
+    [Key]
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Required]
+    [StringLength(60)]
+    [Column("nombre")]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100)]
+    [Column("storage_account")]
+    public string StorageAccount { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100)]
+    [Column("container")]
+    public string Container { get; set; } = string.Empty;
+
+    [StringLength(200)]
+    [Column("ruta_base")]
+    public string? RutaBase { get; set; }
+
+    [Column("sas_ttl_min")]
+    public int SasTtlMin { get; set; } = 5;
+
+    [Column("versionado")]
+    public bool Versionado { get; set; } = false;
+
+    [Column("activo")]
+    public bool Activo { get; set; } = true;
+
+    [Column("creado_en")]
+    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
+
+    // Navegación
+    public virtual ICollection<DocumentoClinico> Documentos { get; set; } = new List<DocumentoClinico>();
+}
+
+[Table("documentos_clinicos")]
+public class DocumentoClinico
+{
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
+
+    [Column("cita_id")]
+    public long CitaId { get; set; }
+
+    [Column("medico_id")]
+    public long MedicoId { get; set; }
+
+    [Column("paciente_id")]
+    public long PacienteId { get; set; }
+
+    [Required]
+    [StringLength(40)]
+    [Column("categoria")]
+    public string Categoria { get; set; } = string.Empty; // LAB, IMAGEN, REFERENCIA, CONSTANCIA, OTRO
+
+    [Required]
+    [StringLength(255)]
+    [Column("nombre_archivo")]
+    public string NombreArchivo { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100)]
+    [Column("mime_type")]
+    public string MimeType { get; set; } = string.Empty;
+
+    [Column("tamano_bytes")]
+    public long TamanoBytes { get; set; }
+
+    [Column("hash_sha256")]
+    public byte[]? HashSha256 { get; set; }
+
+    [Column("storage_id")]
+    public int StorageId { get; set; }
+
+    [Required]
+    [StringLength(100)]
+    [Column("blob_container")]
+    public string BlobContainer { get; set; } = string.Empty;
+
+    [StringLength(300)]
+    [Column("blob_carpeta")]
+    public string? BlobCarpeta { get; set; }
+
+    [Required]
+    [StringLength(300)]
+    [Column("blob_nombre")]
+    public string BlobNombre { get; set; } = string.Empty;
+
+    [StringLength(128)]
+    [Column("blob_version_id")]
+    public string? BlobVersionId { get; set; }
+
+    [StringLength(128)]
+    [Column("blob_etag")]
+    public string? BlobETag { get; set; }
+
+    [StringLength(300)]
+    [Column("notas")]
+    public string? Notas { get; set; }
+
+    [Column("creado_por")]
+    public long CreadoPor { get; set; }
+
+    [Column("creado_en")]
+    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
+
+    // Navegación
+    [ForeignKey("CitaId")]
+    public virtual Cita Cita { get; set; } = null!;
+
+    [ForeignKey("MedicoId")]
+    public virtual PerfilMedico Medico { get; set; } = null!;
+
+    [ForeignKey("PacienteId")]
+    public virtual PerfilPaciente Paciente { get; set; } = null!;
+
+    [ForeignKey("CreadoPor")]
+    public virtual Usuario Creador { get; set; } = null!;
+
+    [ForeignKey("StorageId")]
+    public virtual AzureAlmacenConfig Storage { get; set; } = null!;
+
+    public virtual ICollection<DocumentoEtiqueta> Etiquetas { get; set; } = new List<DocumentoEtiqueta>();
+    public virtual ICollection<DocumentoDescarga> Descargas { get; set; } = new List<DocumentoDescarga>();
+}
+
+[Table("documento_etiquetas")]
+public class DocumentoEtiqueta
+{
+    [Column("documento_id")]
+    public long DocumentoId { get; set; }
+
+    [Required]
+    [StringLength(40)]
+    [Column("etiqueta")]
+    public string Etiqueta { get; set; } = string.Empty;
+
+    // Navegación
+    [ForeignKey("DocumentoId")]
+    public virtual DocumentoClinico Documento { get; set; } = null!;
+}
+
+[Table("documentos_descargas")]
+public class DocumentoDescarga
+{
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
+
+    [Column("documento_id")]
+    public long DocumentoId { get; set; }
+
+    [Column("usuario_id")]
+    public long UsuarioId { get; set; }
+
+    [StringLength(45)]
+    [Column("ip_cliente")]
+    public string? IpCliente { get; set; }
+
+    [StringLength(255)]
+    [Column("user_agent")]
+    public string? UserAgent { get; set; }
+
+    [Column("exito")]
+    public bool Exito { get; set; }
+
+    [StringLength(200)]
+    [Column("motivo_error")]
+    public string? MotivoError { get; set; }
+
+    [Column("creado_en")]
+    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
+
+    // Navegación
+    [ForeignKey("DocumentoId")]
+    public virtual DocumentoClinico Documento { get; set; } = null!;
+
+    [ForeignKey("UsuarioId")]
+    public virtual Usuario Usuario { get; set; } = null!;
 }

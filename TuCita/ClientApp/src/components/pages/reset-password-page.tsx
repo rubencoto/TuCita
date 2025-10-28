@@ -48,7 +48,7 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
         setIsValidToken(true);
       } else {
         setIsValidToken(false);
-        toast.error('Token inv�lido o expirado');
+        toast.error('Token inválido o expirado');
       }
     } catch (error: any) {
       setIsValidToken(false);
@@ -62,27 +62,27 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
     const errors: string[] = [];
     
     if (password.length < 8) {
-      errors.push('La contrase�a debe tener al menos 8 caracteres');
+      errors.push('La contraseña debe tener al menos 8 caracteres');
     }
     
     const lowercaseRegex = /[a-z]/;
     if (!lowercaseRegex.test(password)) {
-      errors.push('Debe incluir al menos una letra min�scula');
+      errors.push('Debe incluir al menos una letra minúscula');
     }
     
     const uppercaseRegex = /[A-Z]/;
     if (!uppercaseRegex.test(password)) {
-      errors.push('Debe incluir al menos una letra may�scula');
+      errors.push('Debe incluir al menos una letra mayúscula');
     }
     
     const numberRegex = /\d/;
     if (!numberRegex.test(password)) {
-      errors.push('Debe incluir al menos un n�mero');
+      errors.push('Debe incluir al menos un número');
     }
     
     const specialCharRegex = /[@$!%*?&]/;
     if (!specialCharRegex.test(password)) {
-      errors.push('Debe incluir al menos un car�cter especial (@$!%*?&)');
+      errors.push('Debe incluir al menos un carácter especial (@$!%*?&)');
     }
     
     return errors;
@@ -100,7 +100,7 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
     }
     
     if (password !== confirmPassword) {
-      setErrors(['Las contrase�as no coinciden']);
+      setErrors(['Las contraseñas no coinciden']);
       return;
     }
     
@@ -114,15 +114,15 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
       });
       
       setIsSuccess(true);
-      toast.success('Contrase�a actualizada exitosamente');
+      toast.success('Contraseña actualizada exitosamente');
       
       setTimeout(() => {
         onNavigate('login');
       }, 3000);
       
     } catch (error: any) {
-      toast.error('Error al actualizar la contrase�a', {
-        description: error.message || 'Int�ntalo de nuevo.',
+      toast.error('Error al actualizar la contraseña', {
+        description: error.message || 'Inténtalo de nuevo.',
       });
     } finally {
       setIsLoading(false);
@@ -159,15 +159,15 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-destructive">Enlace Inv�lido</CardTitle>
+            <CardTitle className="text-destructive">Enlace Inválido</CardTitle>
             <CardDescription>
-              Este enlace ha expirado o no es v�lido.
+              Este enlace ha expirado o no es válido.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                El enlace para restablecer tu contrase�a ha expirado o no es v�lido. 
+                El enlace para restablecer tu contraseña ha expirado o no es válido. 
                 Por favor, solicita un nuevo enlace.
               </AlertDescription>
             </Alert>
@@ -186,7 +186,7 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
                 className="w-full"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver al Inicio de Sesi�n
+                Volver al Inicio de Sesión
               </Button>
             </div>
           </CardContent>
@@ -203,21 +203,21 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
-            <CardTitle className="text-green-600">�Contrase�a Actualizada!</CardTitle>
+            <CardTitle className="text-green-600">¡Contraseña Actualizada!</CardTitle>
             <CardDescription>
-              Tu contrase�a ha sido cambiada exitosamente.
+              Tu contraseña ha sido cambiada exitosamente.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-sm text-muted-foreground">
-              Ser�s redirigido al inicio de sesi�n en unos segundos...
+              Serás redirigido al inicio de sesión en unos segundos...
             </p>
             
             <Button 
               onClick={() => onNavigate('login')} 
               className="w-full"
             >
-              Iniciar Sesi�n Ahora
+              Iniciar Sesión Ahora
             </Button>
           </CardContent>
         </Card>
@@ -232,9 +232,9 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary flex items-center justify-center">
             <Lock className="h-6 w-6 text-primary-foreground" />
           </div>
-          <CardTitle>Restablecer Contrase�a</CardTitle>
+          <CardTitle>Restablecer Contraseña</CardTitle>
           <CardDescription>
-            Ingresa tu nueva contrase�a para continuar.
+            Ingresa tu nueva contraseña para continuar.
           </CardDescription>
         </CardHeader>
         
@@ -253,13 +253,13 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="password">Nueva Contrase�a</Label>
+              <Label htmlFor="password">Nueva Contraseña</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Ingresa tu nueva contrase�a"
+                  placeholder="Ingresa tu nueva contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -276,13 +276,13 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Nueva Contrase�a</Label>
+              <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirma tu nueva contrase�a"
+                  placeholder="Confirma tu nueva contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -299,7 +299,7 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
             </div>
             
             <div className="bg-muted/50 p-3 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-2">Tu contrase�a debe tener:</p>
+              <p className="text-xs text-muted-foreground mb-2">Tu contraseña debe tener:</p>
               <ul className="text-xs text-muted-foreground space-y-1">
                 <li className={`flex items-center gap-2 ${password.length >= 8 ? 'text-green-600' : ''}`}>
                   <div className={`h-1.5 w-1.5 rounded-full ${password.length >= 8 ? 'bg-green-600' : 'bg-muted-foreground'}`} />
@@ -307,25 +307,25 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
                 </li>
                 <li className={`flex items-center gap-2 ${hasLowercase ? 'text-green-600' : ''}`}>
                   <div className={`h-1.5 w-1.5 rounded-full ${hasLowercase ? 'bg-green-600' : 'bg-muted-foreground'}`} />
-                  Una letra min�scula
+                  Una letra minúscula
                 </li>
                 <li className={`flex items-center gap-2 ${hasUppercase ? 'text-green-600' : ''}`}>
                   <div className={`h-1.5 w-1.5 rounded-full ${hasUppercase ? 'bg-green-600' : 'bg-muted-foreground'}`} />
-                  Una letra may�scula
+                  Una letra mayúscula
                 </li>
                 <li className={`flex items-center gap-2 ${hasNumber ? 'text-green-600' : ''}`}>
                   <div className={`h-1.5 w-1.5 rounded-full ${hasNumber ? 'bg-green-600' : 'bg-muted-foreground'}`} />
-                  Un n�mero
+                  Un número
                 </li>
                 <li className={`flex items-center gap-2 ${hasSpecialChar ? 'text-green-600' : ''}`}>
                   <div className={`h-1.5 w-1.5 rounded-full ${hasSpecialChar ? 'bg-green-600' : 'bg-muted-foreground'}`} />
-                  Un car�cter especial (@$!%*?&)
+                  Un carácter especial (@$!%*?&)
                 </li>
               </ul>
             </div>
             
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Actualizando...' : 'Actualizar Contrase�a'}
+              {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
             </Button>
             
             <Button 
@@ -335,7 +335,7 @@ export function ResetPasswordPage({ onNavigate, token: tokenProp }: ResetPasswor
               className="w-full"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al Inicio de Sesi�n
+              Volver al Inicio de Sesión
             </Button>
           </form>
         </CardContent>

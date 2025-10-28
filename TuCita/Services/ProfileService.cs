@@ -8,9 +8,9 @@ namespace TuCita.Services;
 
 public interface IProfileService
 {
-    Task<ProfileResult> GetProfileAsync(ulong userId);
-    Task<ProfileResult> UpdateProfileAsync(ulong userId, UpdateProfileDto request);
-    Task<ProfileResult> ChangePasswordAsync(ulong userId, ChangePasswordDto request);
+    Task<ProfileResult> GetProfileAsync(long userId);
+    Task<ProfileResult> UpdateProfileAsync(long userId, UpdateProfileDto request);
+    Task<ProfileResult> ChangePasswordAsync(long userId, ChangePasswordDto request);
 }
 
 public class ProfileService : IProfileService
@@ -26,7 +26,7 @@ public class ProfileService : IProfileService
         _logger = logger;
     }
 
-    public async Task<ProfileResult> GetProfileAsync(ulong userId)
+    public async Task<ProfileResult> GetProfileAsync(long userId)
     {
         try
         {
@@ -74,7 +74,7 @@ public class ProfileService : IProfileService
         }
     }
 
-    public async Task<ProfileResult> UpdateProfileAsync(ulong userId, UpdateProfileDto request)
+    public async Task<ProfileResult> UpdateProfileAsync(long userId, UpdateProfileDto request)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -188,7 +188,7 @@ public class ProfileService : IProfileService
         }
     }
 
-    public async Task<ProfileResult> ChangePasswordAsync(ulong userId, ChangePasswordDto request)
+    public async Task<ProfileResult> ChangePasswordAsync(long userId, ChangePasswordDto request)
     {
         try
         {
@@ -198,10 +198,10 @@ public class ProfileService : IProfileService
             if (usuario == null)
             {
                 return new ProfileResult 
-                { 
-                    Success = false, 
-                    Message = "Usuario no encontrado" 
-                };
+            { 
+                Success = false, 
+                Message = "Usuario no encontrado" 
+            };
             }
 
             // Verificar contraseña actual

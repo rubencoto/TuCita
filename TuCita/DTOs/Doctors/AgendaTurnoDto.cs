@@ -2,7 +2,7 @@ namespace TuCita.DTOs.Doctors;
 
 public class AgendaTurnoDto
 {
-    public ulong Id { get; set; }
+    public long Id { get; set; }
     public DateTime Inicio { get; set; }
     public DateTime Fin { get; set; }
     public string Estado { get; set; } = string.Empty;

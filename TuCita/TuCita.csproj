@@ -9,6 +9,10 @@
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
     
+    <!-- Deshabilitar generación automática de archivos Assembly para evitar duplicados -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    
     <!-- Deshabilitar compilación de TypeScript en MSBuild/Visual Studio -->
     <!-- Vite maneja TypeScript, no necesitamos que VS lo compile -->
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>

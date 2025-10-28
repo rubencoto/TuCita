@@ -67,7 +67,7 @@ public class AuthController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         
-        if (!ulong.TryParse(userIdClaim, out var userId))
+        if (!long.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized();
         }

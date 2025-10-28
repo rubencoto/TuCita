@@ -49,7 +49,7 @@ const appointmentsService = {
   },
 
   /**
-   * Obtener una cita específica por ID
+   * Obtener una cita especï¿½fica por ID
    */
   async getAppointmentById(id: number): Promise<Appointment | null> {
     try {
