@@ -2,7 +2,7 @@ namespace TuCita.DTOs.Doctors;
 
 public class DoctorDetailDto
 {
-    public ulong Id { get; set; }
+    public long Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public List<string> Especialidades { get; set; } = new();
     public string? NumeroLicencia { get; set; }

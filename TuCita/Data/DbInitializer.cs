@@ -65,9 +65,7 @@ public static class DbInitializer
         {
             rolMedico = new Rol 
             { 
-                Nombre = "MEDICO",
-                CreadoEn = DateTime.UtcNow,
-                ActualizadoEn = DateTime.UtcNow
+                Nombre = "MEDICO"
             };
             
             context.Roles.Add(rolMedico);
@@ -90,17 +88,16 @@ public static class DbInitializer
         // Especialidades según el schema de Azure SQL
         var especialidades = new[]
         {
-            new Especialidad { Nombre = "Cardiología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Dermatología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Pediatría", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Medicina General", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Traumatología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Ginecología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Oftalmología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Odontología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Psiquiatría", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Neurología", CreadoEn = DateTime.UtcNow },
-            new Especialidad { Nombre = "Ortopedia", CreadoEn = DateTime.UtcNow }
+            new Especialidad { Nombre = "Medicina General" },
+            new Especialidad { Nombre = "Cardiología" },
+            new Especialidad { Nombre = "Neurología" },
+            new Especialidad { Nombre = "Pediatría" },
+            new Especialidad { Nombre = "Dermatología" },
+            new Especialidad { Nombre = "Ortopedia" },
+            new Especialidad { Nombre = "Oftalmología" },
+            new Especialidad { Nombre = "Ginecología" },
+            new Especialidad { Nombre = "Psiquiatría" },
+            new Especialidad { Nombre = "Endocrinología" }
         };
 
         await context.Especialidades.AddRangeAsync(especialidades);
@@ -165,8 +162,7 @@ public static class DbInitializer
             var rolUsuario = new RolUsuario
             {
                 UsuarioId = usuario.Id,
-                RolId = rolMedico.Id,
-                AsignadoEn = DateTime.UtcNow
+                RolId = rolMedico.Id
             };
             context.RolesUsuarios.Add(rolUsuario);
 
@@ -208,7 +204,7 @@ public static class DbInitializer
     /// <summary>
     /// Crea turnos disponibles para un médico
     /// </summary>
-    private static async Task CreateAvailableSlotsForDoctorAsync(TuCitaDbContext context, ulong medicoId)
+    private static async Task CreateAvailableSlotsForDoctorAsync(TuCitaDbContext context, long medicoId)
     {
         var today = DateTime.Today;
         var turnos = new List<AgendaTurno>();
@@ -283,7 +279,7 @@ public static class DbInitializer
         var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
         if (pendingMigrations.Any())
         {
-            Console.WriteLine($"? Aplicando {pendingMigrations.Count()} migración(es) pendiente(s)...");
+            Console.WriteLine($"?? Aplicando {pendingMigrations.Count()} migración(es) pendiente(s)...");
             await context.Database.MigrateAsync();
         }
         

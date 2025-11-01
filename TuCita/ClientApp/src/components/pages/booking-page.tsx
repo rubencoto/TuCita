@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { AgendaTurno } from '@/services/doctorsService';
+import appointmentsService from '@/services/appointmentsService';
 
 interface BookingPageProps {
   doctor: any;
@@ -49,37 +50,95 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
   };
 
   const handleConfirmBooking = async () => {
-    if (!selectedSlot) return;
+    if (!selectedSlot) {
+      toast.error('Error de validación', {
+        description: 'Por favor selecciona un horario antes de confirmar.',
+      });
+      return;
+    }
+
+    // Validar que el slot tenga un ID válido
+    if (!selectedSlot.slot.id || selectedSlot.slot.id === 0) {
+      console.error('❌ Slot inválido:', selectedSlot.slot);
+      toast.error('Error de validación', {
+        description: 'El horario seleccionado no es válido. Por favor selecciona otro horario.',
+      });
+      setSelectedSlot(null); // Limpiar selección inválida
+      return;
+    }
+
+    // Validar que el doctor tenga un ID válido
+    if (!doctor.id || doctor.id === 0) {
+      console.error('❌ Doctor inválido:', doctor);
+      toast.error('Error de validación', {
+        description: 'Información del médico no válida. Por favor vuelve a seleccionar un médico.',
+      });
+      return;
+    }
 
     setIsBooking(true);
     
-    // Simular proceso de booking
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const newAppointment = {
-      id: Date.now().toString(),
-      doctorName: doctor.nombre,
-      doctorSpecialty: doctor.especialidades?.[0] || 'Especialidad General',
-      doctorImage: doctor.imageUrl,
-      date: selectedSlot.date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      time: selectedSlot.slot.time,
-      location: doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada',
-      status: 'confirmed' as const,
-      type: 'consultation' as const,
-    };
+    try {
+      // Llamar a la API real para crear la cita
+      const appointmentRequest = {
+        TurnoId: selectedSlot.slot.id, // Cambiado a PascalCase para coincidir con el backend
+        DoctorId: doctor.id, // Cambiado a PascalCase para coincidir con el backend
+        Motivo: 'Consulta médica' // Cambiado a PascalCase para coincidir con el backend
+      };
 
-    onBookAppointment(newAppointment);
-    setBookingConfirmed(true);
-    setIsBooking(false);
-    
-    toast.success('¡Cita confirmada exitosamente!', {
-      description: `Tu cita con ${doctor.nombre} ha sido agendada para el ${newAppointment.date} a las ${newAppointment.time}.`,
-    });
+      console.log('📤 Enviando solicitud de cita:', appointmentRequest);
+      console.log('📋 Slot seleccionado:', selectedSlot);
+      console.log('👨‍⚕️ Doctor:', doctor);
+
+      const createdAppointment = await appointmentsService.createAppointment(appointmentRequest);
+      
+      console.log('✅ Cita creada exitosamente:', createdAppointment);
+
+      // Formatear la cita para el estado local
+      const newAppointment = {
+        id: createdAppointment.id.toString(),
+        doctorName: doctor.nombre,
+        doctorSpecialty: doctor.especialidades?.[0] || 'Especialidad General',
+        doctorImage: doctor.imageUrl,
+        date: selectedSlot.date.toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+        time: selectedSlot.slot.time,
+        location: doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada',
+        status: 'confirmed' as const,
+        type: 'consultation' as const,
+      };
+
+      onBookAppointment(newAppointment);
+      setBookingConfirmed(true);
+      
+      toast.success('¡Cita confirmada exitosamente!', {
+        description: `Tu cita con ${doctor.nombre} ha sido agendada para el ${newAppointment.date} a las ${newAppointment.time}.`,
+      });
+    } catch (error: any) {
+      console.error('❌ Error al crear la cita:', error);
+      console.error('📋 Response data:', error.response?.data);
+      console.error('📋 Response status:', error.response?.status);
+      console.error('📋 Full response:', error.response);
+      
+      // Mostrar detalles del error de validación si existen
+      if (error.response?.data?.errors) {
+        console.error('📋 Validation errors:', error.response.data.errors);
+      }
+      
+      if (error.response?.data?.message) {
+        console.error('📋 Error message:', error.response.data.message);
+      }
+      
+      toast.error('Error al agendar la cita', {
+        description: error.response?.data?.message || error.response?.data?.title || 'No se pudo crear la cita. Por favor, inténtalo de nuevo.',
+      });
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   if (bookingConfirmed) {

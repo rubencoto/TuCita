@@ -76,7 +76,7 @@ public class DoctorsController : ControllerBase
     {
         try
         {
-            if (!ulong.TryParse(id, out var doctorId))
+            if (!long.TryParse(id, out var doctorId))
             {
                 return BadRequest(new { message = "ID de doctor inválido" });
             }
@@ -146,7 +146,7 @@ public class DoctorsController : ControllerBase
     {
         try
         {
-            if (!ulong.TryParse(doctorId, out var docId))
+            if (!long.TryParse(doctorId, out var docId))
             {
                 return BadRequest(new { message = "ID de doctor inválido" });
             }

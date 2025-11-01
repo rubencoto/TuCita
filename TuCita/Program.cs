@@ -71,6 +71,9 @@ builder.Services.AddScoped<IDoctorsService, DoctorsService>();
 builder.Services.AddScoped<IAppointmentsService, AppointmentsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
+
+// EmailService es suficiente - sin tablas de notificaciones en BD
 
 // Add controllers
 builder.Services.AddControllers();

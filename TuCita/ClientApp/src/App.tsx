@@ -12,10 +12,11 @@ import { ForgotPasswordPage } from './components/pages/forgot-password-page';
 import { ResetPasswordPage } from './components/pages/reset-password-page';
 import { MedicalHistoryPage } from './components/pages/medical-history-page';
 import { AppointmentDetailPage } from './components/pages/appointment-detail-page';
+import { ReschedulePage } from './components/pages/reschedule-page';
 import { authService, AuthResponse } from './services/authService';
 import appointmentsService from './services/appointmentsService';
 
-type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail';
+type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -114,6 +115,24 @@ export default function App() {
       return success;
     } catch (error) {
       console.error('Error al cancelar cita:', error);
+      return false;
+    }
+  };
+
+  const handleRescheduleAppointment = async (appointmentId: string, newTurnoId: number): Promise<boolean> => {
+    try {
+      const rescheduledAppointment = await appointmentsService.rescheduleAppointmentToNewSlot(
+        Number(appointmentId), 
+        newTurnoId
+      );
+      
+      if (rescheduledAppointment) {
+        await loadUserAppointments(); // Recargar lista de citas
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error al reagendar cita:', error);
       return false;
     }
   };
@@ -221,6 +240,24 @@ export default function App() {
           <AppointmentDetailPage
             appointment={pageData?.appointment}
             onNavigate={handleNavigate}
+          />
+        );
+      
+      case 'reschedule':
+        if (!isLoggedIn) {
+          return (
+            <AuthPage
+              mode="login"
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <ReschedulePage
+            appointment={pageData?.appointment}
+            onNavigate={handleNavigate}
+            onRescheduleAppointment={handleRescheduleAppointment}
           />
         );
       

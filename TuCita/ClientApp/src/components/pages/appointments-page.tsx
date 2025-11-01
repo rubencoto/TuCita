@@ -51,8 +51,12 @@ export function AppointmentsPage({
   const filteredPast = filterAppointments(pastAppointments);
 
   const handleReschedule = (appointmentId: string) => {
-    // En una aplicación real, aquí abriríamos un modal o navegaríamos a una página de reprogramación
-    onUpdateAppointment(appointmentId, 'REPROGRAMADA');
+    // Buscar la cita por ID
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (appointment) {
+      // Navegar a la página de reagendamiento con los datos de la cita
+      onNavigate('reschedule', { appointment });
+    }
   };
 
   const handleCancel = async (appointmentId: string) => {

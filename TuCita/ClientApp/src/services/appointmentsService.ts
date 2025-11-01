@@ -19,12 +19,9 @@ export interface Appointment {
 }
 
 export interface CreateAppointmentRequest {
-  turnoId: number;
-  medicoId: number;
-  sedeId: number;
-  motivo?: string;
-  inicio: string;
-  fin: string;
+  TurnoId: number; // PascalCase para coincidir con el backend C#
+  DoctorId: number; // PascalCase para coincidir con el backend C#
+  Motivo?: string; // PascalCase para coincidir con el backend C#
 }
 
 export interface UpdateAppointmentRequest {
@@ -32,6 +29,10 @@ export interface UpdateAppointmentRequest {
   inicio?: string;
   fin?: string;
   motivo?: string;
+}
+
+export interface RescheduleAppointmentRequest {
+  NewTurnoId: number; // PascalCase para coincidir con el backend C#
 }
 
 const appointmentsService = {
@@ -49,7 +50,7 @@ const appointmentsService = {
   },
 
   /**
-   * Obtener una cita espec�fica por ID
+   * Obtener una cita específica por ID
    */
   async getAppointmentById(id: number): Promise<Appointment | null> {
     try {
@@ -66,10 +67,13 @@ const appointmentsService = {
    */
   async createAppointment(request: CreateAppointmentRequest): Promise<Appointment> {
     try {
+      console.log('🔵 appointmentsService.createAppointment - Request:', request);
       const response = await api.post('/api/appointments', request);
+      console.log('🟢 appointmentsService.createAppointment - Response:', response.data);
       return response.data;
-    } catch (error) {
-      console.error('Error al crear cita:', error);
+    } catch (error: any) {
+      console.error('🔴 appointmentsService.createAppointment - Error:', error);
+      console.error('🔴 Error response:', error.response?.data);
       throw error;
     }
   },
@@ -114,6 +118,26 @@ const appointmentsService = {
       return response.data;
     } catch (error) {
       console.error(`Error al reprogramar cita ${id}:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Reagendar una cita (cambiar a un nuevo turno)
+   */
+  async rescheduleAppointmentToNewSlot(
+    id: number,
+    newTurnoId: number
+  ): Promise<Appointment | null> {
+    try {
+      console.log('🔄 Reagendando cita:', { id, newTurnoId });
+      const response = await api.post(`/api/appointments/${id}/reschedule`, {
+        NewTurnoId: newTurnoId
+      });
+      console.log('✅ Cita reagendada exitosamente:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Error al reagendar cita ${id}:`, error);
       return null;
     }
   },

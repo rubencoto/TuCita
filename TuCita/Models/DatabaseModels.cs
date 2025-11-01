@@ -593,3 +593,6 @@ public class DocumentoDescarga
     [ForeignKey("UsuarioId")]
     public virtual Usuario Usuario { get; set; } = null!;
 }
+
+// NO usaremos sistema de notificaciones con base de datos
+// Solo emails directos desde EmailService

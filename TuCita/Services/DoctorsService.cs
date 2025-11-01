@@ -8,9 +8,9 @@ namespace TuCita.Services;
 public interface IDoctorsService
 {
     Task<IEnumerable<DoctorDto>> GetDoctorsAsync(string? especialidad = null, string? ciudad = null);
-    Task<DoctorDetailDto?> GetDoctorByIdAsync(ulong id);
+    Task<DoctorDetailDto?> GetDoctorByIdAsync(long id);
     Task<IEnumerable<string>> GetSpecialtiesAsync();
-    Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(ulong doctorId, DateTime fecha);
+    Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(long doctorId, DateTime fecha);
 }
 
 public class DoctorsService : IDoctorsService
@@ -57,7 +57,7 @@ public class DoctorsService : IDoctorsService
                     : "Médico no disponible",
                 Especialidades = pm.EspecialidadesMedico?
                     .Where(me => me.Especialidad != null)
-                    .Select(me => me.Especialidad.Nombre)
+                    .Select(me => me.Especialidad!.Nombre)
                     .ToList() ?? new List<string>(),
                 NumeroLicencia = pm.NumeroLicencia,
                 Biografia = pm.Biografia,
@@ -79,7 +79,7 @@ public class DoctorsService : IDoctorsService
         }
     }
 
-    public async Task<DoctorDetailDto?> GetDoctorByIdAsync(ulong id)
+    public async Task<DoctorDetailDto?> GetDoctorByIdAsync(long id)
     {
         try
         {
@@ -99,7 +99,7 @@ public class DoctorsService : IDoctorsService
                     : "Médico no disponible",
                 Especialidades = medico.EspecialidadesMedico?
                     .Where(me => me.Especialidad != null)
-                    .Select(me => me.Especialidad.Nombre)
+                    .Select(me => me.Especialidad!.Nombre)
                     .ToList() ?? new List<string>(),
                 NumeroLicencia = medico.NumeroLicencia,
                 Biografia = medico.Biografia,
@@ -138,7 +138,7 @@ public class DoctorsService : IDoctorsService
         }
     }
 
-    public async Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(ulong doctorId, DateTime fecha)
+    public async Task<IEnumerable<AgendaTurnoDto>> GetAvailableSlotsAsync(long doctorId, DateTime fecha)
     {
         try
         {

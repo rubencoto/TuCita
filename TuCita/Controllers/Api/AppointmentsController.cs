@@ -18,6 +18,21 @@ public class AppointmentsController : ControllerBase
         _appointmentsService = appointmentsService;
     }
 
+    // Método helper para mapear estados del backend al formato frontend
+    private static string MapEstadoToFrontend(string estado)
+    {
+        return estado.ToUpperInvariant() switch
+        {
+            "PENDIENTE" => "pending",
+            "CONFIRMADA" => "confirmed",
+            "CANCELADA" => "cancelled",
+            "REPROGRAMADA" => "rescheduled",
+            "ATENDIDA" => "completed",
+            "NO_ASISTIO" => "no_show",
+            _ => "pending" // Default
+        };
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAppointments()
     {
@@ -37,15 +52,20 @@ public class AppointmentsController : ControllerBase
             {
                 id = a.Id.ToString(),
                 doctorName = a.NombreMedico,
-                doctorSpecialty = a.Especialidad,
+                doctorSpecialty = new[] { a.Especialidad }, // Array para compatibilidad con frontend
+                doctorImage = "/api/placeholder/96/96", // Imagen por defecto
                 date = a.Inicio.ToString("yyyy-MM-dd"),
                 time = a.Inicio.ToString("HH:mm"),
                 location = a.DireccionMedico ?? "No especificado",
                 direccion = a.DireccionMedico,
-                status = a.Estado,
+                status = MapEstadoToFrontend(a.Estado), // Mapear estado al formato frontend
+                type = "consultation", // Tipo por defecto
                 motivo = a.Motivo,
                 inicio = a.Inicio,
-                fin = a.Fin
+                fin = a.Fin,
+                medicoId = a.MedicoId, // Agregar medicoId para reagendamiento
+                pacienteId = userId, // Agregar pacienteId
+                sedeId = 0 // Placeholder - puede agregarse si es necesario
             });
 
             return Ok(response);
@@ -61,36 +81,60 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
+            Console.WriteLine($"?? Recibiendo solicitud de cita...");
+            Console.WriteLine($"?? Request recibido: TurnoId={request.TurnoId}, DoctorId={request.DoctorId}, Motivo={request.Motivo}");
+            
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                Console.WriteLine("? ModelState inválido:");
+                foreach (var error in ModelState)
+                {
+                    Console.WriteLine($"  - {error.Key}: {string.Join(", ", error.Value.Errors.Select(e => e.ErrorMessage))}");
+                }
+                return BadRequest(new { 
+                    message = "Datos de solicitud inválidos",
+                    errors = ModelState.Select(x => new { 
+                        field = x.Key, 
+                        errors = x.Value.Errors.Select(e => e.ErrorMessage).ToArray() 
+                    })
+                });
             }
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            Console.WriteLine($"?? Usuario ID del claim: {userIdClaim}");
             
             if (!long.TryParse(userIdClaim, out var userId))
             {
-                return Unauthorized();
+                Console.WriteLine("? No se pudo parsear el ID del usuario");
+                return Unauthorized(new { message = "Usuario no autenticado correctamente" });
             }
+
+            Console.WriteLine($"? Usuario autenticado: ID={userId}");
+            Console.WriteLine($"?? Llamando a CreateAppointmentAsync...");
 
             var newAppointment = await _appointmentsService.CreateAppointmentAsync(userId, request);
 
             if (newAppointment == null)
             {
+                Console.WriteLine("? No se pudo crear la cita - Turno no disponible");
                 return BadRequest(new { message = "No se pudo crear la cita. El turno podría no estar disponible." });
             }
+
+            Console.WriteLine($"? Cita creada exitosamente: ID={newAppointment.Id}");
 
             // Formatear respuesta para compatibilidad con frontend
             var response = new
             {
                 id = newAppointment.Id.ToString(),
                 doctorName = newAppointment.NombreMedico,
-                doctorSpecialty = newAppointment.Especialidad,
+                doctorSpecialty = new[] { newAppointment.Especialidad }, // Array para compatibilidad con frontend
+                doctorImage = "/api/placeholder/96/96", // Imagen por defecto
                 date = newAppointment.Inicio.ToString("yyyy-MM-dd"),
                 time = newAppointment.Inicio.ToString("HH:mm"),
                 location = newAppointment.DireccionMedico ?? "No especificado",
                 direccion = newAppointment.DireccionMedico,
-                status = newAppointment.Estado,
+                status = MapEstadoToFrontend(newAppointment.Estado), // Mapear estado al formato frontend
+                type = "consultation", // Tipo por defecto
                 motivo = newAppointment.Motivo,
                 inicio = newAppointment.Inicio,
                 fin = newAppointment.Fin
@@ -100,7 +144,9 @@ public class AppointmentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+            Console.WriteLine($"? Error inesperado: {ex.Message}");
+            Console.WriteLine($"?? StackTrace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message, stackTrace = ex.StackTrace });
         }
     }
 
@@ -169,6 +215,66 @@ public class AppointmentsController : ControllerBase
         }
         catch (Exception ex)
         {
+            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/reschedule")]
+    public async Task<IActionResult> RescheduleAppointment(string id, [FromBody] RescheduleAppointmentRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!long.TryParse(id, out var appointmentId))
+            {
+                return BadRequest(new { message = "ID de cita inválido" });
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (!long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var rescheduledAppointment = await _appointmentsService.RescheduleAppointmentAsync(
+                appointmentId, 
+                userId, 
+                request.NewTurnoId
+            );
+
+            if (rescheduledAppointment == null)
+            {
+                return BadRequest(new { message = "No se pudo reagendar la cita. Verifica que el turno esté disponible." });
+            }
+
+            // Formatear respuesta para compatibilidad con frontend
+            var response = new
+            {
+                id = rescheduledAppointment.Id.ToString(),
+                doctorName = rescheduledAppointment.NombreMedico,
+                doctorSpecialty = new[] { rescheduledAppointment.Especialidad },
+                doctorImage = "/api/placeholder/96/96",
+                date = rescheduledAppointment.Inicio.ToString("yyyy-MM-dd"),
+                time = rescheduledAppointment.Inicio.ToString("HH:mm"),
+                location = rescheduledAppointment.DireccionMedico ?? "No especificado",
+                direccion = rescheduledAppointment.DireccionMedico,
+                status = MapEstadoToFrontend(rescheduledAppointment.Estado),
+                type = "consultation",
+                motivo = rescheduledAppointment.Motivo,
+                inicio = rescheduledAppointment.Inicio,
+                fin = rescheduledAppointment.Fin
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en RescheduleAppointment: {ex.Message}");
             return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
         }
     }
