@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TuCita.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="TuCita.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="TuCitaOnline - Panel de Control"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/icon.png">
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="Linear(0deg, #3B82F6, #2563EB)"
+                Padding="24,16">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Logo -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <Border Width="40" Height="40"
+                            Background="White"
+                            CornerRadius="20">
+                        <Viewbox Width="24" Height="24">
+                            <Path Fill="#3B82F6"
+                                  Data="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
+                        </Viewbox>
+                    </Border>
+                    <TextBlock Text="TuCitaOnline"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Welcome Message -->
+                <TextBlock Grid.Column="1"
+                           Text="{Binding WelcomeMessage}"
+                           FontSize="16"
+                           Foreground="White"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+
+                <!-- User Menu -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12">
+                    <Button Classes="secondary"
+                            Content="Mi Perfil"
+                            Foreground="White"
+                            BorderBrush="White"/>
+                    <Button Classes="secondary"
+                            Content="Cerrar Sesión"
+                            Foreground="White"
+                            BorderBrush="White"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <Border Grid.Row="1" Background="#F3F4F6" Padding="24">
+            <TextBlock Text="Bienvenido al Panel de Control"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="#1F2937"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>

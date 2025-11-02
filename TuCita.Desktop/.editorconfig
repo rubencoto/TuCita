@@ -1,0 +1,30 @@
+# EditorConfig: https://editorconfig.org
+
+root = true
+
+# All files
+[*]
+charset = utf-8-bom
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# AXAML files (Avalonia XAML)
+[*.axaml]
+charset = utf-8-bom
+indent_size = 4
+
+# C# files
+[*.cs]
+charset = utf-8-bom
+indent_size = 4
+
+# XML and config files
+[*.{xml,csproj,props,targets,config,json}]
+charset = utf-8
+indent_size = 2
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false

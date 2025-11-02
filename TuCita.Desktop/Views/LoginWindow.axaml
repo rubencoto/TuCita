@@ -1,0 +1,249 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TuCita.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="650"
+        x:Class="TuCita.Desktop.Views.LoginWindow"
+        x:DataType="vm:LoginViewModel"
+        Title="TuCitaOnline - Login"
+        Width="500" Height="650"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        Background="#F3F4F6">
+
+    <Grid>
+        <Border Background="White" BoxShadow="0 20 25 -5 #0000001A, 0 8 10 -6 #0000001A">
+            <Grid RowDefinitions="Auto,*,Auto">
+                
+                <!-- Header with gradient -->
+                <Border Grid.Row="0" 
+                        Padding="40,50,40,30">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Color="#3B82F6" Offset="0"/>
+                            <GradientStop Color="#2563EB" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel Spacing="16">
+                        <!-- Logo Icon -->
+                        <Border Width="80" Height="80"
+                                Background="White"
+                                CornerRadius="40"
+                                HorizontalAlignment="Center"
+                                BoxShadow="0 10 15 -3 #0000001A, 0 4 6 -4 #0000001A">
+                            <Viewbox Width="50" Height="50">
+                                <Path Fill="#3B82F6"
+                                      Data="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
+                            </Viewbox>
+                        </Border>
+
+                        <TextBlock Text="TuCitaOnline"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center"/>
+
+                        <TextBlock Text="Portal para Médicos y Administradores"
+                                   FontSize="14"
+                                   Foreground="#DBEAFE"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Login Form -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="40,30,40,30" Spacing="24">
+                        
+                        <!-- Welcome Message -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Iniciar Sesión"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="#1F2937"/>
+                            <TextBlock Text="Ingresa tus credenciales para acceder"
+                                       FontSize="14"
+                                       Foreground="#6B7280"/>
+                        </StackPanel>
+
+                        <!-- Error Message -->
+                        <Border IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                Background="#FEE2E2"
+                                BorderBrush="#EF4444"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="12">
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="#DC2626"
+                                       TextWrapping="Wrap"
+                                       FontSize="13"/>
+                        </Border>
+
+                        <!-- Email Input -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Correo Electrónico"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#374151"/>
+                            <TextBox Text="{Binding Email}"
+                                     Watermark="medico@ejemplo.com"
+                                     Classes="modern"
+                                     IsEnabled="{Binding !IsLoading}">
+                                <TextBox.InnerLeftContent>
+                                    <PathIcon Data="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
+                                              Width="18" Height="18"
+                                              Foreground="#9CA3AF"
+                                              Margin="0,0,8,0"/>
+                                </TextBox.InnerLeftContent>
+                            </TextBox>
+                        </StackPanel>
+
+                        <!-- Password Input -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Contraseña"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#374151"/>
+                            <Grid>
+                                <TextBox Text="{Binding Password}"
+                                         Watermark="Tu contraseña"
+                                         Classes="modern"
+                                         PasswordChar="●"
+                                         IsVisible="{Binding !ShowPassword}"
+                                         IsEnabled="{Binding !IsLoading}">
+                                    <TextBox.InnerLeftContent>
+                                        <PathIcon Data="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"
+                                                  Width="18" Height="18"
+                                                  Foreground="#9CA3AF"
+                                                  Margin="0,0,8,0"/>
+                                    </TextBox.InnerLeftContent>
+                                </TextBox>
+
+                                <TextBox Text="{Binding Password}"
+                                         Watermark="Tu contraseña"
+                                         Classes="modern"
+                                         IsVisible="{Binding ShowPassword}"
+                                         IsEnabled="{Binding !IsLoading}">
+                                    <TextBox.InnerLeftContent>
+                                        <PathIcon Data="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"
+                                                  Width="18" Height="18"
+                                                  Foreground="#9CA3AF"
+                                                  Margin="0,0,8,0"/>
+                                    </TextBox.InnerLeftContent>
+                                </TextBox>
+
+                                <Button HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="8"
+                                        Margin="0,0,8,0"
+                                        Command="{Binding TogglePasswordVisibilityCommand}"
+                                        Cursor="Hand"
+                                        ToolTip.Tip="Mostrar/Ocultar contraseña">
+                                    <PathIcon Data="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                                              Width="20" Height="20" 
+                                              Foreground="#6B7280"/>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Remember Me & Forgot Password -->
+                        <Grid ColumnDefinitions="*,Auto">
+                            <CheckBox Grid.Column="0"
+                                      Content="Recordarme"
+                                      FontSize="13"
+                                      Foreground="#6B7280"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="¿Olvidaste tu contraseña?"
+                                       Classes="link"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Login Button -->
+                        <Button Classes="primary"
+                                Command="{Binding LoginCommand}"
+                                IsEnabled="{Binding !IsLoading}"
+                                HorizontalAlignment="Stretch"
+                                Height="44">
+                            <Panel>
+                                <TextBlock Text="Iniciar Sesión"
+                                           FontSize="16"
+                                           HorizontalAlignment="Center"
+                                           IsVisible="{Binding !IsLoading}"/>
+                                <TextBlock Text="Iniciando sesión..."
+                                           FontSize="16"
+                                           HorizontalAlignment="Center"
+                                           IsVisible="{Binding IsLoading}"/>
+                            </Panel>
+                        </Button>
+
+                        <!-- Divider -->
+                        <Border Height="1" Background="#E5E7EB" Margin="0,8,0,8"/>
+
+                        <!-- Info Box -->
+                        <Border Background="#EFF6FF"
+                                BorderBrush="#93C5FD"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <PathIcon Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V9H11V7M11,11H13V17H11V11Z"
+                                              Width="20" Height="20"
+                                              Foreground="#3B82F6"/>
+                                    <TextBlock Text="Acceso Restringido"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="#1E40AF"/>
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Foreground="#1E3A8A"
+                                           LineHeight="20">
+                                    <Run Text="Esta aplicación es exclusiva para médicos y administradores del sistema TuCitaOnline. Si eres paciente, utiliza la aplicación web."/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer -->
+                <Border Grid.Row="2"
+                        Background="#F9FAFB"
+                        BorderBrush="#E5E7EB"
+                        BorderThickness="0,1,0,0"
+                        Padding="40,20">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="© 2024 TuCitaOnline. Todos los derechos reservados."
+                                   FontSize="12"
+                                   Foreground="#6B7280"
+                                   HorizontalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" 
+                                    HorizontalAlignment="Center"
+                                    Spacing="16">
+                            <TextBlock Text="Soporte Técnico"
+                                       Classes="link"
+                                       FontSize="12"/>
+                            <TextBlock Text="•" 
+                                       Foreground="#D1D5DB"
+                                       FontSize="12"/>
+                            <TextBlock Text="Términos de Uso"
+                                       Classes="link"
+                                       FontSize="12"/>
+                            <TextBlock Text="•" 
+                                       Foreground="#D1D5DB"
+                                       FontSize="12"/>
+                            <TextBlock Text="Privacidad"
+                                       Classes="link"
+                                       FontSize="12"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

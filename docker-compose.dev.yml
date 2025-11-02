@@ -1,0 +1,76 @@
+# ==================================================
+# Docker Compose para Desarrollo Local
+# ==================================================
+version: '3.8'
+
+services:
+  # ===== Base de Datos SQL Server =====
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tucita-sqlserver-dev
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=DevPassword123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-dev-data:/var/opt/mssql
+      # Opcional: Scripts de inicialización
+      # - ./Database/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - tucita-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "DevPassword123!" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ===== API Backend (con hot reload) =====
+  tucita-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: tucita-app-dev
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      - DB_SERVER=sqlserver
+      - DB_NAME=TuCitaDb
+      - DB_USER=sa
+      - DB_PASSWORD=DevPassword123!
+      - JWT_KEY=dev-secret-key-minimum-32-characters-long-for-security
+      - JWT_ISSUER=TuCita
+      - JWT_AUDIENCE=TuCitaApp
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USERNAME=your-dev-email@gmail.com
+      - EMAIL_PASSWORD=your-dev-app-password
+      - EMAIL_FROM=noreply@tucita.dev
+      - EMAIL_FROM_NAME=TuCita Desarrollo
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5000:8080"
+      - "3000:3000"  # Puerto Vite para desarrollo
+    volumes:
+      # Montar código fuente para hot reload
+      - ./TuCita:/src/TuCita
+      - ./TuCita.Shared:/src/TuCita.Shared
+      # Excluir carpetas de build
+      - /src/TuCita/bin
+      - /src/TuCita/obj
+      - /src/TuCita.Shared/bin
+      - /src/TuCita.Shared/obj
+      - /src/TuCita/ClientApp/node_modules
+    networks:
+      - tucita-network
+
+networks:
+  tucita-network:
+    driver: bridge
+
+volumes:
+  sqlserver-dev-data:

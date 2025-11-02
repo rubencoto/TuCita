@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TuCita.Data;
 using TuCita.Models;
-using TuCita.DTOs.Appointments;
+using TuCita.Shared.DTOs.Appointments;
 using Microsoft.Extensions.Logging;
 
 namespace TuCita.Services;

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using TuCita.Services;
-using TuCita.DTOs.Appointments;
+using TuCita.Shared.DTOs.Appointments; // Cambiado a TuCita.Shared
 
 namespace TuCita.Controllers.Api;
 

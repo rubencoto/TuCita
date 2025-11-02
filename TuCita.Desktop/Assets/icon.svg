@@ -1,0 +1,10 @@
+<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="120" fill="#3B82F6"/>
+  
+  <!-- Heart icon (medical) -->
+  <path d="M128,220 L95,190 C60,158 40,132 40,105 C40,85 55,70 75,70 C88,70 100,77 108,88 L128,108 L148,88 C156,77 168,70 181,70 C201,70 216,85 216,105 C216,132 196,158 161,190 L128,220 Z" 
+        fill="white" 
+        stroke="white" 
+        stroke-width="4"/>
+</svg>

@@ -1,0 +1,385 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:TuCita.Desktop.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="TuCita.Desktop.Views.DoctorDashboardWindow"
+        x:DataType="vm:DoctorDashboardViewModel"
+        Title="{Binding DoctorName, StringFormat='Dashboard Médico - {0}'}"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <!-- Card Style -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <!-- Stat Card Style -->
+        <Style Selector="Border.stat-card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="8"/>
+        </Style>
+
+        <!-- Section Title -->
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <!-- Status Badge Styles -->
+        <Style Selector="Border.status-badge">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+
+        <Style Selector="Border.status-agendada">
+            <Setter Property="Background" Value="#FFF3E0"/>
+        </Style>
+
+        <Style Selector="Border.status-atendida">
+            <Setter Property="Background" Value="#E8F5E9"/>
+        </Style>
+
+        <Style Selector="Border.status-cancelada">
+            <Setter Property="Background" Value="#FFEBEE"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#1976D2" Padding="20">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Dashboard Médico" 
+                               FontSize="24" 
+                               FontWeight="Bold" 
+                               Foreground="White"/>
+                    <TextBlock Text="{Binding DoctorName}" 
+                               FontSize="14" 
+                               Foreground="#BBDEFB"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" 
+                        Content="🔄 Actualizar" 
+                        Command="{Binding RefreshCommand}"
+                        Background="#2196F3"
+                        Foreground="White"
+                        VerticalAlignment="Center"
+                        Padding="16,8"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" Background="#F5F5F5">
+            <StackPanel Margin="20">
+                <!-- Stats Cards -->
+                <Grid ColumnDefinitions="*,*,*" Margin="0,0,0,20">
+                    <!-- Today's Appointments -->
+                    <Border Grid.Column="0" Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="📅" FontSize="32" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding TodayCount}" 
+                                     FontSize="36" 
+                                     FontWeight="Bold" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="#1976D2"/>
+                            <TextBlock Text="Citas Hoy" 
+                                     FontSize="14" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="#666"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Pending Appointments -->
+                    <Border Grid.Column="1" Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="⏱️" FontSize="32" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding PendingCount}" 
+                                     FontSize="36" 
+                                     FontWeight="Bold" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="#F57C00"/>
+                            <TextBlock Text="Pendientes" 
+                                     FontSize="14" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="#666"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Completed Appointments -->
+                    <Border Grid.Column="2" Classes="stat-card">
+                        <StackPanel>
+                            <TextBlock Text="✅" FontSize="32" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding CompletedCount}" 
+                                     FontSize="36" 
+                                     FontWeight="Bold" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="#388E3C"/>
+                            <TextBlock Text="Atendidas" 
+                                     FontSize="14" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="#666"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="2*,3*">
+                    <!-- Left Column: Today's Appointments -->
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <Border Classes="card" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="📋 Citas de Hoy" Classes="section-title"/>
+                                
+                                <ScrollViewer MaxHeight="400">
+                                    <ItemsControl ItemsSource="{Binding TodayAppointments}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Command="{Binding $parent[Window].((vm:DoctorDashboardViewModel)DataContext).SelectAppointmentCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Padding="0"
+                                                        Background="Transparent"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Margin="0,0,0,8">
+                                                    <Border Background="#F9F9F9" 
+                                                            BorderBrush="#E0E0E0" 
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="12">
+                                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                                            <TextBlock Grid.Column="0" 
+                                                                     Text="{Binding Inicio, StringFormat='{}{0:HH:mm}'}"
+                                                                     FontWeight="Bold"
+                                                                     FontSize="16"
+                                                                     Foreground="#1976D2"
+                                                                     VerticalAlignment="Center"
+                                                                     Margin="0,0,12,0"/>
+                                                            
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding NombreMedico}" 
+                                                                         FontWeight="SemiBold"/>
+                                                                <TextBlock Text="{Binding Motivo}" 
+                                                                         FontSize="12"
+                                                                         Foreground="#666"
+                                                                         TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+
+                                                            <Border Grid.Column="2" 
+                                                                    Classes="status-badge status-agendada"
+                                                                    VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Estado}" 
+                                                                         FontSize="11"
+                                                                         Foreground="#F57C00"/>
+                                                            </Border>
+                                                        </Grid>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+
+                                <TextBlock Text="No hay citas programadas para hoy"
+                                         IsVisible="{Binding !TodayAppointments.Count}"
+                                         Foreground="#999"
+                                         HorizontalAlignment="Center"
+                                         Margin="0,20"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Pending Appointments -->
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Text="⏱️ Próximas Citas" Classes="section-title"/>
+                                
+                                <ScrollViewer MaxHeight="300">
+                                    <ItemsControl ItemsSource="{Binding PendingAppointments}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Command="{Binding $parent[Window].((vm:DoctorDashboardViewModel)DataContext).SelectAppointmentCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Padding="0"
+                                                        Background="Transparent"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Margin="0,0,0,8">
+                                                    <Border Background="#F9F9F9" 
+                                                            BorderBrush="#E0E0E0" 
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="12">
+                                                        <Grid RowDefinitions="Auto,Auto">
+                                                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                                                <TextBlock Grid.Column="0"
+                                                                         Text="{Binding NombreMedico}" 
+                                                                         FontWeight="SemiBold"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                         Text="{Binding Inicio, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                                                         FontSize="12"
+                                                                         Foreground="#666"/>
+                                                            </Grid>
+                                                            <TextBlock Grid.Row="1"
+                                                                     Text="{Binding Inicio, StringFormat='🕐 {0:HH:mm}'}"
+                                                                     FontSize="12"
+                                                                     Foreground="#1976D2"
+                                                                     Margin="0,4,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Right Column: Selected Appointment Details -->
+                    <Border Grid.Column="1" Classes="card" Margin="10,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="👤 Detalles de la Cita" Classes="section-title"/>
+
+                            <!-- Loading State -->
+                            <StackPanel IsVisible="{Binding IsLoading}" 
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="0,40">
+                                <TextBlock Text="⏳ Cargando..." 
+                                         FontSize="16"
+                                         Foreground="#666"
+                                         HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- No Selection State -->
+                            <StackPanel IsVisible="{Binding !SelectedAppointment}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="0,40">
+                                <TextBlock Text="📋" FontSize="48" HorizontalAlignment="Center" Opacity="0.3"/>
+                                <TextBlock Text="Selecciona una cita para ver los detalles" 
+                                         FontSize="14"
+                                         Foreground="#999"
+                                         HorizontalAlignment="Center"
+                                         Margin="0,12,0,0"/>
+                            </StackPanel>
+
+                            <!-- Appointment Details -->
+                            <ScrollViewer IsVisible="{Binding SelectedAppointment}"
+                                        MaxHeight="600">
+                                <StackPanel Spacing="16">
+                                    <!-- Patient Info -->
+                                    <Border Background="#E3F2FD" 
+                                            CornerRadius="6" 
+                                            Padding="16">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                            <TextBlock Grid.Row="0"
+                                                     Text="{Binding AppointmentDetail.NombrePaciente}" 
+                                                     FontSize="18"
+                                                     FontWeight="Bold"/>
+                                            <TextBlock Grid.Row="1"
+                                                     Text="{Binding AppointmentDetail.Identificacion, StringFormat='ID: {0}'}"
+                                                     FontSize="12"
+                                                     Foreground="#666"
+                                                     Margin="0,4,0,0"/>
+                                            <TextBlock Grid.Row="2"
+                                                     Text="{Binding AppointmentDetail.Inicio, StringFormat='📅 {0:dd/MM/yyyy HH:mm}'}"
+                                                     FontSize="14"
+                                                     Margin="0,8,0,0"/>
+                                            <TextBlock Grid.Row="3"
+                                                     Text="{Binding AppointmentDetail.Motivo, StringFormat='Motivo: {0}'}"
+                                                     FontSize="13"
+                                                     Foreground="#666"
+                                                     TextWrapping="Wrap"
+                                                     Margin="0,4,0,0"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- View Details Button -->
+                                    <Button Content="📝 Ver y Editar Información Médica"
+                                            HorizontalAlignment="Stretch"
+                                            Background="#4CAF50"
+                                            Foreground="White"
+                                            Padding="12"
+                                            Command="{Binding OpenDetailWindowCommand}"/>
+
+                                    <!-- Existing Medical Info Summary -->
+                                    <StackPanel>
+                                        <TextBlock Text="📋 Resumen" 
+                                                 FontWeight="SemiBold"
+                                                 Margin="0,0,0,8"/>
+                                        
+                                        <Grid ColumnDefinitions="*,*,*" Margin="0,0,0,8">
+                                            <Border Grid.Column="0" 
+                                                    Background="#FFF3E0"
+                                                    CornerRadius="4"
+                                                    Padding="8"
+                                                    Margin="0,0,4,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding AppointmentDetail.Diagnosticos.Count}"
+                                                             FontSize="20"
+                                                             FontWeight="Bold"
+                                                             HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Diagnósticos"
+                                                             FontSize="11"
+                                                             HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            
+                                            <Border Grid.Column="1"
+                                                    Background="#E8F5E9"
+                                                    CornerRadius="4"
+                                                    Padding="8"
+                                                    Margin="4,0,4,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding AppointmentDetail.NotasClinicas.Count}"
+                                                             FontSize="20"
+                                                             FontWeight="Bold"
+                                                             HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Notas"
+                                                             FontSize="11"
+                                                             HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            
+                                            <Border Grid.Column="2"
+                                                    Background="#F3E5F5"
+                                                    CornerRadius="4"
+                                                    Padding="8"
+                                                    Margin="4,0,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding AppointmentDetail.Recetas.Count}"
+                                                             FontSize="20"
+                                                             FontWeight="Bold"
+                                                             HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Recetas"
+                                                             FontSize="11"
+                                                             HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Status Bar -->
+                <TextBlock Text="{Binding StatusMessage}" 
+                         Foreground="#666"
+                         FontSize="12"
+                         Margin="0,16,0,0"
+                         HorizontalAlignment="Center"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

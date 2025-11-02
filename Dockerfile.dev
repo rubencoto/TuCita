@@ -1,0 +1,34 @@
+# ==================================================
+# Dockerfile para Desarrollo con Hot Reload
+# ==================================================
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+WORKDIR /src
+
+# Instalar Node.js para el frontend
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# Copiar archivos de proyecto
+COPY ["TuCita.Shared/TuCita.Shared.csproj", "TuCita.Shared/"]
+COPY ["TuCita/TuCita.csproj", "TuCita/"]
+
+# Restaurar dependencias
+RUN dotnet restore "TuCita/TuCita.csproj"
+
+# Copiar todo el código
+COPY . .
+
+# Instalar dependencias de Node
+WORKDIR /src/TuCita/ClientApp
+RUN npm install
+
+# Volver al directorio del proyecto
+WORKDIR /src/TuCita
+
+# Exponer puertos
+EXPOSE 8080
+EXPOSE 3000
+
+# Comando para ejecutar con watch (hot reload)
+CMD ["dotnet", "watch", "run", "--no-launch-profile"]

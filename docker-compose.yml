@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # ===== Base de Datos SQL Server =====
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tucita-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQL_PASSWORD:-TuCita@2025!Secure}
+      - MSSQL_PID=Developer
+      - MSSQL_TCP_PORT=1433
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - tucita-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ===== API Backend + Frontend =====
+  tucita-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tucita-app
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      # Base de datos
+      - DB_SERVER=sqlserver
+      - DB_NAME=${DB_NAME:-TuCitaDb}
+      - DB_USER=sa
+      - DB_PASSWORD=${SQL_PASSWORD:-TuCita@2025!Secure}
+      
+      # JWT
+      - JWT_KEY=${JWT_KEY:-your-super-secret-jwt-key-change-this-in-production-min-32-chars}
+      - JWT_ISSUER=${JWT_ISSUER:-TuCita}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-TuCitaApp}
+      
+      # Email (Gmail SMTP)
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-your-email@gmail.com}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-your-app-password}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@tucita.com}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-TuCita Sistema de Citas}
+      
+      # ASP.NET Core
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5000:8080"
+    networks:
+      - tucita-network
+    restart: unless-stopped
+    healthcheck:
+      test: curl --fail http://localhost:8080/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  tucita-network:
+    driver: bridge
+    name: tucita-network
+
+volumes:
+  sqlserver-data:
+    name: tucita-sqlserver-data

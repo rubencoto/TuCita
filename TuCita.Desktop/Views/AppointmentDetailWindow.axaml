@@ -1,0 +1,386 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:TuCita.Desktop.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        x:Class="TuCita.Desktop.Views.AppointmentDetailWindow"
+        x:DataType="vm:AppointmentDetailViewModel"
+        Title="Detalles de la Cita - Información Médica"
+        Width="900" Height="700"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style Selector="TextBox.input">
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#1976D2"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="Button.success">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#F44336"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#1976D2" Padding="20">
+            <StackPanel>
+                <TextBlock Text="Información Médica de la Cita" 
+                           FontSize="20" 
+                           FontWeight="Bold" 
+                           Foreground="White"/>
+                <TextBlock Text="{Binding Appointment.NombrePaciente, StringFormat='Paciente: {0}'}" 
+                           FontSize="14" 
+                           Foreground="#BBDEFB"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" Background="#F5F5F5">
+            <StackPanel Margin="20" Spacing="16">
+                <!-- Patient Information -->
+                <Border Classes="card">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" 
+                                 Text="👤 Información del Paciente" 
+                                 Classes="section-title"/>
+                        <TextBlock Grid.Row="1" 
+                                 Text="{Binding Appointment.NombrePaciente, StringFormat='Nombre: {0}'}"/>
+                        <TextBlock Grid.Row="2" 
+                                 Text="{Binding Appointment.Identificacion, StringFormat='Identificación: {0}'}"/>
+                        <TextBlock Grid.Row="3" 
+                                 Text="{Binding Appointment.Inicio, StringFormat='Fecha: {0:dd/MM/yyyy HH:mm}'}"/>
+                        <TextBlock Grid.Row="4" 
+                                 Text="{Binding Appointment.Motivo, StringFormat='Motivo: {0}'}"
+                                 TextWrapping="Wrap"/>
+                    </Grid>
+                </Border>
+
+                <!-- Tabs for different sections -->
+                <TabControl>
+                    <!-- Clinical Notes Tab -->
+                    <TabItem Header="📝 Notas Clínicas">
+                        <StackPanel Margin="16" Spacing="16">
+                            <!-- Existing Notes -->
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <TextBlock Text="Notas Existentes" Classes="section-title"/>
+                                    <ItemsControl ItemsSource="{Binding Appointment.NotasClinicas}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F9F9F9" 
+                                                        BorderBrush="#E0E0E0"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4"
+                                                        Padding="12"
+                                                        Margin="0,0,0,8">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Fecha, StringFormat='📅 {0:dd/MM/yyyy HH:mm}'}"
+                                                                 FontSize="11"
+                                                                 Foreground="#666"/>
+                                                        <TextBlock Text="{Binding Contenido}"
+                                                                 TextWrapping="Wrap"
+                                                                 Margin="0,4,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No hay notas clínicas registradas"
+                                             IsVisible="{Binding !Appointment.NotasClinicas.Count}"
+                                             Foreground="#999"
+                                             HorizontalAlignment="Center"
+                                             Margin="20"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Add New Note -->
+                            <Border Classes="card" Background="#E3F2FD">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="➕ Agregar Nueva Nota" Classes="section-title"/>
+                                    <TextBox Text="{Binding NewNotaContenido}"
+                                           Watermark="Escriba la nota clínica aquí..."
+                                           AcceptsReturn="True"
+                                           TextWrapping="Wrap"
+                                           MinHeight="120"
+                                           Classes="input"/>
+                                    <Button Content="💾 Guardar Nota"
+                                          Command="{Binding AddNotaClinicaCommand}"
+                                          Classes="success"
+                                          HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- Diagnoses Tab -->
+                    <TabItem Header="🩺 Diagnósticos">
+                        <StackPanel Margin="16" Spacing="16">
+                            <!-- Existing Diagnoses -->
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <TextBlock Text="Diagnósticos Existentes" Classes="section-title"/>
+                                    <ItemsControl ItemsSource="{Binding Appointment.Diagnosticos}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#FFF3E0" 
+                                                        BorderBrush="#FFB74D"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4"
+                                                        Padding="12"
+                                                        Margin="0,0,0,8">
+                                                    <Grid RowDefinitions="Auto,Auto,Auto">
+                                                        <TextBlock Grid.Row="0"
+                                                                 Text="{Binding Fecha, StringFormat='📅 {0:dd/MM/yyyy HH:mm}'}"
+                                                                 FontSize="11"
+                                                                 Foreground="#666"/>
+                                                        <TextBlock Grid.Row="1"
+                                                                 Text="{Binding Codigo, StringFormat='Código: {0}'}"
+                                                                 FontWeight="SemiBold"
+                                                                 Margin="0,4,0,0"
+                                                                 IsVisible="{Binding !!Codigo}"/>
+                                                        <TextBlock Grid.Row="2"
+                                                                 Text="{Binding Descripcion}"
+                                                                 TextWrapping="Wrap"
+                                                                 Margin="0,4,0,0"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No hay diagnósticos registrados"
+                                             IsVisible="{Binding !Appointment.Diagnosticos.Count}"
+                                             Foreground="#999"
+                                             HorizontalAlignment="Center"
+                                             Margin="20"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Add New Diagnosis -->
+                            <Border Classes="card" Background="#FFF8E1">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="➕ Agregar Nuevo Diagnóstico" Classes="section-title"/>
+                                    <TextBox Text="{Binding NewDiagnosticoCodigo}"
+                                           Watermark="Código ICD-10 (opcional)"
+                                           Classes="input"/>
+                                    <TextBox Text="{Binding NewDiagnosticoDescripcion}"
+                                           Watermark="Descripción del diagnóstico*"
+                                           AcceptsReturn="True"
+                                           TextWrapping="Wrap"
+                                           MinHeight="80"
+                                           Classes="input"/>
+                                    <Button Content="💾 Guardar Diagnóstico"
+                                          Command="{Binding AddDiagnosticoCommand}"
+                                          Classes="success"
+                                          HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- Prescriptions Tab -->
+                    <TabItem Header="💊 Recetas">
+                        <StackPanel Margin="16" Spacing="16">
+                            <!-- Existing Prescriptions -->
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <TextBlock Text="Recetas Existentes" Classes="section-title"/>
+                                    <ItemsControl ItemsSource="{Binding Appointment.Recetas}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F3E5F5" 
+                                                        BorderBrush="#BA68C8"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4"
+                                                        Padding="12"
+                                                        Margin="0,0,0,12">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Fecha, StringFormat='📅 {0:dd/MM/yyyy HH:mm}'}"
+                                                                 FontSize="11"
+                                                                 Foreground="#666"/>
+                                                        <TextBlock Text="{Binding Indicaciones, StringFormat='Indicaciones: {0}'}"
+                                                                 TextWrapping="Wrap"
+                                                                 Margin="0,4,0,8"
+                                                                 IsVisible="{Binding !!Indicaciones}"/>
+                                                        <TextBlock Text="Medicamentos:" 
+                                                                 FontWeight="SemiBold"
+                                                                 Margin="0,0,0,4"/>
+                                                        <ItemsControl ItemsSource="{Binding Medicamentos}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Background="White"
+                                                                            BorderBrush="#E0E0E0"
+                                                                            BorderThickness="1"
+                                                                            CornerRadius="4"
+                                                                            Padding="8"
+                                                                            Margin="0,0,0,4">
+                                                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                                                            <TextBlock Grid.Row="0"
+                                                                                     Text="{Binding Medicamento}"
+                                                                                     FontWeight="SemiBold"/>
+                                                                            <TextBlock Grid.Row="1"
+                                                                                     Text="{Binding Dosis, StringFormat='Dosis: {0}'}"
+                                                                                     FontSize="12"
+                                                                                     IsVisible="{Binding !!Dosis}"/>
+                                                                            <TextBlock Grid.Row="2"
+                                                                                     Text="{Binding Frecuencia, StringFormat='Frecuencia: {0}'}"
+                                                                                     FontSize="12"
+                                                                                     IsVisible="{Binding !!Frecuencia}"/>
+                                                                            <TextBlock Grid.Row="3"
+                                                                                     Text="{Binding Duracion, StringFormat='Duración: {0}'}"
+                                                                                     FontSize="12"
+                                                                                     IsVisible="{Binding !!Duracion}"/>
+                                                                            <TextBlock Grid.Row="4"
+                                                                                     Text="{Binding Notas, StringFormat='Notas: {0}'}"
+                                                                                     FontSize="11"
+                                                                                     Foreground="#666"
+                                                                                     TextWrapping="Wrap"
+                                                                                     IsVisible="{Binding !!Notas}"/>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No hay recetas registradas"
+                                             IsVisible="{Binding !Appointment.Recetas.Count}"
+                                             Foreground="#999"
+                                             HorizontalAlignment="Center"
+                                             Margin="20"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Add New Prescription -->
+                            <Border Classes="card" Background="#F3E5F5">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="➕ Agregar Nueva Receta" Classes="section-title"/>
+                                    
+                                    <TextBox Text="{Binding NewRecetaIndicaciones}"
+                                           Watermark="Indicaciones generales (opcional)"
+                                           AcceptsReturn="True"
+                                           TextWrapping="Wrap"
+                                           MinHeight="60"
+                                           Classes="input"/>
+
+                                    <TextBlock Text="Medicamentos:" FontWeight="SemiBold"/>
+                                    
+                                    <ItemsControl ItemsSource="{Binding Medicamentos}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="White"
+                                                        BorderBrush="#BA68C8"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4"
+                                                        Padding="12"
+                                                        Margin="0,0,0,8">
+                                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                                        <TextBox Grid.Row="0" Grid.Column="0"
+                                                               Text="{Binding Medicamento}"
+                                                               Watermark="Nombre del medicamento*"
+                                                               Classes="input"
+                                                               Margin="0,0,0,8"/>
+                                                        <Button Grid.Row="0" Grid.Column="1"
+                                                              Content="❌"
+                                                              Command="{Binding $parent[Window].((vm:AppointmentDetailViewModel)DataContext).RemoveMedicamentoCommand}"
+                                                              CommandParameter="{Binding}"
+                                                              Classes="danger"
+                                                              VerticalAlignment="Top"
+                                                              Margin="8,0,0,0"/>
+                                                        
+                                                        <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                               Text="{Binding Dosis}"
+                                                               Watermark="Dosis (ej: 500mg)"
+                                                               Classes="input"
+                                                               Margin="0,0,0,8"/>
+                                                        <TextBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                               Text="{Binding Frecuencia}"
+                                                               Watermark="Frecuencia (ej: Cada 8 horas)"
+                                                               Classes="input"
+                                                               Margin="0,0,0,8"/>
+                                                        <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                               Text="{Binding Duracion}"
+                                                               Watermark="Duración (ej: 7 días)"
+                                                               Classes="input"
+                                                               Margin="0,0,0,8"/>
+                                                        <TextBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                                               Text="{Binding Notas}"
+                                                               Watermark="Notas adicionales"
+                                                               Classes="input"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Button Content="➕ Agregar Medicamento"
+                                          Command="{Binding AddMedicamentoCommand}"
+                                          HorizontalAlignment="Left"
+                                          Classes="primary"/>
+
+                                    <Button Content="💾 Guardar Receta"
+                                          Command="{Binding AddRecetaCommand}"
+                                          Classes="success"
+                                          HorizontalAlignment="Right"
+                                          IsEnabled="{Binding Medicamentos.Count}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+                </TabControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="#EEEEEE" Padding="12">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                         Text="{Binding StatusMessage}" 
+                         Foreground="#666"
+                         FontSize="12"
+                         VerticalAlignment="Center"/>
+                <Button Grid.Column="1"
+                      Content="✓ Cerrar"
+                      Command="{Binding $parent[Window].Close}"
+                      Classes="primary"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

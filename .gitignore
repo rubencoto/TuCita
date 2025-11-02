@@ -361,3 +361,37 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+*.exe
+.vs/
+.vscode/
+*.log
+
+# DynamoDB Local files
+.dynamodb/
+
+# ==================================================
+# Docker
+# ==================================================
+# Archivos de Docker que NO deben ignorarse:
+# - Dockerfile
+# - docker-compose.yml
+# - docker-compose.*.yml
+# - .dockerignore
+
+# Backups de base de datos
+backups/
+*.bak
+*.sql
+
+# Logs de Docker
+docker-compose.override.yml

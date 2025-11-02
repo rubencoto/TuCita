@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="using:TuCita.Desktop.Converters"
+             x:Class="TuCita.Desktop.App"
+             RequestedThemeVariant="Default">
+    <Application.Resources>
+        <converters:BoolToEyeIconConverter x:Key="BoolToEyeIconConverter"/>
+    </Application.Resources>
+    
+    <Application.Styles>
+        <FluentTheme />
+        
+        <!-- Colores personalizados basados en la web -->
+        <Style Selector="Window">
+            <Setter Property="Background" Value="#FFFFFF"/>
+        </Style>
+        
+        <!-- Primary Color: Blue -->
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3B82F6"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2563EB"/>
+        </Style>
+        
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1D4ED8"/>
+        </Style>
+        
+        <!-- Secondary Button -->
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#3B82F6"/>
+            <Setter Property="BorderBrush" Value="#3B82F6"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#EFF6FF"/>
+        </Style>
+        
+        <!-- TextBox Style -->
+        <Style Selector="TextBox.modern">
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        
+        <Style Selector="TextBox.modern:focus /template/ Border">
+            <Setter Property="BorderBrush" Value="#3B82F6"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        
+        <!-- Card Style -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BoxShadow" Value="0 4 6 -1 #0000001A, 0 2 4 -2 #0000001A"/>
+        </Style>
+        
+        <!-- Link Style -->
+        <Style Selector="TextBlock.link">
+            <Setter Property="Foreground" Value="#3B82F6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <Style Selector="TextBlock.link:pointerover">
+            <Setter Property="TextDecorations" Value="Underline"/>
+        </Style>
+    </Application.Styles>
+</Application>
