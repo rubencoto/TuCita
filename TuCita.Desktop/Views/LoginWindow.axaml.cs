@@ -5,6 +5,7 @@ using TuCita.Desktop.ViewModels;
 using TuCita.Desktop.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using TuCita.Shared.DTOs.Doctors;
 
 namespace TuCita.Desktop.Views;
 
@@ -20,9 +21,8 @@ public partial class LoginWindow : Window
 #endif
     }
 
-    public LoginWindow(LoginViewModel viewModel, TuCitaApiClient apiClient) : this()
+    public LoginWindow(LoginViewModel viewModel) : this()
     {
-        _apiClient = apiClient;
         DataContext = viewModel;
         
         // Suscribirse al evento de login exitoso
@@ -34,52 +34,32 @@ public partial class LoginWindow : Window
         AvaloniaXamlLoader.Load(this);
     }
 
-    private void OnLoginSuccessful(object? sender, TuCita.Shared.DTOs.Auth.AuthResponseDto userData)
+    private void OnLoginSuccessful(object? sender, DoctorDetailDto doctorData)
     {
-        // Verificar si el usuario es un médico
-        // Nota: Asume que el rol viene en el objeto userData
-        // Ajustar según la estructura real de AuthResponseDto
-        
-        if (_apiClient == null) return;
+        Console.WriteLine($"✅ Login exitoso para doctor: {doctorData.Nombre}");
 
-        // Si es médico, abrir Dashboard Médico
-        if (IsDoctorRole(userData))
+        // Abrir ventana principal
+        var app = Application.Current as App;
+        if (app?.ServiceProvider != null)
         {
-            var dashboardWindow = new DoctorDashboardWindow
-            {
-                DataContext = new DoctorDashboardViewModel(
-                    _apiClient, 
-                    userData.Id, 
-                    userData.Name ?? "Doctor")
-            };
-            dashboardWindow.Show();
-            this.Close();
-        }
-        else
-        {
-            // Si es paciente u otro rol, abrir ventana principal
-            var app = Application.Current as App;
-            if (app?.ServiceProvider != null)
+            try
             {
                 var mainWindow = app.ServiceProvider.GetRequiredService<MainWindow>();
                 var mainViewModel = app.ServiceProvider.GetRequiredService<MainViewModel>();
-                mainViewModel.CurrentUser = userData;
+
+                // Configurar datos del doctor en el MainViewModel si es necesario
+                // mainViewModel.CurrentDoctor = doctorData;
+
                 mainWindow.DataContext = mainViewModel;
                 mainWindow.Show();
                 this.Close();
+
+                Console.WriteLine("✅ Ventana principal abierta correctamente");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error abriendo ventana principal: {ex.Message}");
             }
         }
-    }
-
-    private bool IsDoctorRole(TuCita.Shared.DTOs.Auth.AuthResponseDto userData)
-    {
-        // Implementar lógica para determinar si es médico
-        // Esto depende de cómo se estructure el AuthResponseDto
-        // Por ejemplo, podría ser:
-        // return userData.Role?.Equals("DOCTOR", StringComparison.OrdinalIgnoreCase) ?? false;
-        
-        // Por ahora, retornar false como valor por defecto
-        // Ajustar cuando se tenga la estructura exacta
-        return false; // TODO: Implementar verificación de rol real
     }
 }

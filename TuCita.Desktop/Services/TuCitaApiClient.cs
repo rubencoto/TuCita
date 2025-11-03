@@ -13,15 +13,38 @@ namespace TuCita.Desktop.Services;
 public class TuCitaApiClient
 {
     private readonly HttpClient _httpClient;
+    private readonly TokenStorageService _tokenStorage;
 
-    public TuCitaApiClient(HttpClient httpClient)
+    public TuCitaApiClient(HttpClient httpClient, TokenStorageService tokenStorage)
     {
         _httpClient = httpClient;
+        _tokenStorage = tokenStorage;
     }
 
     // ==========================================
-    // AUTENTICACIÓN
+    // INICIALIZACIÓN Y AUTENTICACIÓN AUTOMÁTICA
     // ==========================================
+
+    /// <summary>
+    /// Inicializa el cliente cargando token guardado si existe
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        var savedToken = await _tokenStorage.GetTokenAsync();
+        if (!string.IsNullOrEmpty(savedToken))
+        {
+            SetAuthToken(savedToken);
+        }
+    }
+
+    /// <summary>
+    /// Verifica si hay una sesión activa válida
+    /// </summary>
+    public async Task<bool> IsAuthenticatedAsync()
+    {
+        var token = await _tokenStorage.GetTokenAsync();
+        return !string.IsNullOrEmpty(token);
+    }
 
     /// <summary>
     /// Iniciar sesión en la aplicación
@@ -32,30 +55,29 @@ public class TuCitaApiClient
         {
             var request = new LoginRequestDto { Email = email, Password = password };
             var response = await _httpClient.PostAsJsonAsync("/api/auth/login", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error de login: {response.StatusCode}");
+                return null;
+            }
+
+            var authResponse = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+            
+            if (authResponse != null && !string.IsNullOrEmpty(authResponse.Token))
+            {
+                // Guardar token con expiración (asumimos 24 horas si no se especifica)
+                var expiresAt = DateTime.UtcNow.AddHours(24);
+                await _tokenStorage.SaveTokenAsync(authResponse.Token, expiresAt);
+                
+                SetAuthToken(authResponse.Token);
+            }
+
+            return authResponse;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error en LoginAsync: {ex.Message}");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Registrar un nuevo usuario
-    /// </summary>
-    public async Task<AuthResponseDto?> RegisterAsync(RegisterRequestDto request)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync("/api/auth/register", request);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AuthResponseDto>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error en RegisterAsync: {ex.Message}");
             return null;
         }
     }
@@ -72,9 +94,10 @@ public class TuCitaApiClient
     /// <summary>
     /// Cerrar sesión (limpiar token)
     /// </summary>
-    public void Logout()
+    public async Task LogoutAsync()
     {
         _httpClient.DefaultRequestHeaders.Authorization = null;
+        await _tokenStorage.ClearTokenAsync();
     }
 
     // ==========================================
@@ -218,6 +241,40 @@ public class TuCitaApiClient
         {
             Console.WriteLine($"Error en GetDoctorAvailableSlotsAsync: {ex.Message}");
             return new List<AgendaTurnoDto>();
+        }
+    }
+
+    /// <summary>
+    /// Obtener perfil del usuario autenticado y validar que sea doctor
+    /// </summary>
+    public async Task<DoctorDetailDto?> GetDoctorProfileAsync()
+    {
+        try
+        {
+            // Opción 1A: Intentar obtener directamente como doctor por ID del token
+            var response = await _httpClient.GetAsync("/api/auth/me");
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var userProfile = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+            if (userProfile == null)
+                return null;
+
+            // Intentar obtener datos como doctor usando el ID del usuario
+            var doctorProfile = await GetDoctorByIdAsync(userProfile.Id);
+
+            if (doctorProfile == null)
+            {
+                Console.WriteLine($"Usuario {userProfile.Email} no es un doctor registrado");
+                return null;
+            }
+
+            return doctorProfile; 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en GetDoctorProfileAsync: {ex.Message}");
+            return null;
         }
     }
 

@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.Configuration;
@@ -28,8 +28,10 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Mostrar ventana de login en lugar de main window
-            desktop.MainWindow = ServiceProvider.GetRequiredService<LoginWindow>();
+            // Crear la ventana de login con DI
+            var loginViewModel = ServiceProvider.GetRequiredService<LoginViewModel>();
+            var loginWindow = new LoginWindow(loginViewModel);
+            desktop.MainWindow = loginWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -37,7 +39,7 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
-        // Configuraci�n
+        // Configuración
         Configuration = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -45,10 +47,13 @@ public partial class App : Application
 
         services.AddSingleton(Configuration);
 
-        // HttpClient con configuraci�n base
+        // ✅ Registrar TokenStorageService
+        services.AddSingleton<TokenStorageService>();
+
+        // HttpClient con configuración base
         services.AddHttpClient<TuCitaApiClient>(client =>
         {
-            var baseUrl = Configuration["TuCitaApi:BaseUrl"] ?? "https://localhost:7000";
+            var baseUrl = Configuration["TuCitaApi:BaseUrl"] ?? "https://localhost:7063";
             client.BaseAddress = new Uri(baseUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -59,7 +64,6 @@ public partial class App : Application
         services.AddTransient<MainViewModel>();
 
         // Views
-        services.AddTransient<LoginWindow>();
         services.AddTransient<MainWindow>();
     }
 }

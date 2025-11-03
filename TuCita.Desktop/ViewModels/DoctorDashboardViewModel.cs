@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI;
 using TuCita.Desktop.Services;
@@ -36,10 +37,12 @@ public class DoctorDashboardViewModel : ViewModelBase
         _doctorName = doctorName;
 
         // Initialize commands
-        LoadAppointmentsCommand = ReactiveCommand.CreateFromTask(LoadAppointmentsAsync);
-        SelectAppointmentCommand = ReactiveCommand.CreateFromTask<CitaDto>(SelectAppointmentAsync);
-        RefreshCommand = ReactiveCommand.CreateFromTask(LoadAppointmentsAsync);
-        OpenDetailWindowCommand = ReactiveCommand.Create(OpenDetailWindow);
+        var canExecute = this.WhenAnyValue(x => x.IsLoading)
+            .ObserveOn(RxApp.MainThreadScheduler);
+        LoadAppointmentsCommand = ReactiveCommand.CreateFromTask(LoadAppointmentsAsync, canExecute);
+        SelectAppointmentCommand = ReactiveCommand.CreateFromTask<CitaDto>(SelectAppointmentAsync, canExecute);
+        RefreshCommand = ReactiveCommand.CreateFromTask(LoadAppointmentsAsync, canExecute);
+        OpenDetailWindowCommand = ReactiveCommand.Create(OpenDetailWindow, canExecute);
 
         // Load data on initialization
         LoadAppointmentsCommand.Execute().Subscribe();
