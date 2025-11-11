@@ -15,6 +15,7 @@ export interface DoctorAuthResponse {
   avatar?: string;
   token: string;
   role: string;
+  roles: string[];
   numeroLicencia?: string;
   especialidades?: string[];
 }
@@ -25,7 +26,7 @@ class DoctorAuthService {
       const response = await axios.post<DoctorAuthResponse>(`${API_URL}/login`, data);
       
       // Verificar que el usuario tenga rol de MEDICO
-      if (response.data.role !== 'MEDICO') {
+      if (!response.data.roles?.includes('MEDICO') && response.data.role !== 'MEDICO') {
         throw new Error('Acceso denegado. Solo médicos pueden acceder al portal médico.');
       }
       
@@ -66,7 +67,7 @@ class DoctorAuthService {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (response.data.role !== 'MEDICO') {
+      if (!response.data.roles?.includes('MEDICO') && response.data.role !== 'MEDICO') {
         throw new Error('Acceso denegado. Solo médicos pueden acceder al portal médico.');
       }
       
@@ -88,7 +89,7 @@ class DoctorAuthService {
   isAuthenticated(): boolean {
     const token = this.getToken();
     const user = this.getCurrentUser();
-    return !!(token && user?.role === 'MEDICO');
+    return !!(token && (user?.roles?.includes('MEDICO') || user?.role === 'MEDICO'));
   }
 }
 

@@ -42,6 +42,9 @@ public class AuthService : IAuthService
         var usuario = await _context.Usuarios
             .Include(u => u.RolesUsuarios)
             .ThenInclude(ru => ru.Rol)
+            .Include(u => u.PerfilMedico)
+            .ThenInclude(pm => pm.EspecialidadesMedico)
+            .ThenInclude(em => em.Especialidad)
             .FirstOrDefaultAsync(u => u.EmailNormalizado == request.Email.ToLower());
 
         if (usuario == null || !usuario.Activo)
@@ -56,6 +59,20 @@ public class AuthService : IAuthService
 
         var token = GenerateJwtToken(usuario);
         var roles = usuario.RolesUsuarios.Select(ru => ru.Rol.Nombre).ToList();
+        var primaryRole = roles.FirstOrDefault() ?? "PACIENTE";
+
+        // Obtener datos específicos del médico si tiene rol MEDICO
+        string? numeroLicencia = null;
+        List<string> especialidades = new();
+
+        if (roles.Contains("MEDICO") && usuario.PerfilMedico != null)
+        {
+            numeroLicencia = usuario.PerfilMedico.NumeroLicencia;
+            especialidades = usuario.PerfilMedico.EspecialidadesMedico?
+                .Select(em => em.Especialidad?.Nombre)
+                .Where(nombre => !string.IsNullOrEmpty(nombre))
+                .ToList() ?? new List<string>();
+        }
 
         return new AuthResult
         {
@@ -67,7 +84,11 @@ public class AuthService : IAuthService
                 Name = $"{usuario.Nombre} {usuario.Apellido}",
                 Email = usuario.Email,
                 Phone = usuario.Telefono,
-                Token = token
+                Token = token,
+                Role = primaryRole,
+                Roles = roles,
+                NumeroLicencia = numeroLicencia,
+                Especialidades = especialidades
             }
         };
     }
