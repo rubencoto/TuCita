@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+        import { useState, useEffect } from 'react';
 import { Toaster } from './components/ui/sonner';
 import { Navbar } from './components/navbar';
 import { Footer } from './components/footer';
 import { HomePage } from './components/pages/home-page';
 import { AuthPage } from './components/pages/auth-page';
+import { DoctorAuthPage } from './components/pages/doctor-auth-page';
+import { DoctorDashboardPage } from './components/pages/doctor-dashboard-page';
 import { SearchPage } from './components/pages/search-page';
 import { BookingPage } from './components/pages/booking-page';
 import { AppointmentsPage } from './components/pages/appointments-page';
@@ -14,26 +16,37 @@ import { MedicalHistoryPage } from './components/pages/medical-history-page';
 import { AppointmentDetailPage } from './components/pages/appointment-detail-page';
 import { ReschedulePage } from './components/pages/reschedule-page';
 import { authService, AuthResponse } from './services/authService';
+import { doctorAuthService, DoctorAuthResponse } from './services/doctorAuthService';
 import appointmentsService from './services/appointmentsService';
 
-type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule';
+type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-login' | 'doctor-dashboard';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isDoctorLoggedIn, setIsDoctorLoggedIn] = useState<boolean>(false);
   const [user, setUser] = useState<AuthResponse | null>(null);
+  const [doctorUser, setDoctorUser] = useState<DoctorAuthResponse | null>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [pageData, setPageData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Verificar si hay una sesión activa al cargar la app
   useEffect(() => {
+    // Verificar sesión de paciente
     const currentUser = authService.getCurrentUser();
     if (currentUser && authService.isAuthenticated()) {
       setUser(currentUser);
       setIsLoggedIn(true);
-      // Cargar citas del usuario
       loadUserAppointments();
+    }
+
+    // Verificar sesión de médico
+    const currentDoctor = doctorAuthService.getCurrentUser();
+    if (currentDoctor && doctorAuthService.isAuthenticated()) {
+      setDoctorUser(currentDoctor);
+      setIsDoctorLoggedIn(true);
+      setCurrentPage('doctor-dashboard');
     }
 
     // Verificar si hay un token de reset password en la URL
@@ -64,8 +77,12 @@ export default function App() {
   const handleLogin = async (userData: AuthResponse): Promise<void> => {
     setUser(userData);
     setIsLoggedIn(true);
-    // Cargar citas del usuario recién logueado
     await loadUserAppointments();
+  };
+
+  const handleDoctorLogin = async (userData: DoctorAuthResponse): Promise<void> => {
+    setDoctorUser(userData);
+    setIsDoctorLoggedIn(true);
   };
 
   const handleLogout = async (): Promise<void> => {
@@ -73,6 +90,13 @@ export default function App() {
     setUser(null);
     setIsLoggedIn(false);
     setAppointments([]);
+    setCurrentPage('home');
+  };
+
+  const handleDoctorLogout = async (): Promise<void> => {
+    await doctorAuthService.logout();
+    setDoctorUser(null);
+    setIsDoctorLoggedIn(false);
     setCurrentPage('home');
   };
 
@@ -110,7 +134,7 @@ export default function App() {
     try {
       const success = await appointmentsService.cancelAppointment(Number(appointmentId));
       if (success) {
-        await loadUserAppointments(); // Recargar lista de citas
+        await loadUserAppointments();
       }
       return success;
     } catch (error) {
@@ -127,7 +151,7 @@ export default function App() {
       );
       
       if (rescheduledAppointment) {
-        await loadUserAppointments(); // Recargar lista de citas
+        await loadUserAppointments();
         return true;
       }
       return false;
@@ -158,6 +182,31 @@ export default function App() {
             mode="register"
             onLogin={handleLogin}
             onNavigate={handleNavigate}
+          />
+        );
+      
+      case 'doctor-login':
+        return (
+          <DoctorAuthPage
+            onLogin={handleDoctorLogin}
+            onNavigate={handleNavigate}
+          />
+        );
+      
+      case 'doctor-dashboard':
+        if (!isDoctorLoggedIn || !doctorUser) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleDoctorLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorDashboardPage
+            user={doctorUser}
+            onNavigate={handleNavigate}
+            onLogout={handleDoctorLogout}
           />
         );
       
@@ -289,7 +338,14 @@ export default function App() {
     }
   };
 
-  const showNavAndFooter = !(currentPage === 'login' || currentPage === 'register' || currentPage === 'forgot-password' || currentPage === 'reset-password');
+  const showNavAndFooter = !(
+    currentPage === 'login' || 
+    currentPage === 'register' || 
+    currentPage === 'forgot-password' || 
+    currentPage === 'reset-password' ||
+    currentPage === 'doctor-login' ||
+    currentPage === 'doctor-dashboard'
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
