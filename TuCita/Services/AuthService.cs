@@ -12,6 +12,7 @@ namespace TuCita.Services;
 public interface IAuthService
 {
     Task<AuthResult> LoginAsync(LoginRequestDto request);
+    Task<DoctorAuthResult> LoginDoctorAsync(LoginRequestDto request);
     Task<AuthResult> RegisterAsync(RegisterRequestDto request);
     Task<Usuario?> GetUserByIdAsync(long userId);
     Task<AuthResult> RequestPasswordResetAsync(string email);
@@ -68,6 +69,90 @@ public class AuthService : IAuthService
                 Email = usuario.Email,
                 Phone = usuario.Telefono,
                 Token = token
+            }
+        };
+    }
+
+    public async Task<DoctorAuthResult> LoginDoctorAsync(LoginRequestDto request)
+    {
+        // Buscar usuario con perfil médico y especialidades
+        var usuario = await _context.Usuarios
+            .Include(u => u.RolesUsuarios)
+                .ThenInclude(ru => ru.Rol)
+            .Include(u => u.PerfilMedico)
+                .ThenInclude(pm => pm!.EspecialidadesMedico)
+                    .ThenInclude(me => me.Especialidad)
+            .FirstOrDefaultAsync(u => u.EmailNormalizado == request.Email.ToLower());
+
+        if (usuario == null || !usuario.Activo)
+        {
+            _logger.LogWarning("Intento de login de doctor fallido: usuario no encontrado o inactivo - {Email}", request.Email);
+            return new DoctorAuthResult 
+            { 
+                Success = false, 
+                Message = "Credenciales inválidas o usuario no autorizado como médico" 
+            };
+        }
+
+        if (!VerifyPassword(request.Password, usuario.PasswordHash))
+        {
+            _logger.LogWarning("Intento de login de doctor fallido: contraseña incorrecta - {Email}", request.Email);
+            return new DoctorAuthResult 
+            { 
+                Success = false, 
+                Message = "Credenciales inválidas" 
+            };
+        }
+
+        // Verificar que el usuario tiene rol de DOCTOR
+        var esMedico = usuario.RolesUsuarios.Any(ru => ru.Rol.Nombre == "DOCTOR");
+        if (!esMedico)
+        {
+            _logger.LogWarning("Intento de login de doctor fallido: usuario sin rol DOCTOR - {Email}", request.Email);
+            return new DoctorAuthResult 
+            { 
+                Success = false, 
+                Message = "Usuario no autorizado como médico" 
+            };
+        }
+
+        // Verificar que tiene perfil médico
+        if (usuario.PerfilMedico == null)
+        {
+            _logger.LogWarning("Login de doctor: usuario tiene rol DOCTOR pero no perfil médico - {Email}", request.Email);
+            return new DoctorAuthResult 
+            { 
+                Success = false, 
+                Message = "Perfil médico no configurado. Contacta al administrador." 
+            };
+        }
+
+        var token = GenerateJwtToken(usuario);
+        
+        // Obtener especialidades
+        var especialidades = usuario.PerfilMedico.EspecialidadesMedico
+            .Select(me => me.Especialidad.Nombre)
+            .ToList();
+
+        _logger.LogInformation("Login exitoso de doctor: {Email} - {DoctorId}", request.Email, usuario.Id);
+
+        return new DoctorAuthResult
+        {
+            Success = true,
+            Token = token,
+            Doctor = new DoctorAuthResponseDto
+            {
+                Id = usuario.Id,
+                Name = $"{usuario.Nombre} {usuario.Apellido}",
+                Email = usuario.Email,
+                Phone = usuario.Telefono,
+                Token = token,
+                Role = "DOCTOR",
+                Especialidad = especialidades.FirstOrDefault(),
+                NumeroLicencia = usuario.PerfilMedico.NumeroLicencia,
+                Biografia = usuario.PerfilMedico.Biografia,
+                Direccion = usuario.PerfilMedico.Direccion,
+                Especialidades = especialidades
             }
         };
     }
@@ -324,4 +409,13 @@ public class AuthResult
     public string? Message { get; set; }
     public string? Token { get; set; }
     public AuthResponseDto? User { get; set; }
+}
+
+// Clase auxiliar para el resultado de autenticación de doctor
+public class DoctorAuthResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public string? Token { get; set; }
+    public DoctorAuthResponseDto? Doctor { get; set; }
 }

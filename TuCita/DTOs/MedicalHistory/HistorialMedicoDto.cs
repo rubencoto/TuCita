@@ -14,6 +14,28 @@ public class HistorialMedicoDto
     public List<DocumentoDto> Documentos { get; set; } = new List<DocumentoDto>();
 }
 
+// DTO extendido para que los doctores vean información del paciente
+public class HistorialMedicoExtendidoDto
+{
+    public long CitaId { get; set; }
+    public DateTime FechaCita { get; set; }
+    public string NombreMedico { get; set; } = string.Empty;
+    public string? Especialidad { get; set; }
+    public string EstadoCita { get; set; } = string.Empty;
+    public string? Motivo { get; set; }
+    
+    // Información del paciente
+    public long PacienteId { get; set; }
+    public string NombrePaciente { get; set; } = string.Empty;
+    public int? EdadPaciente { get; set; }
+    public string? FotoPaciente { get; set; }
+    
+    public List<DiagnosticoDto> Diagnosticos { get; set; } = new List<DiagnosticoDto>();
+    public List<NotaClinicaDto> NotasClinicas { get; set; } = new List<NotaClinicaDto>();
+    public List<RecetaDto> Recetas { get; set; } = new List<RecetaDto>();
+    public List<DocumentoDto> Documentos { get; set; } = new List<DocumentoDto>();
+}
+
 public class CitaDetalleDto
 {
     public long Id { get; set; }

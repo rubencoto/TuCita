@@ -54,6 +54,60 @@ public class MedicalHistoryController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene el historial médico de un paciente específico para un doctor
+    /// Solo retorna citas ATENDIDAS del doctor con ese paciente
+    /// </summary>
+    [HttpGet("doctor/paciente/{idPaciente}")]
+    [Authorize(Roles = "DOCTOR,ADMIN")]
+    public async Task<IActionResult> GetDoctorPatientHistory(long idPaciente)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (!long.TryParse(userIdClaim, out var medicoId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            var historial = await _medicalHistoryService.GetDoctorPatientHistoryAsync(medicoId, idPaciente);
+
+            return Ok(historial);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene el historial médico completo de todos los pacientes del doctor
+    /// Solo retorna citas ATENDIDAS del doctor
+    /// </summary>
+    [HttpGet("doctor/todos-pacientes")]
+    [Authorize(Roles = "DOCTOR,ADMIN")]
+    public async Task<IActionResult> GetDoctorAllPatientsHistory()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (!long.TryParse(userIdClaim, out var medicoId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            var historial = await _medicalHistoryService.GetDoctorAllPatientsHistoryAsync(medicoId);
+
+            return Ok(historial);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Obtiene los detalles completos de una cita específica
     /// </summary>
     [HttpGet("cita/{idCita}")]

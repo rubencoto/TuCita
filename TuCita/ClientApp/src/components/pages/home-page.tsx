@@ -26,7 +26,6 @@ import {
   Globe,
   Headphones,
   BarChart,
-  Layers,
   Check,
   X,
   RefreshCw,

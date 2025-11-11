@@ -4,6 +4,7 @@ import { Navbar } from './components/navbar';
 import { Footer } from './components/footer';
 import { HomePage } from './components/pages/home-page';
 import { AuthPage } from './components/pages/auth-page';
+import { DoctorAuthPage } from './components/pages/doctor-auth-page';
 import { SearchPage } from './components/pages/search-page';
 import { BookingPage } from './components/pages/booking-page';
 import { AppointmentsPage } from './components/pages/appointments-page';
@@ -13,35 +14,90 @@ import { ResetPasswordPage } from './components/pages/reset-password-page';
 import { MedicalHistoryPage } from './components/pages/medical-history-page';
 import { AppointmentDetailPage } from './components/pages/appointment-detail-page';
 import { ReschedulePage } from './components/pages/reschedule-page';
+import { DoctorDashboardPage } from './components/pages/doctor-dashboard-page';
+import { DoctorAppointmentsPage } from './components/pages/doctor-appointments-page';
+import { DoctorAppointmentDetailPage } from './components/pages/doctor-appointment-detail-page';
+import { DoctorMedicalHistoryPage } from './components/pages/doctor-medical-history-page';
+import { DoctorAvailabilityPage } from './components/pages/doctor-availability-page';
+import { DoctorProfilePage } from './components/pages/doctor-profile-page';
 import { authService, AuthResponse } from './services/authService';
+import doctorAuthService from './services/doctorAuthService';
 import appointmentsService from './services/appointmentsService';
 
-type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule';
+type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-profile';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [user, setUser] = useState<AuthResponse | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [pageData, setPageData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isDoctor, setIsDoctor] = useState<boolean>(false);
 
   // Verificar si hay una sesión activa al cargar la app
   useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser && authService.isAuthenticated()) {
-      setUser(currentUser);
-      setIsLoggedIn(true);
-      // Cargar citas del usuario
-      loadUserAppointments();
-    }
-
-    // Verificar si hay un token de reset password en la URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const resetToken = urlParams.get('token');
-    if (resetToken) {
-      setCurrentPage('reset-password');
-    }
+    const checkAuth = () => {
+      try {
+        // Verificar userRole en localStorage para determinar tipo de usuario
+        const userRole = localStorage.getItem('userRole');
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+        
+        // Si no hay token, no hay sesión activa
+        if (!token || !userStr) {
+          // Verificar si hay un token de reset password en la URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const resetToken = urlParams.get('token');
+          if (resetToken) {
+            setCurrentPage('reset-password');
+          }
+          return;
+        }
+        
+        // Si es un doctor
+        if (userRole === 'DOCTOR') {
+          const currentDoctor = doctorAuthService.getCurrentDoctor();
+          if (currentDoctor && doctorAuthService.isAuthenticated()) {
+            console.log('✅ Sesión de doctor detectada:', currentDoctor);
+            setUser(currentDoctor);
+            setIsLoggedIn(true);
+            setIsDoctor(true);
+            setCurrentPage('doctor-dashboard');
+            return;
+          }
+        }
+        
+        // Si es un paciente o no hay userRole definido
+        if (userRole === 'PACIENTE' || !userRole) {
+          const currentUser = authService.getCurrentUser();
+          if (currentUser && authService.isAuthenticated()) {
+            console.log('✅ Sesión de paciente detectada:', currentUser);
+            setUser(currentUser);
+            setIsLoggedIn(true);
+            setIsDoctor(false);
+            // Cargar citas del usuario
+            loadUserAppointments();
+            return;
+          }
+        }
+        
+        // Si llegamos aquí, limpiar sesión inválida
+        console.warn('⚠️ Sesión inválida detectada, limpiando localStorage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+        
+      } catch (error) {
+        console.error('❌ Error al verificar autenticación:', error);
+        // Limpiar localStorage en caso de error
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   const loadUserAppointments = async (): Promise<void> => {
@@ -57,21 +113,40 @@ export default function App() {
   };
 
   const handleNavigate = (page: string, data?: any): void => {
+    console.log('🔄 Navegando a:', page, data);
     setCurrentPage(page as PageType);
     setPageData(data);
   };
 
-  const handleLogin = async (userData: AuthResponse): Promise<void> => {
+  const handleLogin = async (userData: any): Promise<void> => {
+    console.log('✅ Usuario autenticado:', userData);
     setUser(userData);
     setIsLoggedIn(true);
-    // Cargar citas del usuario recién logueado
-    await loadUserAppointments();
+    
+    // Verificar si es un doctor
+    if (userData.role === 'doctor' || userData.role === 'DOCTOR') {
+      console.log('👨‍⚕️ Usuario es doctor');
+      setIsDoctor(true);
+    } else {
+      console.log('👤 Usuario es paciente');
+      setIsDoctor(false);
+      // Cargar citas del usuario recién logueado
+      await loadUserAppointments();
+    }
   };
 
   const handleLogout = async (): Promise<void> => {
-    await authService.logout();
+    console.log('👋 Cerrando sesión...');
+    
+    if (isDoctor) {
+      await doctorAuthService.logout();
+    } else {
+      await authService.logout();
+    }
+    
     setUser(null);
     setIsLoggedIn(false);
+    setIsDoctor(false);
     setAppointments([]);
     setCurrentPage('home');
   };
@@ -137,7 +212,7 @@ export default function App() {
     }
   };
 
-  const handleUpdateUser = (userData: AuthResponse): void => {
+  const handleUpdateUser = (userData: any): void => {
     setUser(userData);
   };
 
@@ -156,6 +231,14 @@ export default function App() {
         return (
           <AuthPage
             mode="register"
+            onLogin={handleLogin}
+            onNavigate={handleNavigate}
+          />
+        );
+      
+      case 'doctor-login':
+        return (
+          <DoctorAuthPage
             onLogin={handleLogin}
             onNavigate={handleNavigate}
           />
@@ -278,6 +361,104 @@ export default function App() {
           />
         );
       
+      // Rutas del Doctor
+      case 'doctor-dashboard':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorDashboardPage
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'doctor-appointments':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorAppointmentsPage
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'doctor-appointment-detail':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorAppointmentDetailPage
+            appointmentId={pageData?.appointmentId}
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'doctor-medical-history':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorMedicalHistoryPage
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'doctor-availability':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorAvailabilityPage
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'doctor-profile':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorProfilePage
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
       case 'home':
       default:
         return (
@@ -289,7 +470,14 @@ export default function App() {
     }
   };
 
-  const showNavAndFooter = !(currentPage === 'login' || currentPage === 'register' || currentPage === 'forgot-password' || currentPage === 'reset-password');
+  const showNavAndFooter = !(
+    currentPage === 'login' || 
+    currentPage === 'register' || 
+    currentPage === 'doctor-login' || 
+    currentPage === 'forgot-password' || 
+    currentPage === 'reset-password' ||
+    currentPage.startsWith('doctor-')
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">

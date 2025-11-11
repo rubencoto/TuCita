@@ -4,8 +4,10 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Separator } from '../ui/separator';
-import { Eye, EyeOff, Mail, Lock, Stethoscope, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Stethoscope, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import { toast } from 'sonner';
+import doctorAuthService from '../../services/doctorAuthService';
 
 interface DoctorAuthPageProps {
   onLogin: (userData: any) => void;
@@ -14,29 +16,53 @@ interface DoctorAuthPageProps {
 
 export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
     email: '',
     password: '',
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simular login exitoso de doctor
-    const doctorData = {
-      id: 'DOC-001',
-      name: 'Dra. Ana Martínez',
-      email: loginForm.email,
-      phone: '+34 612 345 678',
-      especialidad: 'Medicina General',
-      licencia: 'MED-2019-45678',
-      avatar: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw4fHxmZW1hbGUlMjBkb2N0b3IlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NjI2MDY1ODl8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      role: 'doctor'
-    };
-    
-    onLogin(doctorData);
-    onNavigate('doctor-dashboard');
+    // Validación básica
+    if (!loginForm.email || !loginForm.password) {
+      toast.error('Error de validación', {
+        description: 'Por favor completa todos los campos',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Llamar al servicio de autenticación de doctores
+      const doctorData = await doctorAuthService.login({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      console.log('? Login exitoso de doctor:', doctorData);
+
+      // Guardar en el estado de la aplicación
+      // El servicio ya guardó en localStorage, solo necesitamos llamar a onLogin
+      onLogin(doctorData);
+      
+      toast.success('¡Bienvenido!', {
+        description: `Has iniciado sesión como ${doctorData.name}`,
+      });
+
+      onNavigate('doctor-dashboard');
+    } catch (error: any) {
+      console.error('? Error al iniciar sesión:', error);
+      
+      toast.error('Error al iniciar sesión', {
+        description: error.message || 'Credenciales inválidas o usuario no autorizado',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -76,6 +102,8 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                     onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
                     className="pl-10"
                     required
+                    disabled={isLoading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -92,11 +120,14 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                     onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
                     className="pl-10 pr-10"
                     required
+                    disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -105,21 +136,39 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
 
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" className="rounded border-gray-300 text-[#2E8BC0] focus:ring-[#2E8BC0]" />
+                  <input 
+                    type="checkbox" 
+                    className="rounded border-gray-300 text-[#2E8BC0] focus:ring-[#2E8BC0]"
+                    disabled={isLoading}
+                  />
                   <span className="text-gray-600">Recordarme</span>
                 </label>
                 <button
                   type="button"
-                  className="text-[#2E8BC0] hover:underline"
+                  className="text-[#2E8BC0] hover:underline disabled:opacity-50"
                   onClick={() => onNavigate('forgot-password')}
+                  disabled={isLoading}
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
 
-              <Button type="submit" className="w-full bg-[#2E8BC0] hover:bg-[#2E8BC0]/90">
-                <Stethoscope className="h-4 w-4 mr-2" />
-                Acceder al Panel Médico
+              <Button 
+                type="submit" 
+                className="w-full bg-[#2E8BC0] hover:bg-[#2E8BC0]/90"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Iniciando sesión...
+                  </>
+                ) : (
+                  <>
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    Acceder al Panel Médico
+                  </>
+                )}
               </Button>
             </form>
 
@@ -129,7 +178,8 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
               <div className="text-center space-y-3">
                 <button
                   onClick={() => onNavigate('login')}
-                  className="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center w-full"
+                  className="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center w-full disabled:opacity-50"
+                  disabled={isLoading}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Volver al login de pacientes
@@ -141,11 +191,13 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                   </p>
                   <button
                     type="button"
-                    className="text-sm text-[#2E8BC0] hover:underline font-medium"
+                    className="text-sm text-[#2E8BC0] hover:underline font-medium disabled:opacity-50"
                     onClick={() => {
-                      // Aquí iría la lógica para solicitar registro
-                      alert('Contacta a administración para registrarte como médico: admin@tucitaonline.com');
+                      toast.info('Información de Registro', {
+                        description: 'Contacta a administración para registrarte como médico: admin@tucitaonline.com',
+                      });
                     }}
+                    disabled={isLoading}
                   >
                     Solicitar credenciales de acceso
                   </button>
@@ -159,19 +211,6 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                 Tu sesión está protegida con encriptación de extremo a extremo.
               </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Demo credentials */}
-        <Card className="mt-4 bg-yellow-50 border-yellow-200">
-          <CardContent className="pt-4">
-            <p className="text-xs text-yellow-800 mb-2">
-              <strong>?? Credenciales de prueba:</strong>
-            </p>
-            <p className="text-xs text-yellow-700">
-              <strong>Email:</strong> doctor@tucitaonline.com<br />
-              <strong>Contraseña:</strong> demo123
-            </p>
           </CardContent>
         </Card>
       </div>

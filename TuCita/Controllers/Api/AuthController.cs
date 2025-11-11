@@ -35,6 +35,28 @@ public class AuthController : ControllerBase
         return Ok(result.User);
     }
 
+    /// <summary>
+    /// Endpoint específico para autenticación de doctores
+    /// Retorna información adicional del perfil médico
+    /// </summary>
+    [HttpPost("doctor/login")]
+    public async Task<IActionResult> DoctorLogin([FromBody] LoginRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _authService.LoginDoctorAsync(request);
+
+        if (!result.Success)
+        {
+            return Unauthorized(new { message = result.Message });
+        }
+
+        return Ok(result.Doctor);
+    }
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
     {

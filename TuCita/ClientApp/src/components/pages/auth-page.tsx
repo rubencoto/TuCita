@@ -5,7 +5,8 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
-import { Eye, EyeOff, Mail, Lock, User, Phone, Heart } from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Eye, EyeOff, Mail, Lock, User, Phone, Heart, Stethoscope } from 'lucide-react';
 import { authService, AuthResponse } from '../../services/authService';
 import { toast } from 'sonner';
 
@@ -328,8 +329,29 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6">
-              <Separator className="my-4" />
+            <div className="mt-6 space-y-4">
+              <Separator />
+              
+              {/* Enlace al portal médico */}
+              <Alert className="bg-[#2E8BC0]/5 border-[#2E8BC0]/20">
+                <Stethoscope className="h-4 w-4 text-[#2E8BC0]" />
+                <AlertDescription className="text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">
+                      ¿Eres un profesional de la salud?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('doctor-login')}
+                      className="text-sm font-semibold text-[#2E8BC0] hover:underline"
+                      disabled={isLoading}
+                    >
+                      Inicia sesión aquí →
+                    </button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
               <div className="text-center">
                 <button
                   type="button"

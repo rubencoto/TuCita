@@ -47,6 +47,7 @@ class AuthService {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem('userRole', 'PACIENTE');
       }
       
       return response.data;
@@ -62,11 +63,12 @@ class AuthService {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem('userRole', 'PACIENTE');
       }
       
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Credenciales inv�lidas');
+      throw new Error(error.response?.data?.message || 'Credenciales inválidas');
     }
   }
 
@@ -83,6 +85,7 @@ class AuthService {
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
     }
   }
 

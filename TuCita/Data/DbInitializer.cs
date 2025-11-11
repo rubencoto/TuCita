@@ -23,7 +23,7 @@ public static class DbInitializer
         var roles = new[]
         {
             new Rol { Nombre = "PACIENTE" },
-            new Rol { Nombre = "MEDICO" },
+            new Rol { Nombre = "DOCTOR" },  // Cambiado de MEDICO a DOCTOR
             new Rol { Nombre = "ADMIN" }
         };
 
@@ -54,25 +54,57 @@ public static class DbInitializer
     }
 
     /// <summary>
-    /// Asegura que el rol MEDICO existe en la base de datos
+    /// Asegura que el rol DOCTOR existe en la base de datos
     /// </summary>
-    public static async Task<Rol> EnsureMedicoRoleExistsAsync(TuCitaDbContext context)
+    public static async Task<Rol> EnsureDoctorRoleExistsAsync(TuCitaDbContext context)
     {
-        var rolMedico = await context.Roles
-            .FirstOrDefaultAsync(r => r.Nombre == "MEDICO");
+        var rolDoctor = await context.Roles
+            .FirstOrDefaultAsync(r => r.Nombre == "DOCTOR");
 
-        if (rolMedico == null)
+        if (rolDoctor == null)
         {
-            rolMedico = new Rol 
+            rolDoctor = new Rol 
             { 
-                Nombre = "MEDICO"
+                Nombre = "DOCTOR"
             };
             
-            context.Roles.Add(rolMedico);
+            context.Roles.Add(rolDoctor);
             await context.SaveChangesAsync();
         }
 
-        return rolMedico;
+        return rolDoctor;
+    }
+
+    /// <summary>
+    /// Asegura que el rol MEDICO existe en la base de datos (alias para DOCTOR)
+    /// Mantener para compatibilidad con código existente
+    /// </summary>
+    public static async Task<Rol> EnsureMedicoRoleExistsAsync(TuCitaDbContext context)
+    {
+        // Redirigir a EnsureDoctorRoleExistsAsync para consistencia
+        return await EnsureDoctorRoleExistsAsync(context);
+    }
+
+    /// <summary>
+    /// Asegura que el rol ADMIN existe en la base de datos
+    /// </summary>
+    public static async Task<Rol> EnsureAdminRoleExistsAsync(TuCitaDbContext context)
+    {
+        var rolAdmin = await context.Roles
+            .FirstOrDefaultAsync(r => r.Nombre == "ADMIN");
+
+        if (rolAdmin == null)
+        {
+            rolAdmin = new Rol 
+            { 
+                Nombre = "ADMIN"
+            };
+            
+            context.Roles.Add(rolAdmin);
+            await context.SaveChangesAsync();
+        }
+
+        return rolAdmin;
     }
 
     /// <summary>
@@ -118,7 +150,7 @@ public static class DbInitializer
 
         Console.WriteLine("?? Creando médicos de prueba...");
 
-        var rolMedico = await EnsureMedicoRoleExistsAsync(context);
+        var rolDoctor = await EnsureDoctorRoleExistsAsync(context);
         
         // Obtener especialidades
         var especialidades = await context.Especialidades.ToListAsync();
@@ -136,7 +168,9 @@ public static class DbInitializer
             new { Nombre = "Ana", Apellido = "Martínez", Email = "ana.martinez@tucita.com", Licencia = "LIC-2020-0003", Especialidad = "Pediatría", Direccion = "Guadalajara", Telefono = "+52 33 1234 5003", CreatedYearsAgo = 3 },
             new { Nombre = "Roberto", Apellido = "López", Email = "roberto.lopez@tucita.com", Licencia = "LIC-2017-0004", Especialidad = "Ortopedia", Direccion = "Monterrey", Telefono = "+52 81 1234 5004", CreatedYearsAgo = 6 },
             new { Nombre = "Elena", Apellido = "Vargas", Email = "elena.vargas@tucita.com", Licencia = "LIC-2021-0005", Especialidad = "Dermatología", Direccion = "Ciudad de México", Telefono = "+52 55 1234 5005", CreatedYearsAgo = 2 },
-            new { Nombre = "Fernando", Apellido = "Silva", Email = "fernando.silva@tucita.com", Licencia = "LIC-2016-0006", Especialidad = "Medicina General", Direccion = "Puebla", Telefono = "+52 22 1234 5006", CreatedYearsAgo = 7 }
+            new { Nombre = "Fernando", Apellido = "Silva", Email = "fernando.silva@tucita.com", Licencia = "LIC-2016-0006", Especialidad = "Medicina General", Direccion = "Puebla", Telefono = "+52 22 1234 5006", CreatedYearsAgo = 7 },
+            // Agregar doctor de prueba para desarrollo
+            new { Nombre = "Test", Apellido = "Doctor", Email = "doctor@tucitaonline.com", Licencia = "LIC-TEST-0001", Especialidad = "Medicina General", Direccion = "Consultorio de Prueba", Telefono = "+52 55 0000 0000", CreatedYearsAgo = 1 }
         };
 
         foreach (var doctorData in doctoresData)
@@ -162,7 +196,7 @@ public static class DbInitializer
             var rolUsuario = new RolUsuario
             {
                 UsuarioId = usuario.Id,
-                RolId = rolMedico.Id
+                RolId = rolDoctor.Id
             };
             context.RolesUsuarios.Add(rolUsuario);
 

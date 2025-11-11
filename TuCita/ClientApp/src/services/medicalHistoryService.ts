@@ -61,6 +61,24 @@ export interface HistorialMedicoDto {
   documentos: DocumentoDto[];
 }
 
+export interface HistorialMedicoExtendidoDto {
+  citaId: number;
+  fechaCita: string;
+  nombreMedico: string;
+  especialidad?: string;
+  estadoCita: string;
+  motivo?: string;
+  // Información del paciente
+  pacienteId: number;
+  nombrePaciente: string;
+  edadPaciente?: number;
+  fotoPaciente?: string;
+  diagnosticos: DiagnosticoDto[];
+  notasClinicas: NotaClinicaDto[];
+  recetas: RecetaDto[];
+  documentos: DocumentoDto[];
+}
+
 export interface CitaDetalleDto {
   id: number;
   inicio: string;
@@ -129,10 +147,10 @@ const API_BASE = '/api/historial';
 
 class MedicalHistoryService {
   /**
-   * Obtener el historial m�dico completo de un paciente
+   * Obtener el historial médico completo de un paciente
    * Solo retorna citas ATENDIDAS
    * @param patientId ID del paciente
-   * @returns Lista de citas con informaci�n m�dica completa
+   * @returns Lista de citas con información médica completa
    */
   async getPatientMedicalHistory(patientId: number): Promise<HistorialMedicoDto[]> {
     try {
@@ -141,16 +159,55 @@ class MedicalHistoryService {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Error al obtener historial m�dico:', error);
+      console.error('Error al obtener historial médico:', error);
       throw new Error(
-        error.response?.data?.message || 'Error al obtener historial m�dico'
+        error.response?.data?.message || 'Error al obtener historial médico'
       );
     }
   }
 
   /**
-   * Obtener los detalles completos de una cita espec�fica
-   * Incluye informaci�n del paciente, m�dico y todos los registros m�dicos
+   * Obtener el historial médico de un paciente específico para el doctor actual
+   * Solo retorna citas ATENDIDAS del doctor con ese paciente
+   * @param patientId ID del paciente
+   * @returns Lista de citas con información médica completa incluyendo datos del paciente
+   */
+  async getDoctorPatientHistory(patientId: number): Promise<HistorialMedicoExtendidoDto[]> {
+    try {
+      const response = await api.get<HistorialMedicoExtendidoDto[]>(
+        `${API_BASE}/doctor/paciente/${patientId}`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener historial médico del paciente:', error);
+      throw new Error(
+        error.response?.data?.message || 'Error al obtener historial médico del paciente'
+      );
+    }
+  }
+
+  /**
+   * Obtener el historial médico completo de todos los pacientes del doctor actual
+   * Solo retorna citas ATENDIDAS del doctor
+   * @returns Lista de citas con información médica completa de todos los pacientes
+   */
+  async getDoctorAllPatientsHistory(): Promise<HistorialMedicoExtendidoDto[]> {
+    try {
+      const response = await api.get<HistorialMedicoExtendidoDto[]>(
+        `${API_BASE}/doctor/todos-pacientes`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener historial médico de todos los pacientes:', error);
+      throw new Error(
+        error.response?.data?.message || 'Error al obtener historial médico de todos los pacientes'
+      );
+    }
+  }
+
+  /**
+   * Obtener los detalles completos de una cita específica
+   * Incluye información del paciente, médico y todos los registros médicos
    * @param appointmentId ID de la cita
    * @returns Detalles completos de la cita
    */
@@ -169,9 +226,9 @@ class MedicalHistoryService {
   }
 
   /**
-   * Crear una nueva nota cl�nica (solo m�dicos)
-   * @param request Datos de la nota cl�nica
-   * @returns Nota cl�nica creada
+   * Crear una nueva nota clínica (solo médicos)
+   * @param request Datos de la nota clínica
+   * @returns Nota clínica creada
    */
   async createNotaClinica(request: CreateNotaClinicaRequest): Promise<NotaClinicaDto> {
     try {
@@ -181,17 +238,17 @@ class MedicalHistoryService {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Error al crear nota cl�nica:', error);
+      console.error('Error al crear nota clínica:', error);
       throw new Error(
-        error.response?.data?.message || 'Error al crear nota cl�nica'
+        error.response?.data?.message || 'Error al crear nota clínica'
       );
     }
   }
 
   /**
-   * Crear un nuevo diagn�stico (solo m�dicos)
-   * @param request Datos del diagn�stico
-   * @returns Diagn�stico creado
+   * Crear un nuevo diagnóstico (solo médicos)
+   * @param request Datos del diagnóstico
+   * @returns Diagnóstico creado
    */
   async createDiagnostico(request: CreateDiagnosticoRequest): Promise<DiagnosticoDto> {
     try {
@@ -201,15 +258,15 @@ class MedicalHistoryService {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Error al crear diagn�stico:', error);
+      console.error('Error al crear diagnóstico:', error);
       throw new Error(
-        error.response?.data?.message || 'Error al crear diagn�stico'
+        error.response?.data?.message || 'Error al crear diagnóstico'
       );
     }
   }
 
   /**
-   * Crear una nueva receta con medicamentos (solo m�dicos)
+   * Crear una nueva receta con medicamentos (solo médicos)
    * @param request Datos de la receta y medicamentos
    * @returns Receta creada
    */
@@ -229,7 +286,7 @@ class MedicalHistoryService {
   }
 
   /**
-   * Subir un documento cl�nico (solo m�dicos)
+   * Subir un documento clínico (solo médicos)
    * @param request Metadatos del documento
    * @returns Documento creado
    */
@@ -249,10 +306,10 @@ class MedicalHistoryService {
   }
 
   /**
-   * Eliminar un documento cl�nico
-   * Permisos: M�dico que lo cre�, paciente de la cita, o admin
+   * Eliminar un documento clínico
+   * Permisos: Médico que lo creó, paciente de la cita, o admin
    * @param documentId ID del documento
-   * @returns True si se elimin� correctamente
+   * @returns True si se eliminó correctamente
    */
   async deleteDocument(documentId: number): Promise<boolean> {
     try {
@@ -273,8 +330,8 @@ class MedicalHistoryService {
   // ==========================================
 
   /**
-   * Obtener el historial m�dico del usuario actual
-   * Asume que el ID del usuario est� en localStorage
+   * Obtener el historial médico del usuario actual
+   * Asume que el ID del usuario está en localStorage
    */
   async getCurrentUserMedicalHistory(): Promise<HistorialMedicoDto[]> {
     try {
@@ -322,14 +379,14 @@ class MedicalHistoryService {
   }
 
   /**
-   * Obtener el nombre de la categor�a de documento en espa�ol
-   * @param categoria Categor�a del documento
-   * @returns Nombre en espa�ol
+   * Obtener el nombre de la categoría de documento en español
+   * @param categoria Categoría del documento
+   * @returns Nombre en español
    */
   getCategoryLabel(categoria: string): string {
     const labels: Record<string, string> = {
       'LAB': 'Laboratorio',
-      'IMAGEN': 'Imagen M�dica',
+      'IMAGEN': 'Imagen Médica',
       'REFERENCIA': 'Referencia',
       'CONSTANCIA': 'Constancia',
       'OTRO': 'Otro'
@@ -338,9 +395,9 @@ class MedicalHistoryService {
   }
 
   /**
-   * Formatear el tama�o del archivo
-   * @param bytes Tama�o en bytes
-   * @returns Tama�o formateado (KB, MB)
+   * Formatear el tamaño del archivo
+   * @param bytes Tamaño en bytes
+   * @returns Tamaño formateado (KB, MB)
    */
   formatFileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -349,7 +406,7 @@ class MedicalHistoryService {
   }
 
   /**
-   * Validar si el usuario puede editar informaci�n m�dica
+   * Validar si el usuario puede editar información médica
    * Verificar si tiene rol de DOCTOR o ADMIN
    */
   canEditMedicalInfo(): boolean {
@@ -358,8 +415,8 @@ class MedicalHistoryService {
       if (!userStr) return false;
       
       const user = JSON.parse(userStr);
-      // Aqu� deber�as verificar el rol del usuario
-      // Esto depende de c�mo est� estructurado tu objeto user
+      // Aquí deberías verificar el rol del usuario
+      // Esto depende de cómo esté estructurado tu objeto user
       return user.role === 'DOCTOR' || user.role === 'ADMIN';
     } catch {
       return false;

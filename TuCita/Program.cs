@@ -13,6 +13,9 @@ Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configurar codificación UTF-8 para toda la aplicación
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
 // Construir cadena de conexión para SQL Server desde variables de entorno
 var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? throw new InvalidOperationException("DB_SERVER no configurada en .env");
 var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME no configurada en .env");
@@ -69,14 +72,21 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDoctorsService, DoctorsService>();
 builder.Services.AddScoped<IAppointmentsService, AppointmentsService>();
+builder.Services.AddScoped<IDoctorAppointmentsService, DoctorAppointmentsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
+builder.Services.AddScoped<IDoctorProfileService, DoctorProfileService>();
 
 // EmailService es suficiente - sin tablas de notificaciones en BD
 
-// Add controllers
-builder.Services.AddControllers();
+// Add controllers con soporte UTF-8
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 
 // Add SPA services
 builder.Services.AddSpaStaticFiles(configuration =>
@@ -178,6 +188,18 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseSpaStaticFiles();
+
+// Configurar middleware para UTF-8 - solo para respuestas HTML
+app.Use(async (context, next) =>
+{
+    await next();
+    
+    // Solo aplicar UTF-8 a respuestas HTML, no a API
+    if (context.Response.ContentType != null && context.Response.ContentType.StartsWith("text/html"))
+    {
+        context.Response.Headers["Content-Type"] = "text/html; charset=utf-8";
+    }
+});
 
 app.UseRouting();
 

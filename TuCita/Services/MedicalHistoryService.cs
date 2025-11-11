@@ -8,6 +8,8 @@ namespace TuCita.Services;
 public interface IMedicalHistoryService
 {
     Task<IEnumerable<HistorialMedicoDto>> GetPatientMedicalHistoryAsync(long pacienteId);
+    Task<IEnumerable<HistorialMedicoExtendidoDto>> GetDoctorPatientHistoryAsync(long medicoId, long pacienteId);
+    Task<IEnumerable<HistorialMedicoExtendidoDto>> GetDoctorAllPatientsHistoryAsync(long medicoId);
     Task<CitaDetalleDto?> GetAppointmentDetailAsync(long citaId, long usuarioId, bool isDoctorOrAdmin);
     Task<NotaClinicaDto?> CreateNotaClinicaAsync(CreateNotaClinicaRequest request, long medicoId);
     Task<DiagnosticoDto?> CreateDiagnosticoAsync(CreateDiagnosticoRequest request, long medicoId);
@@ -50,6 +52,70 @@ public class MedicalHistoryService : IMedicalHistoryService
         catch (Exception ex)
         {
             Console.WriteLine($"Error en GetPatientMedicalHistoryAsync: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<HistorialMedicoExtendidoDto>> GetDoctorPatientHistoryAsync(long medicoId, long pacienteId)
+    {
+        try
+        {
+            var citas = await _context.Citas
+                .Include(c => c.Medico)
+                    .ThenInclude(m => m.Usuario)
+                .Include(c => c.Medico)
+                    .ThenInclude(m => m.EspecialidadesMedico)
+                        .ThenInclude(me => me.Especialidad)
+                .Include(c => c.Paciente)
+                    .ThenInclude(p => p.Usuario)
+                .Include(c => c.Diagnosticos)
+                .Include(c => c.NotasClinicas)
+                .Include(c => c.Recetas)
+                    .ThenInclude(r => r.Items)
+                .Include(c => c.Documentos)
+                    .ThenInclude(d => d.Etiquetas)
+                .Where(c => c.MedicoId == medicoId && c.PacienteId == pacienteId && c.Estado == EstadoCita.ATENDIDA)
+                .OrderByDescending(c => c.Inicio)
+                .ToListAsync();
+
+            return citas.Select(c => MapToHistorialMedicoExtendidoDto(c)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en GetDoctorPatientHistoryAsync: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<HistorialMedicoExtendidoDto>> GetDoctorAllPatientsHistoryAsync(long medicoId)
+    {
+        try
+        {
+            var citas = await _context.Citas
+                .Include(c => c.Medico)
+                    .ThenInclude(m => m.Usuario)
+                .Include(c => c.Medico)
+                    .ThenInclude(m => m.EspecialidadesMedico)
+                        .ThenInclude(me => me.Especialidad)
+                .Include(c => c.Paciente)
+                    .ThenInclude(p => p.Usuario)
+                .Include(c => c.Diagnosticos)
+                .Include(c => c.NotasClinicas)
+                .Include(c => c.Recetas)
+                    .ThenInclude(r => r.Items)
+                .Include(c => c.Documentos)
+                    .ThenInclude(d => d.Etiquetas)
+                .Where(c => c.MedicoId == medicoId && c.Estado == EstadoCita.ATENDIDA)
+                .OrderByDescending(c => c.Inicio)
+                .ToListAsync();
+
+            return citas.Select(c => MapToHistorialMedicoExtendidoDto(c)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en GetDoctorAllPatientsHistoryAsync: {ex.Message}");
             Console.WriteLine($"StackTrace: {ex.StackTrace}");
             throw;
         }
@@ -362,6 +428,73 @@ public class MedicalHistoryService : IMedicalHistoryService
             Especialidad = cita.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre,
             EstadoCita = cita.Estado.ToString(),
             Motivo = cita.Motivo,
+            Diagnosticos = cita.Diagnosticos.Select(d => new DiagnosticoDto
+            {
+                Id = d.Id,
+                CitaId = d.CitaId,
+                Codigo = d.Codigo,
+                Descripcion = d.Descripcion,
+                Fecha = d.CreadoEn
+            }).ToList(),
+            NotasClinicas = cita.NotasClinicas.Select(n => new NotaClinicaDto
+            {
+                Id = n.Id,
+                CitaId = n.CitaId,
+                Contenido = n.Nota,
+                Fecha = n.CreadoEn
+            }).ToList(),
+            Recetas = cita.Recetas.Select(r => new RecetaDto
+            {
+                Id = r.Id,
+                CitaId = r.CitaId,
+                Indicaciones = r.Indicaciones,
+                Fecha = r.CreadoEn,
+                Medicamentos = r.Items.Select(i => new RecetaItemDto
+                {
+                    Id = i.Id,
+                    Medicamento = i.Medicamento,
+                    Dosis = i.Dosis,
+                    Frecuencia = i.Frecuencia,
+                    Duracion = i.Duracion,
+                    Notas = i.Notas
+                }).ToList()
+            }).ToList(),
+            Documentos = cita.Documentos.Select(d => new DocumentoDto
+            {
+                Id = d.Id,
+                CitaId = d.CitaId,
+                Categoria = d.Categoria,
+                NombreArchivo = d.NombreArchivo,
+                MimeType = d.MimeType,
+                TamanoBytes = d.TamanoBytes,
+                Notas = d.Notas,
+                FechaSubida = d.CreadoEn,
+                Etiquetas = d.Etiquetas.Select(e => e.Etiqueta).ToList()
+            }).ToList()
+        };
+    }
+
+    private HistorialMedicoExtendidoDto MapToHistorialMedicoExtendidoDto(Cita cita)
+    {
+        return new HistorialMedicoExtendidoDto
+        {
+            CitaId = cita.Id,
+            FechaCita = cita.Inicio,
+            NombreMedico = cita.Medico?.Usuario != null 
+                ? $"Dr. {cita.Medico.Usuario.Nombre} {cita.Medico.Usuario.Apellido}" 
+                : "Médico no disponible",
+            Especialidad = cita.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre,
+            EstadoCita = cita.Estado.ToString(),
+            Motivo = cita.Motivo,
+            // Información del paciente
+            PacienteId = cita.PacienteId,
+            NombrePaciente = cita.Paciente?.Usuario != null 
+                ? $"{cita.Paciente.Usuario.Nombre} {cita.Paciente.Usuario.Apellido}" 
+                : "Paciente no disponible",
+            EdadPaciente = cita.Paciente?.FechaNacimiento != null 
+                ? DateTime.Now.Year - cita.Paciente.FechaNacimiento.Value.Year 
+                : null,
+            FotoPaciente = null, // Puedes agregar esto si tienes fotos en el modelo
             Diagnosticos = cita.Diagnosticos.Select(d => new DiagnosticoDto
             {
                 Id = d.Id,

@@ -18,74 +18,68 @@ import {
   AlertCircle,
   UserX,
   Eye,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
+import doctorAppointmentsService, { DoctorAppointment, DashboardStats } from '../../services/doctorAppointmentsService';
+import { toast } from 'sonner';
+import { DoctorLayout } from '../doctor/DoctorLayout';
 
 interface DoctorDashboardPageProps {
   onNavigate: (page: string, data?: any) => void;
+  onLogout: () => void;
 }
 
-export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
+export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [todayAppointments, setTodayAppointments] = useState<DoctorAppointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    cancelled: 0,
+  });
+
+  // Obtener nombre del doctor desde localStorage
+  const getDoctorName = () => {
+    try {
+      const userStr = localStorage.getItem('doctorUser');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.nombre || 'Doctor';
+      }
+    } catch (error) {
+      console.error('Error al obtener nombre del doctor:', error);
+    }
+    return 'Doctor';
+  };
+
+  const doctorName = getDoctorName();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Mock data - En producción vendría del backend
-  const doctorName = "Laura Martínez";
-  
-  const todayAppointments = [
-    {
-      id: 1,
-      time: '09:00',
-      patient: 'Juan Pérez García',
-      reason: 'Consulta general',
-      status: 'CONFIRMADA',
-    },
-    {
-      id: 2,
-      time: '10:30',
-      patient: 'María López Torres',
-      reason: 'Seguimiento de tratamiento',
-      status: 'CONFIRMADA',
-    },
-    {
-      id: 3,
-      time: '11:00',
-      patient: 'Carlos Rodríguez Sanz',
-      reason: 'Revisión de análisis',
-      status: 'ATENDIDA',
-    },
-    {
-      id: 4,
-      time: '12:00',
-      patient: 'Ana García Ruiz',
-      reason: 'Primera consulta',
-      status: 'PENDIENTE',
-    },
-    {
-      id: 5,
-      time: '13:00',
-      patient: 'Pedro Sánchez Mora',
-      reason: 'Control de presión',
-      status: 'CANCELADA',
-    },
-    {
-      id: 6,
-      time: '16:00',
-      patient: 'Lucía Fernández Gil',
-      reason: 'Consulta general',
-      status: 'CONFIRMADA',
-    },
-  ];
+  useEffect(() => {
+    loadTodayAppointments();
+  }, []);
 
-  const stats = {
-    total: todayAppointments.length,
-    completed: todayAppointments.filter(a => a.status === 'ATENDIDA').length,
-    pending: todayAppointments.filter(a => a.status === 'CONFIRMADA' || a.status === 'PENDIENTE').length,
-    cancelled: todayAppointments.filter(a => a.status === 'CANCELADA').length,
+  const loadTodayAppointments = async () => {
+    setLoading(true);
+    try {
+      const appointments = await doctorAppointmentsService.getTodayAppointments();
+      setTodayAppointments(appointments);
+      const calculatedStats = doctorAppointmentsService.calculateDashboardStats(appointments);
+      setStats(calculatedStats);
+    } catch (error: any) {
+      console.error('Error al cargar citas del día:', error);
+      toast.error('Error al cargar las citas del día');
+      setTodayAppointments([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getNextAppointment = () => {
@@ -95,20 +89,31 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
     const upcoming = todayAppointments.filter(apt => {
-      if (apt.status === 'CANCELADA' || apt.status === 'ATENDIDA') return false;
-      const [hour, minute] = apt.time.split(':').map(Number);
+      if (apt.estado === 'CANCELADA' || apt.estado === 'ATENDIDA') return false;
+      
+      const inicio = new Date(apt.inicio);
+      const hour = inicio.getHours();
+      const minute = inicio.getMinutes();
       const aptTimeInMinutes = hour * 60 + minute;
+      
       return aptTimeInMinutes > currentTimeInMinutes;
     });
 
     if (upcoming.length === 0) return null;
     
+    // Ordenar por fecha/hora más cercana
+    upcoming.sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
+    
     const next = upcoming[0];
-    const [hour, minute] = next.time.split(':').map(Number);
-    const aptTimeInMinutes = hour * 60 + minute;
+    const inicio = new Date(next.inicio);
+    const aptTimeInMinutes = inicio.getHours() * 60 + inicio.getMinutes();
     const minutesUntil = aptTimeInMinutes - currentTimeInMinutes;
 
-    return { ...next, minutesUntil };
+    return { 
+      ...next, 
+      minutesUntil,
+      time: inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    };
   };
 
   const nextAppointment = getNextAppointment();
@@ -153,229 +158,270 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
     return 'Buenas noches';
   };
 
+  const LoadingState = () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+      <span className="text-muted-foreground">Cargando citas del día...</span>
+    </div>
+  );
+
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {getGreeting()}, Dr. {doctorName}
-            </h1>
-            <div className="flex items-center space-x-4 text-gray-600">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  {currentTime.toLocaleDateString('es-ES', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span>
-                  {currentTime.toLocaleTimeString('es-ES', { 
-                    hour: '2-digit', 
-                    minute: '2-digit'
-                  })}
-                </span>
+    <DoctorLayout 
+      currentPage="doctor-dashboard" 
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+    >
+      <div className="p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {getGreeting()}, Dr. {doctorName}
+              </h1>
+              <div className="flex items-center space-x-4 text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {currentTime.toLocaleDateString('es-ES', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    {currentTime.toLocaleTimeString('es-ES', { 
+                      hour: '2-digit', 
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Total del día</p>
+                    <p className="text-3xl font-bold text-gray-900">{loading ? '-' : stats.total}</p>
+                  </div>
+                  <div className="bg-[#2E8BC0]/10 p-3 rounded-xl">
+                    <Calendar className="h-6 w-6 text-[#2E8BC0]" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-700 mb-1">Completadas</p>
+                    <p className="text-3xl font-bold text-green-900">{loading ? '-' : stats.completed}</p>
+                  </div>
+                  <div className="bg-green-500 p-3 rounded-xl">
+                    <CheckCircle2 className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-700 mb-1">Pendientes</p>
+                    <p className="text-3xl font-bold text-blue-900">{loading ? '-' : stats.pending}</p>
+                  </div>
+                  <div className="bg-blue-500 p-3 rounded-xl">
+                    <AlertCircle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-red-700 mb-1">Canceladas</p>
+                    <p className="text-3xl font-bold text-red-900">{loading ? '-' : stats.cancelled}</p>
+                  </div>
+                  <div className="bg-red-500 p-3 rounded-xl">
+                    <XCircle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total del día</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-                </div>
-                <div className="bg-[#2E8BC0]/10 p-3 rounded-xl">
-                  <Calendar className="h-6 w-6 text-[#2E8BC0]" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-700 mb-1">Completadas</p>
-                  <p className="text-3xl font-bold text-green-900">{stats.completed}</p>
-                </div>
-                <div className="bg-green-500 p-3 rounded-xl">
-                  <CheckCircle2 className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-blue-700 mb-1">Pendientes</p>
-                  <p className="text-3xl font-bold text-blue-900">{stats.pending}</p>
-                </div>
-                <div className="bg-blue-500 p-3 rounded-xl">
-                  <AlertCircle className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-red-700 mb-1">Canceladas</p>
-                  <p className="text-3xl font-bold text-red-900">{stats.cancelled}</p>
-                </div>
-                <div className="bg-red-500 p-3 rounded-xl">
-                  <XCircle className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Citas del día - Tabla */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-[#2E8BC0]" />
-                Citas de hoy
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {todayAppointments.map((appointment) => {
-                    const config = statusConfig[appointment.status as keyof typeof statusConfig];
-                    const StatusIcon = config?.icon;
-                    
-                    return (
-                      <TableRow key={appointment.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">{appointment.time}</TableCell>
-                        <TableCell>{appointment.patient}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{appointment.reason}</TableCell>
-                        <TableCell>
-                          <Badge className={`${config?.color} border`}>
-                            {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
-                            {config?.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: appointment.id })}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar - Próxima cita */}
-        <div className="space-y-6">
-          {nextAppointment ? (
-            <Card className="bg-gradient-to-br from-[#2E8BC0] to-[#1a5a7d] text-white border-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Citas del día - Tabla */}
+          <div className="lg:col-span-2">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
-                  Próxima cita
+                <CardTitle className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-[#2E8BC0]" />
+                  Citas de hoy
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                    <p className="text-sm opacity-90 mb-1">En {nextAppointment.minutesUntil} minutos</p>
-                    <p className="text-2xl font-bold">{nextAppointment.time}</p>
+                {loading ? (
+                  <LoadingState />
+                ) : todayAppointments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 font-medium">No hay citas programadas para hoy</p>
+                    <p className="text-sm text-gray-500 mt-2">Las citas aparecerán aquí cuando estén agendadas</p>
                   </div>
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">Paciente</p>
-                    <p className="font-semibold">{nextAppointment.patient}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">Motivo</p>
-                    <p>{nextAppointment.reason}</p>
-                  </div>
-                  <Button 
-                    className="w-full bg-white text-[#2E8BC0] hover:bg-gray-100"
-                    onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: nextAppointment.id })}
-                  >
-                    Ver detalles
-                  </Button>
-                </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Hora</TableHead>
+                        <TableHead>Paciente</TableHead>
+                        <TableHead>Motivo</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {todayAppointments.map((appointment) => {
+                        const config = statusConfig[appointment.estado as keyof typeof statusConfig];
+                        const StatusIcon = config?.icon;
+                        const inicio = new Date(appointment.inicio);
+                        const hora = inicio.toLocaleTimeString('es-ES', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        });
+                        
+                        return (
+                          <TableRow key={appointment.id} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">{hora}</TableCell>
+                            <TableCell>{appointment.paciente.nombre}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">
+                              {appointment.motivo || 'No especificado'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${config?.color} border`}>
+                                {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
+                                {config?.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: appointment.id })}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                <p className="font-semibold text-gray-900 mb-1">
-                  No hay más citas pendientes
-                </p>
-                <p className="text-sm text-gray-600">
-                  Has completado tu agenda del día
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          </div>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Acciones rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => onNavigate('doctor-appointments')}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Ver todas las citas
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => onNavigate('doctor-availability')}
-              >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Gestionar disponibilidad
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Sidebar - Próxima cita */}
+          <div className="space-y-6">
+            {loading ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-3" />
+                  <p className="text-sm text-gray-600">Cargando próxima cita...</p>
+                </CardContent>
+              </Card>
+            ) : nextAppointment ? (
+              <Card className="bg-gradient-to-br from-[#2E8BC0] to-[#1a5a7d] text-white border-0">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <Clock className="h-5 w-5 mr-2" />
+                    Próxima cita
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                      <p className="text-sm opacity-90 mb-1">
+                        {nextAppointment.minutesUntil > 60 
+                          ? `En ${Math.floor(nextAppointment.minutesUntil / 60)}h ${nextAppointment.minutesUntil % 60}m` 
+                          : `En ${nextAppointment.minutesUntil} minutos`}
+                      </p>
+                      <p className="text-2xl font-bold">{nextAppointment.time}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm opacity-90 mb-1">Paciente</p>
+                      <p className="font-semibold">{nextAppointment.paciente.nombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm opacity-90 mb-1">Motivo</p>
+                      <p>{nextAppointment.motivo || 'No especificado'}</p>
+                    </div>
+                    <Button 
+                      className="w-full bg-white text-[#2E8BC0] hover:bg-gray-100"
+                      onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: nextAppointment.id })}
+                    >
+                      Ver detalles
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                  <p className="font-semibold text-gray-900 mb-1">
+                    No hay más citas pendientes
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Has completado tu agenda del día
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Acciones rápidas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => onNavigate('doctor-appointments')}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Ver todas las citas
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => onNavigate('doctor-availability')}
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Gestionar disponibilidad
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </DoctorLayout>
   );
 }
