@@ -141,6 +141,20 @@ const appointmentsService = {
       return null;
     }
   },
+
+  /**
+   * Obtener las citas del día para el médico autenticado
+   * Endpoint: GET /appointments/doctor/today
+   */
+  async getTodayForDoctor(): Promise<any[]> {
+    try {
+      const response = await api.get('/api/appointments/doctor/today');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener citas del día para el médico:', error);
+      throw error;
+    }
+  },
 };
 
 export default appointmentsService;

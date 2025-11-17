@@ -10,184 +10,154 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   UserX,
   Eye,
   TrendingUp
 } from 'lucide-react';
+import appointmentsService from '../../services/appointmentsService';
+
+interface TodayAppointment {
+  id: number;
+  time: string; // 'HH:mm'
+  pacienteNombre: string;
+  motivo?: string;
+  estado: string; // normalized to upper case strings like 'CONFIRMADA'
+}
 
 interface DoctorDashboardPageProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate?: (page: string, data?: any) => void;
 }
 
 export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [todayAppointments, setTodayAppointments] = useState<TodayAppointment[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Mock data - En producción vendría del backend
-  const doctorName = "Laura Martínez";
-  
-  const todayAppointments = [
-    {
-      id: 1,
-      time: '09:00',
-      patient: 'Juan Pérez García',
-      reason: 'Consulta general',
-      status: 'CONFIRMADA',
-    },
-    {
-      id: 2,
-      time: '10:30',
-      patient: 'María López Torres',
-      reason: 'Seguimiento de tratamiento',
-      status: 'CONFIRMADA',
-    },
-    {
-      id: 3,
-      time: '11:00',
-      patient: 'Carlos Rodríguez Sanz',
-      reason: 'Revisión de análisis',
-      status: 'ATENDIDA',
-    },
-    {
-      id: 4,
-      time: '12:00',
-      patient: 'Ana García Ruiz',
-      reason: 'Primera consulta',
-      status: 'PENDIENTE',
-    },
-    {
-      id: 5,
-      time: '13:00',
-      patient: 'Pedro Sánchez Mora',
-      reason: 'Control de presión',
-      status: 'CANCELADA',
-    },
-    {
-      id: 6,
-      time: '16:00',
-      patient: 'Lucía Fernández Gil',
-      reason: 'Consulta general',
-      status: 'CONFIRMADA',
-    },
-  ];
+  useEffect(() => {
+    loadTodayAppointments();
+  }, []);
+
+  const loadTodayAppointments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await appointmentsService.getTodayForDoctor();
+      const mapped: TodayAppointment[] = (data || []).map((apt: any) => {
+        const inicio = apt.inicio || apt.date || apt.fecha || apt.start || null;
+        let time = '00:00';
+        try {
+          if (inicio) time = new Date(inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+          else if (apt.time) time = apt.time;
+        } catch {
+          if (apt.time) time = apt.time;
+        }
+
+        return {
+          id: Number(apt.id),
+          time,
+          pacienteNombre: apt.pacienteNombre || apt.patientName || (apt.paciente && apt.paciente.nombre) || 'N/D',
+          motivo: apt.motivo || apt.reason || '',
+          estado: (apt.estado || apt.status || 'PENDIENTE').toString().toUpperCase(),
+        } as TodayAppointment;
+      }).sort((a,b) => a.time.localeCompare(b.time));
+
+      setTodayAppointments(mapped);
+    } catch (err: any) {
+      console.error('Error al cargar citas del día:', err);
+      setError(err?.message || 'Error al cargar citas del día');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = {
     total: todayAppointments.length,
-    completed: todayAppointments.filter(a => a.status === 'ATENDIDA').length,
-    pending: todayAppointments.filter(a => a.status === 'CONFIRMADA' || a.status === 'PENDIENTE').length,
-    cancelled: todayAppointments.filter(a => a.status === 'CANCELADA').length,
+    completed: todayAppointments.filter(a => a.estado === 'ATENDIDA' || a.estado === 'COMPLETED').length,
+    pending: todayAppointments.filter(a => a.estado === 'PENDIENTE' || a.estado === 'CONFIRMADA' || a.estado === 'PENDING' || a.estado === 'CONFIRMED').length,
+    cancelled: todayAppointments.filter(a => a.estado === 'CANCELADA' || a.estado === 'CANCELLED').length,
   };
 
   const getNextAppointment = () => {
-    const now = currentTime;
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeInMinutes = currentHour * 60 + currentMinute;
-
+    const now = new Date();
     const upcoming = todayAppointments.filter(apt => {
-      if (apt.status === 'CANCELADA' || apt.status === 'ATENDIDA') return false;
-      const [hour, minute] = apt.time.split(':').map(Number);
-      const aptTimeInMinutes = hour * 60 + minute;
-      return aptTimeInMinutes > currentTimeInMinutes;
-    });
+      if (apt.estado === 'CANCELADA' || apt.estado === 'ATENDIDA' || apt.estado === 'CANCELLED' || apt.estado === 'COMPLETED') return false;
+      const [hh, mm] = apt.time.split(':').map(Number);
+      if (isNaN(hh) || isNaN(mm)) return false;
+      const aptDate = new Date(now);
+      aptDate.setHours(hh, mm, 0, 0);
+      return aptDate.getTime() > now.getTime();
+    }).sort((a,b) => a.time.localeCompare(b.time));
 
     if (upcoming.length === 0) return null;
-    
     const next = upcoming[0];
     const [hour, minute] = next.time.split(':').map(Number);
-    const aptTimeInMinutes = hour * 60 + minute;
-    const minutesUntil = aptTimeInMinutes - currentTimeInMinutes;
-
+    const aptDate = new Date();
+    aptDate.setHours(hour, minute, 0, 0);
+    const minutesUntil = Math.max(0, Math.round((aptDate.getTime() - new Date().getTime()) / 60000));
     return { ...next, minutesUntil };
   };
 
   const nextAppointment = getNextAppointment();
 
   const statusConfig = {
-    CONFIRMADA: { 
-      label: 'Confirmada', 
-      color: 'bg-blue-100 text-blue-800 border-blue-200',
-      icon: CheckCircle2,
-      iconColor: 'text-blue-600'
+    CONFIRMADA: {
+      label: 'Confirmada',
+      color: 'bg-blue-100 text-blue-800 border-blue-200'
     },
-    ATENDIDA: { 
-      label: 'Atendida', 
-      color: 'bg-green-100 text-green-800 border-green-200',
-      icon: CheckCircle2,
-      iconColor: 'text-green-600'
+    ATENDIDA: {
+      label: 'Atendida',
+      color: 'bg-green-100 text-green-800 border-green-200'
     },
-    CANCELADA: { 
-      label: 'Cancelada', 
-      color: 'bg-red-100 text-red-800 border-red-200',
-      icon: XCircle,
-      iconColor: 'text-red-600'
+    CANCELADA: {
+      label: 'Cancelada',
+      color: 'bg-red-100 text-red-800 border-red-200'
     },
-    PENDIENTE: { 
-      label: 'Pendiente', 
-      color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      icon: AlertCircle,
-      iconColor: 'text-yellow-600'
+    PENDIENTE: {
+      label: 'Pendiente',
+      color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
     },
-    NO_SHOW: { 
-      label: 'No asistió', 
-      color: 'bg-gray-100 text-gray-800 border-gray-200',
-      icon: UserX,
-      iconColor: 'text-gray-600'
-    },
-  };
-
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Buenos días';
-    if (hour < 19) return 'Buenas tardes';
-    return 'Buenas noches';
-  };
+  } as const;
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {getGreeting()}, Dr. {doctorName}
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel del Médico</h1>
             <div className="flex items-center space-x-4 text-gray-600">
               <div className="flex items-center space-x-2">
                 <Calendar className="h-4 w-4" />
                 <span>
-                  {currentTime.toLocaleDateString('es-ES', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {currentTime.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
                 <span>
-                  {currentTime.toLocaleTimeString('es-ES', { 
-                    hour: '2-digit', 
-                    minute: '2-digit'
-                  })}
+                  {currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardContent className="p-6">
@@ -248,7 +218,6 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Citas del día - Tabla */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -258,52 +227,62 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {todayAppointments.map((appointment) => {
-                    const config = statusConfig[appointment.status as keyof typeof statusConfig];
-                    const StatusIcon = config?.icon;
-                    
-                    return (
-                      <TableRow key={appointment.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">{appointment.time}</TableCell>
-                        <TableCell>{appointment.patient}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{appointment.reason}</TableCell>
-                        <TableCell>
-                          <Badge className={`${config?.color} border`}>
-                            {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
-                            {config?.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: appointment.id })}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver
-                          </Button>
-                        </TableCell>
+              {error && (
+                <div className="text-sm text-destructive mb-4">{error}</div>
+              )}
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Hora</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-6 text-center">Cargando...</TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    ) : todayAppointments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-6 text-center">No hay citas para hoy</TableCell>
+                      </TableRow>
+                    ) : (
+                      todayAppointments.map((appointment) => {
+                        const config = statusConfig[appointment.estado as keyof typeof statusConfig] || { color: 'bg-gray-100 text-gray-800' } as any;
+                        return (
+                          <TableRow key={appointment.id} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">{appointment.time}</TableCell>
+                            <TableCell>{appointment.pacienteNombre}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{appointment.motivo || '-'}</TableCell>
+                            <TableCell>
+                              <Badge className={`${config.color} border`}>{config.label || appointment.estado}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => onNavigate?.('doctor-appointment-detail', { appointmentId: appointment.id })}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar - Próxima cita */}
         <div className="space-y-6">
           {nextAppointment ? (
             <Card className="bg-gradient-to-br from-[#2E8BC0] to-[#1a5a7d] text-white border-0">
@@ -321,15 +300,15 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
                   </div>
                   <div>
                     <p className="text-sm opacity-90 mb-1">Paciente</p>
-                    <p className="font-semibold">{nextAppointment.patient}</p>
+                    <p className="font-semibold">{nextAppointment.pacienteNombre}</p>
                   </div>
                   <div>
                     <p className="text-sm opacity-90 mb-1">Motivo</p>
-                    <p>{nextAppointment.reason}</p>
+                    <p>{nextAppointment.motivo}</p>
                   </div>
                   <Button 
                     className="w-full bg-white text-[#2E8BC0] hover:bg-gray-100"
-                    onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: nextAppointment.id })}
+                    onClick={() => onNavigate?.('doctor-appointment-detail', { appointmentId: nextAppointment.id })}
                   >
                     Ver detalles
                   </Button>
@@ -340,17 +319,12 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
             <Card>
               <CardContent className="p-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                <p className="font-semibold text-gray-900 mb-1">
-                  No hay más citas pendientes
-                </p>
-                <p className="text-sm text-gray-600">
-                  Has completado tu agenda del día
-                </p>
+                <p className="font-semibold text-gray-900 mb-1">No hay más citas pendientes</p>
+                <p className="text-sm text-gray-600">Has completado tu agenda del día</p>
               </CardContent>
             </Card>
           )}
 
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Acciones rápidas</CardTitle>
@@ -359,7 +333,7 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => onNavigate('doctor-appointments')}
+                onClick={() => onNavigate?.('doctor-appointments')}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Ver todas las citas
@@ -367,7 +341,7 @@ export function DoctorDashboardPage({ onNavigate }: DoctorDashboardPageProps) {
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => onNavigate('doctor-availability')}
+                onClick={() => onNavigate?.('doctor-availability')}
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Gestionar disponibilidad

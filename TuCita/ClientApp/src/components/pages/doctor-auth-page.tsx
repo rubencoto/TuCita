@@ -14,6 +14,7 @@ interface DoctorAuthPageProps {
 
 export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'doctor' | 'admin'>('doctor');
   
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -23,7 +24,20 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simular login exitoso de doctor
+    // Simular login según rol seleccionado
+    if (selectedRole === 'admin') {
+      const adminData = {
+        id: 'ADMIN-001',
+        name: 'Admin Principal',
+        email: loginForm.email,
+        phone: '+34 612 345 678',
+        role: 'admin'
+      };
+      onLogin(adminData);
+      onNavigate('admin-dashboard');
+      return;
+    }
+
     const doctorData = {
       id: 'DOC-001',
       name: 'Dra. Ana Martínez',
@@ -63,6 +77,21 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
               </AlertDescription>
             </Alert>
 
+            <div className="flex justify-center mb-4 space-x-2">
+              <button
+                className={`px-4 py-2 rounded-md ${selectedRole === 'doctor' ? 'bg-[#2E8BC0] text-white' : 'bg-gray-100'}`}
+                onClick={() => setSelectedRole('doctor')}
+              >
+                Doctor
+              </button>
+              <button
+                className={`px-4 py-2 rounded-md ${selectedRole === 'admin' ? 'bg-[#2E8BC0] text-white' : 'bg-gray-100'}`}
+                onClick={() => setSelectedRole('admin')}
+              >
+                Admin
+              </button>
+            </div>
+
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="doctor-email">Correo Electrónico Profesional</Label>
@@ -71,7 +100,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                   <Input
                     id="doctor-email"
                     type="email"
-                    placeholder="doctor@hospital.com"
+                    placeholder={selectedRole === 'admin' ? 'admin@hospital.com' : 'doctor@hospital.com'}
                     value={loginForm.email}
                     onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
                     className="pl-10"
@@ -119,7 +148,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
 
               <Button type="submit" className="w-full bg-[#2E8BC0] hover:bg-[#2E8BC0]/90">
                 <Stethoscope className="h-4 w-4 mr-2" />
-                Acceder al Panel Médico
+                {selectedRole === 'admin' ? 'Acceder al Panel de Administración' : 'Acceder al Panel Médico'}
               </Button>
             </form>
 
@@ -168,10 +197,18 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
             <p className="text-xs text-yellow-800 mb-2">
               <strong>?? Credenciales de prueba:</strong>
             </p>
-            <p className="text-xs text-yellow-700">
-              <strong>Email:</strong> doctor@tucitaonline.com<br />
-              <strong>Contraseña:</strong> demo123
-            </p>
+            <div className="space-y-2 text-xs text-yellow-700">
+              <div>
+                <strong>Doctor:</strong><br />
+                Email: doctor@tucitaonline.com<br />
+                Contraseña: demo123
+              </div>
+              <div className="pt-2 border-t">
+                <strong>Admin:</strong><br />
+                Email: admin@tucitaonline.com<br />
+                Contraseña: admin123
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

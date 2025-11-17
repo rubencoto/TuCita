@@ -15,8 +15,10 @@ import { AppointmentDetailPage } from './components/pages/appointment-detail-pag
 import { ReschedulePage } from './components/pages/reschedule-page';
 import { authService, AuthResponse } from './services/authService';
 import appointmentsService from './services/appointmentsService';
+import { DoctorDashboardPage } from './components/pages/doctor-dashboard-page';
+import { AdminDashboardPage } from './components/pages/admin-dashboard-page';
 
-type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule';
+type PageType = 'home' | 'login' | 'register' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'admin-dashboard';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -207,6 +209,34 @@ export default function App() {
             onCancelAppointment={handleCancelAppointment}
             loading={loading}
           />
+        );
+
+      case 'doctor-dashboard':
+        if (!isLoggedIn) {
+          return (
+            <AuthPage
+              mode="login"
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorDashboardPage onNavigate={handleNavigate} />
+        );
+
+      case 'admin-dashboard':
+        if (!isLoggedIn) {
+          return (
+            <AuthPage
+              mode="login"
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <AdminDashboardPage onNavigate={handleNavigate} />
         );
       
       case 'medical-history':
