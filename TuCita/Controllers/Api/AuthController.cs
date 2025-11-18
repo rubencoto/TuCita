@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using TuCita.Services;
 using TuCita.DTOs.Auth;
 using System.Security.Claims;
+using TuCita.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace TuCita.Controllers.Api;
 
@@ -51,6 +53,80 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result.User);
+    }
+
+    [HttpPost("register-doctor")]
+    public async Task<IActionResult> RegisterDoctor([FromBody] TuCita.DTOs.Auth.RegisterDoctorRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            // Get DbContext from DI
+            var db = (TuCita.Data.TuCitaDbContext)HttpContext.RequestServices.GetService(typeof(TuCita.Data.TuCitaDbContext))!;
+
+            // Ensure role exists
+            var roleName = string.IsNullOrEmpty(request.Role) ? "MEDICO" : request.Role.ToUpper();
+            var role = await db.Roles.FirstOrDefaultAsync(r => r.Nombre == roleName);
+            if (role == null)
+            {
+                role = roleName == "MEDICO" ? await TuCita.Data.DbInitializer.EnsureMedicoRoleExistsAsync(db) : new TuCita.Models.Rol { Nombre = roleName };
+                if (role.Id == 0) // newly created via EnsureMedicoRoleExistsAsync saves changes
+                {
+                    db.Roles.Add(role);
+                    await db.SaveChangesAsync();
+                }
+            }
+
+            // Use AuthService to create base user (as patient-like flow) but then assign role/profile
+            var baseRegister = new TuCita.DTOs.Auth.RegisterRequestDto
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                Phone = request.Phone,
+                Password = request.Password,
+                ConfirmPassword = request.ConfirmPassword
+            };
+
+            var result = await _authService.RegisterAsync(baseRegister);
+
+            if (!result.Success)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+
+            var createdUser = await _authService.GetUserByIdAsync(result.User!.Id);
+            if (createdUser == null)
+                return StatusCode(500, new { message = "Error al recuperar usuario creado" });
+
+            // Assign desired role
+            db.RolesUsuarios.Add(new TuCita.Models.RolUsuario { UsuarioId = createdUser.Id, RolId = role.Id });
+            await db.SaveChangesAsync();
+
+            if (role.Nombre == "MEDICO")
+            {
+                var perfil = new TuCita.Models.PerfilMedico
+                {
+                    UsuarioId = createdUser.Id,
+                    NumeroLicencia = request.NumeroLicencia,
+                    Direccion = request.Direccion,
+                    CreadoEn = DateTime.UtcNow,
+                    ActualizadoEn = DateTime.UtcNow
+                };
+                db.PerfilesMedicos.Add(perfil);
+                await db.SaveChangesAsync();
+            }
+
+            return Ok(result.User);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno al registrar doctor", error = ex.Message });
+        }
     }
 
     [HttpPost("logout")]

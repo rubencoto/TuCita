@@ -13,6 +13,7 @@ public interface IAppointmentsService
     Task<bool> CancelAppointmentAsync(long citaId, long usuarioId);
     Task<bool> UpdateAppointmentAsync(long citaId, long usuarioId, UpdateAppointmentRequest request);
     Task<CitaDto?> RescheduleAppointmentAsync(long citaId, long usuarioId, long newTurnoId);
+    Task<IEnumerable<CitaDto>> GetTodayForDoctorAsync(long doctorUserId);
 }
 
 public class AppointmentsService : IAppointmentsService
@@ -52,6 +53,7 @@ public class AppointmentsService : IAppointmentsService
                 NombreMedico = c.Medico?.Usuario != null 
                     ? $"Dr. {c.Medico.Usuario.Nombre} {c.Medico.Usuario.Apellido}" 
                     : "Médico no disponible",
+                PacienteNombre = c.Paciente?.Usuario != null ? $"{c.Paciente.Usuario.Nombre} {c.Paciente.Usuario.Apellido}" : null,
                 Especialidad = c.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre ?? "General",
                 DireccionMedico = c.Medico?.Direccion,
                 Inicio = c.Inicio,
@@ -193,6 +195,7 @@ public class AppointmentsService : IAppointmentsService
                 NombreMedico = turno.Medico?.Usuario != null 
                     ? $"Dr. {turno.Medico.Usuario.Nombre} {turno.Medico.Usuario.Apellido}" 
                     : "Médico no disponible",
+                PacienteNombre = cita.Paciente != null && cita.Paciente.Usuario != null ? $"{cita.Paciente.Usuario.Nombre} {cita.Paciente.Usuario.Apellido}" : null,
                 Especialidad = turno.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre ?? "General",
                 DireccionMedico = turno.Medico?.Direccion,
                 Inicio = cita.Inicio,
@@ -440,6 +443,7 @@ public class AppointmentsService : IAppointmentsService
                 NombreMedico = citaActual.Medico?.Usuario != null 
                     ? $"Dr. {citaActual.Medico.Usuario.Nombre} {citaActual.Medico.Usuario.Apellido}" 
                     : "Médico no disponible",
+                PacienteNombre = citaActual.Paciente != null && citaActual.Paciente.Usuario != null ? $"{citaActual.Paciente.Usuario.Nombre} {citaActual.Paciente.Usuario.Apellido}" : null,
                 Especialidad = citaActual.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre ?? "General",
                 DireccionMedico = citaActual.Medico?.Direccion,
                 Inicio = citaActual.Inicio,
@@ -458,6 +462,49 @@ public class AppointmentsService : IAppointmentsService
                 Console.WriteLine($"?? Inner Exception: {ex.InnerException.Message}");
             }
             return null;
+        }
+    }
+
+    public async Task<IEnumerable<CitaDto>> GetTodayForDoctorAsync(long doctorUserId)
+    {
+        try
+        {
+            // Define today's range (server local time)
+            var startOfDay = DateTime.Today;
+            var endOfDay = startOfDay.AddDays(1);
+
+            var citas = await _context.Citas
+                .Include(c => c.Medico)
+                    .ThenInclude(m => m.Usuario)
+                .Include(c => c.Paciente)
+                    .ThenInclude(p => p.Usuario)
+                .Include(c => c.Medico)
+                    .ThenInclude(m => m.EspecialidadesMedico)
+                        .ThenInclude(me => me.Especialidad)
+                .Where(c => c.Medico != null && c.Medico.UsuarioId == doctorUserId && c.Inicio >= startOfDay && c.Inicio < endOfDay)
+                .OrderBy(c => c.Inicio)
+                .ToListAsync();
+
+            return citas.Select(c => new CitaDto
+            {
+                Id = c.Id,
+                MedicoId = c.MedicoId,
+                NombreMedico = c.Medico?.Usuario != null
+                    ? $"Dr. {c.Medico.Usuario.Nombre} {c.Medico.Usuario.Apellido}"
+                    : "Médico no disponible",
+                PacienteNombre = c.Paciente?.Usuario != null ? $"{c.Paciente.Usuario.Nombre} {c.Paciente.Usuario.Apellido}" : null,
+                Especialidad = c.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre ?? "General",
+                DireccionMedico = c.Medico?.Direccion,
+                Inicio = c.Inicio,
+                Fin = c.Fin,
+                Estado = c.Estado.ToString(),
+                Motivo = c.Motivo
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en GetTodayForDoctorAsync");
+            return Array.Empty<CitaDto>();
         }
     }
 }

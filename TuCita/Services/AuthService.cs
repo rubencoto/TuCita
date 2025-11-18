@@ -177,6 +177,106 @@ public class AuthService : IAuthService
         }
     }
 
+    // Register doctor/admin with role and medico profile
+    public async Task<AuthResult> RegisterDoctorAsync(TuCita.DTOs.Auth.RegisterDoctorRequestDto request)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            _logger.LogInformation("Iniciando registro de doctor: {Email}", request.Email);
+
+            var existingUser = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.EmailNormalizado == request.Email.ToLower());
+
+            if (existingUser != null)
+            {
+                return new AuthResult { Success = false, Message = "El usuario ya existe" };
+            }
+
+            // Determine role
+            var roleName = string.IsNullOrEmpty(request.Role) ? "MEDICO" : request.Role.ToUpper();
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Nombre == roleName);
+            if (role == null)
+            {
+                // Create role if missing
+                role = new TuCita.Models.Rol { Nombre = roleName };
+                _context.Roles.Add(role);
+                await _context.SaveChangesAsync();
+            }
+
+            var usuario = new Usuario
+            {
+                Email = request.Email,
+                EmailNormalizado = request.Email.ToLower(),
+                PasswordHash = HashPassword(request.Password),
+                Nombre = request.FirstName,
+                Apellido = request.LastName,
+                Telefono = request.Phone,
+                Activo = true,
+                CreadoEn = DateTime.UtcNow,
+                ActualizadoEn = DateTime.UtcNow
+            };
+
+            _context.Usuarios.Add(usuario);
+            await _context.SaveChangesAsync();
+
+            var rolUsuario = new RolUsuario
+            {
+                UsuarioId = usuario.Id,
+                RolId = role.Id,
+                Usuario = usuario,
+                Rol = role
+            };
+            _context.RolesUsuarios.Add(rolUsuario);
+            await _context.SaveChangesAsync();
+
+            if (role.Nombre == "MEDICO")
+            {
+                var perfilMedico = new PerfilMedico
+                {
+                    UsuarioId = usuario.Id,
+                    NumeroLicencia = request.NumeroLicencia,
+                    Direccion = request.Direccion,
+                    CreadoEn = DateTime.UtcNow,
+                    ActualizadoEn = DateTime.UtcNow
+                };
+                _context.PerfilesMedicos.Add(perfilMedico);
+                await _context.SaveChangesAsync();
+            }
+
+            await transaction.CommitAsync();
+
+            // Reload user with roles
+            usuario = await _context.Usuarios
+                .Include(u => u.RolesUsuarios)
+                .ThenInclude(ru => ru.Rol)
+                .FirstOrDefaultAsync(u => u.Id == usuario.Id) ?? usuario;
+
+            var token = GenerateJwtToken(usuario);
+
+            return new AuthResult
+            {
+                Success = true,
+                Token = token,
+                User = new AuthResponseDto
+                {
+                    Id = usuario.Id,
+                    Name = $"{usuario.Nombre} {usuario.Apellido}",
+                    Email = usuario.Email,
+                    Phone = usuario.Telefono,
+                    Token = token
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Error en RegisterDoctorAsync para email: {Email}", request.Email);
+            return new AuthResult { Success = false, Message = ex.Message };
+        }
+    }
+
     public async Task<Usuario?> GetUserByIdAsync(long userId)
     {
         return await _context.Usuarios

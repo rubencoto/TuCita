@@ -278,4 +278,39 @@ public class AppointmentsController : ControllerBase
             return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
         }
     }
+
+    // GET: /api/appointments/doctor/today
+    [HttpGet("doctor/today")]
+    public async Task<IActionResult> GetTodayForDoctor()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var citas = await _appointmentsService.GetTodayForDoctorAsync(userId);
+
+            var response = citas.Select(a => new
+            {
+                id = a.Id,
+                inicio = a.Inicio,
+                time = a.Inicio.ToString("HH:mm"),
+                pacienteNombre = string.IsNullOrEmpty(a.PacienteNombre) ? "N/D" : a.PacienteNombre,
+                motivo = a.Motivo,
+                // Provide both Spanish 'estado' and english 'status' to be compatible with frontends
+                estado = (a.Estado ?? string.Empty).ToUpperInvariant(),
+                status = MapEstadoToFrontend(a.Estado ?? string.Empty),
+                medicoId = a.MedicoId
+            });
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+        }
+    }
 }

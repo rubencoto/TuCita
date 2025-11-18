@@ -5,6 +5,7 @@ public class CitaDto
     public long Id { get; set; }
     public long MedicoId { get; set; }
     public string NombreMedico { get; set; } = string.Empty;
+    public string? PacienteNombre { get; set; }
     public string Especialidad { get; set; } = string.Empty;
     public string? DireccionMedico { get; set; }
     public DateTime Inicio { get; set; }

@@ -8,20 +8,43 @@ interface NavbarProps {
   isLoggedIn: boolean;
   onLogin: () => void;
   onLogout: () => void;
+  user?: any;
 }
 
-export function Navbar({ currentPage, onNavigate, isLoggedIn, onLogin, onLogout }: NavbarProps) {
+export function Navbar({ currentPage, onNavigate, isLoggedIn, onLogin, onLogout, user }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navigationItems = [
+  const publicNavigation = [
     { id: 'home', label: 'Inicio', icon: Home },
     { id: 'search', label: 'Buscar Médicos', icon: Search },
-    ...(isLoggedIn ? [
-      { id: 'appointments', label: 'Mis Citas', icon: Calendar },
-      { id: 'medical-history', label: 'Historial Médico', icon: FileText },
-      { id: 'profile', label: 'Perfil', icon: User },
-    ] : [])
   ];
+
+  const patientNavigation = [
+    { id: 'appointments', label: 'Mis Citas', icon: Calendar },
+    { id: 'medical-history', label: 'Historial Médico', icon: FileText },
+    { id: 'profile', label: 'Perfil', icon: User },
+  ];
+
+  const medicalNavigation = [
+    { id: 'doctor-dashboard', label: 'Panel Médico', icon: Calendar },
+    { id: 'doctor-appointments', label: 'Citas Médicas', icon: Calendar },
+    { id: 'doctor-availability', label: 'Disponibilidad', icon: Calendar },
+  ];
+
+  const role = (user?.role || '').toString().toLowerCase();
+  const isDoctorOrAdmin = role === 'doctor' || role === 'admin';
+
+  // Determine which navigation items to render in the main menu
+  let mainNavItems = publicNavigation;
+  if (isLoggedIn) {
+    if (isDoctorOrAdmin) {
+      // For doctors/admins show only Inicio and Panel Médico + Disponibilidad link
+      mainNavItems = [publicNavigation[0], { id: 'doctor-dashboard', label: 'Panel Médico', icon: Calendar }, { id: 'doctor-availability', label: 'Disponibilidad', icon: Calendar }];
+    } else {
+      // For logged in patients show public + patient items
+      mainNavItems = [...publicNavigation, ...patientNavigation];
+    }
+  }
 
   return (
     <nav className="bg-white border-b border-border shadow-sm">
@@ -40,39 +63,38 @@ export function Navbar({ currentPage, onNavigate, isLoggedIn, onLogin, onLogout 
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navigationItems.map((item) => {
+            {mainNavItems.map(item => {
               const Icon = item.icon;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
-                    currentPage === item.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-secondary'
-                  }`}
-                >
+                <button key={item.id} onClick={() => onNavigate(item.id)} className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${currentPage === item.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-secondary'}`}>
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
                 </button>
-              );
+              )
             })}
           </div>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoggedIn ? (
-              <Button variant="outline" onClick={onLogout}>
-                Cerrar Sesión
+            {/* Show portal button only for non-authenticated users */}
+            {!isLoggedIn && (
+              <Button variant="ghost" onClick={() => onNavigate('doctor-auth')}>
+                Portal Médico
               </Button>
-            ) : (
+            )}
+
+            {/* When logged in as patient show only Cerrar Sesión (profile is in main nav) */}
+            {isLoggedIn && !isDoctorOrAdmin && (
               <>
-                <Button variant="outline" onClick={onLogin}>
-                  Iniciar Sesión
-                </Button>
-                <Button onClick={() => onNavigate('register')}>
-                  Registrarse
-                </Button>
+                <Button variant="outline" onClick={onLogout}>Cerrar Sesión</Button>
+              </>
+            )}
+
+            {/* For doctors/admins show Perfil and Cerrar Sesión in desktop */}
+            {isLoggedIn && isDoctorOrAdmin && (
+              <>
+                <Button variant="ghost" onClick={() => onNavigate('profile')}>Mi Perfil</Button>
+                <Button variant="outline" onClick={onLogout}>Cerrar Sesión</Button>
               </>
             )}
           </div>
@@ -97,7 +119,7 @@ export function Navbar({ currentPage, onNavigate, isLoggedIn, onLogin, onLogout 
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="space-y-2">
-              {navigationItems.map((item) => {
+              {mainNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
@@ -117,42 +139,37 @@ export function Navbar({ currentPage, onNavigate, isLoggedIn, onLogin, onLogout 
                   </button>
                 );
               })}
-              <div className="pt-4 space-y-2">
-                {isLoggedIn ? (
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      onLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                  >
-                    Cerrar Sesión
-                  </Button>
-                ) : (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => {
-                        onLogin();
-                        setIsMobileMenuOpen(false);
-                      }}
-                    >
-                      Iniciar Sesión
-                    </Button>
-                    <Button 
-                      className="w-full"
-                      onClick={() => {
-                        onNavigate('register');
-                        setIsMobileMenuOpen(false);
-                      }}
-                    >
-                      Registrarse
-                    </Button>
-                  </>
-                )}
-              </div>
+
+              {/* For logged non-doctor users show extra links and logout on mobile */}
+              {!isDoctorOrAdmin && isLoggedIn && (
+                <>
+                  <div className="pt-2 border-t"></div>
+                  {patientNavigation.map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <button key={item.id} onClick={() => { onNavigate(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center space-x-2 w-full px-3 py-2 rounded-lg transition-colors ${currentPage === item.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-secondary'}`}>
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </button>
+                    )
+                  })}
+
+                  <div className="pt-2 border-t"></div>
+                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg">Cerrar Sesión</button>
+                </>
+              )}
+
+              {/* For doctors/admins show Perfil and Cerrar Sesión on mobile */}
+              {isDoctorOrAdmin && isLoggedIn && (
+                <>
+                  <div className="pt-2 border-t"></div>
+                  <button onClick={() => { onNavigate('profile'); setIsMobileMenuOpen(false); }} className="flex items-center space-x-2 w-full px-3 py-2 rounded-lg">
+                    <User className="h-4 w-4" />
+                    <span>Mi Perfil</span>
+                  </button>
+                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg">Cerrar Sesión</button>
+                </>
+              )}
             </div>
           </div>
         )}

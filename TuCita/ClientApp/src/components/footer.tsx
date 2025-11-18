@@ -14,8 +14,8 @@ export function Footer() {
               <span className="text-xl font-semibold">TuCitaOnline</span>
             </div>
             <p className="text-primary-foreground/80 mb-4 max-w-md">
-              La plataforma más confiable para agendar tus citas médicas en línea. 
-              Conectamos pacientes con los mejores profesionales de la salud.
+              La plataforma costarricense más confiable para agendar tus citas médicas en línea.
+              Conectamos a pacientes en Costa Rica con profesionales de la salud certificados.
             </p>
             <div className="flex items-center space-x-2 text-primary-foreground/80">
               <Clock className="h-4 w-4" />
@@ -29,15 +29,15 @@ export function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-2 text-primary-foreground/80">
                 <Phone className="h-4 w-4" />
-                <span>+1 (555) 123-4567</span>
+                <span>+506 4000-1234</span>
               </div>
               <div className="flex items-center space-x-2 text-primary-foreground/80">
                 <Mail className="h-4 w-4" />
-                <span>info@tucitaonline.com</span>
+                <span>info@tucitaonline.cr</span>
               </div>
               <div className="flex items-center space-x-2 text-primary-foreground/80">
                 <MapPin className="h-4 w-4" />
-                <span>Ciudad de México, México</span>
+                <span>San José, Costa Rica</span>
               </div>
             </div>
           </div>
@@ -65,7 +65,7 @@ export function Footer() {
         {/* Línea divisoria y copyright */}
         <div className="border-t border-primary-foreground/20 mt-8 pt-8 text-center">
           <p className="text-primary-foreground/60">
-            © 2024 TuCitaOnline. Todos los derechos reservados.
+            © 2025 TuCitaOnline. Todos los derechos reservados.
           </p>
         </div>
       </div>

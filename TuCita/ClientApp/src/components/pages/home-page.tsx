@@ -92,7 +92,7 @@ const whyChooseUs = [
   {
     icon: Globe,
     title: 'Cobertura',
-    description: '25+ ciudades disponibles'
+    description: '25+ cantones disponibles'
   },
   {
     icon: Headphones,
@@ -125,7 +125,7 @@ const comparisonItems = [
 const stats = [
   { number: '50,000+', label: 'Pacientes Registrados', icon: Users },
   { number: '1,200+', label: 'Profesionales Médicos', icon: UserCheck },
-  { number: '25', label: 'Ciudades en México', icon: Building2 },
+  { number: '25', label: 'Ciudades en Costa Rica', icon: Building2 },
   { number: '150K+', label: 'Consultas Agendadas', icon: ClipboardList },
 ];
 
@@ -163,15 +163,7 @@ export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
                   {isLoggedIn ? 'Buscar Especialista' : 'Comenzar Ahora'}
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="px-8 py-6 h-auto text-lg border-2 bg-[#2E8BC0] text-white hover:bg-[#2E8BC0]/90 border-[#2E8BC0]"
-                  onClick={() => onNavigate('doctor-login')}
-                >
-                  <Stethoscope className="h-5 w-5 mr-2" />
-                  Portal Médico
-                </Button>
+                {/* Portal Médico: access via Navbar (keep single entry point) */}
                 <Button 
                   size="lg" 
                   variant="outline"
@@ -490,6 +482,10 @@ export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
               Comienza en 3 simples pasos
             </h2>
+
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              La solución más completa para la gestión de consultas médicas
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">

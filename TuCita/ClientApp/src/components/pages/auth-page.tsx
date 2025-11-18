@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -11,11 +11,13 @@ import { toast } from 'sonner';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
-  onLogin: (userData: AuthResponse) => void;
+  onLogin: (userData: AuthResponse) => Promise<void> | void;
   onNavigate: (page: string) => void;
+  initialRole?: 'doctor' | 'admin';
+  initialEmail?: string;
 }
 
-export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
+export function AuthPage({ mode, onLogin, onNavigate, initialRole, initialEmail }: AuthPageProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -29,11 +31,27 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
   const [registerForm, setRegisterForm] = useState({
     firstName: '',
     lastName: '',
-    email: '',
+    email: initialEmail || '',
     phone: '',
     password: '',
     confirmPassword: '',
+    role: initialRole || 'doctor'
   });
+
+  useEffect(() => {
+    // If an initialRole was passed from navigation, preselect register tab and set role/email
+    if (initialRole) {
+      setActiveTab('register');
+      setRegisterForm(prev => ({ ...prev, role: initialRole }));
+    }
+    if (initialEmail) {
+      setRegisterForm(prev => ({ ...prev, email: initialEmail }));
+      setLoginForm(prev => ({ ...prev, email: initialEmail }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRole, initialEmail]);
+
+  const safeRole = (u?: any) => (u?.role || u?.rol || u?.roleName || '').toString().toLowerCase();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,10 +64,21 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
         description: 'Has iniciado sesión correctamente'
       });
 
-      onLogin(userData);
-      onNavigate('home');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      // Ensure parent updates auth state before navigation
+      await onLogin(userData);
+
+      // If parent didn't navigate, navigate here based on role
+      const role = safeRole(userData);
+      if (role === 'doctor') {
+        onNavigate('doctor-dashboard');
+      } else if (role === 'admin') {
+        onNavigate('admin-dashboard');
+      } else {
+        // Default patient landing
+        onNavigate('appointments');
+      }
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (error?.toString() || 'Error desconocido');
       toast.error('Error al iniciar sesión', {
         description: errorMessage
       });
@@ -78,16 +107,25 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
     setIsLoading(true);
 
     try {
-      const userData = await authService.register(registerForm);
+      // include role in registration payload
+      const userData = await authService.register(registerForm as any);
       
       toast.success('¡Cuenta creada!', {
         description: 'Tu cuenta ha sido creada exitosamente'
       });
 
-      onLogin(userData);
-      onNavigate('home');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      await onLogin(userData);
+
+      const role = safeRole(userData);
+      if (role === 'doctor') {
+        onNavigate('doctor-dashboard');
+      } else if (role === 'admin') {
+        onNavigate('admin-dashboard');
+      } else {
+        onNavigate('appointments');
+      }
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : (error?.toString() || 'Error desconocido');
       toast.error('Error al registrarse', {
         description: errorMessage
       });
@@ -124,7 +162,7 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
           </CardHeader>
 
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register')}>
+            <Tabs value={activeTab} onValueChange={(value: 'login' | 'register') => setActiveTab(value)}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
                 <TabsTrigger value="register">Registrarse</TabsTrigger>
@@ -256,14 +294,32 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="+506 1234 5678"
+                        placeholder="ej. 1234567890"
                         value={registerForm.phone}
                         onChange={(e) => setRegisterForm(prev => ({ ...prev, phone: e.target.value }))}
                         className="pl-10"
                         disabled={isLoading}
+                        required
                         autoComplete="tel"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rol</Label>
+                    <select
+                      id="role"
+                      value={registerForm.role}
+                      onChange={(e) => {
+                        const v = e.target.value as 'doctor' | 'admin';
+                        setRegisterForm(prev => ({ ...prev, role: v }));
+                      }}
+                      disabled={isLoading}
+                      className="w-full bg-background border border-muted rounded-md p-2 text-sm"
+                    >
+                      <option value="doctor">Doctor</option>
+                      <option value="admin">Administrador</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
@@ -273,13 +329,12 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
                       <Input
                         id="register-password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="Tu contraseña"
                         value={registerForm.password}
                         onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
                         className="pl-10 pr-10"
                         disabled={isLoading}
                         required
-                        minLength={6}
                         autoComplete="new-password"
                       />
                       <button
@@ -295,11 +350,11 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                    <Label htmlFor="confirm-password">Confirmar Contraseña</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="confirmPassword"
+                        id="confirm-password"
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="Confirma tu contraseña"
                         value={registerForm.confirmPassword}
@@ -328,18 +383,17 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6">
-              <Separator className="my-4" />
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={handleBackToHome}
-                  className="text-sm text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
-                  disabled={isLoading}
-                >
-                  ← Volver al inicio
-                </button>
-              </div>
+            <Separator className="my-4" />
+
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={handleBackToHome}
+                className="text-sm text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+                disabled={isLoading}
+              >
+                ← Volver al inicio
+              </button>
             </div>
           </CardContent>
         </Card>

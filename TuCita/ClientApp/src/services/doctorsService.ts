@@ -30,10 +30,11 @@ export interface Sede {
 
 export interface AgendaTurno {
   id: number;
-  time: string;
-  inicio: string;
-  fin: string;
+  inicio: string; // ISO
+  fin: string; // ISO
   estado: string;
+  medicoId?: number;
+  time?: string; // convenience
 }
 
 export interface SearchFilters {
@@ -41,6 +42,8 @@ export interface SearchFilters {
   ciudad?: string;
   location?: string;
 }
+
+const API_BASE = '/api/doctor/turnos';
 
 const doctorsService = {
   /**
@@ -85,6 +88,66 @@ const doctorsService = {
     } catch (error) {
       console.error('Error al obtener especialidades:', error);
       return [];
+    }
+  },
+
+  async getTurnos(doctorId?: number): Promise<AgendaTurno[]> {
+    try {
+      const res = await api.get(API_BASE, { params: { doctorId } });
+      return (res.data || []).map((r: any) => ({
+        id: r.id,
+        inicio: r.inicio,
+        fin: r.fin,
+        estado: r.estado,
+        medicoId: r.medicoId,
+        time: r.timeSlot || undefined
+      }));
+    } catch (err) {
+      console.error('Error fetching turnos:', err);
+      return [];
+    }
+  },
+
+  async getTurnoById(id: number): Promise<AgendaTurno | null> {
+    try {
+      const res = await api.get(`${API_BASE}/${id}`);
+      const r = res.data;
+      return r ? { id: r.id, inicio: r.inicio, fin: r.fin, estado: r.estado, medicoId: r.medicoId, time: r.timeSlot } : null;
+    } catch (err) {
+      console.error(`Error fetching turno ${id}:`, err);
+      return null;
+    }
+  },
+
+  async createTurno(payload: { medicoId: number; inicio: string; fin: string }): Promise<AgendaTurno> {
+    try {
+      const res = await api.post(API_BASE, payload);
+      const r = res.data;
+      return { id: r.id, inicio: r.inicio, fin: r.fin, estado: r.estado, medicoId: r.medicoId, time: r.timeSlot };
+    } catch (err) {
+      console.error('Error creating turno:', err);
+      throw err;
+    }
+  },
+
+  async updateTurno(id: number, payload: { inicio: string; fin: string; estado?: string }): Promise<AgendaTurno> {
+    try {
+      const res = await api.put(`${API_BASE}/${id}`, payload);
+      const r = res.data;
+      return { id: r.id, inicio: r.inicio, fin: r.fin, estado: r.estado, medicoId: r.medicoId, time: r.timeSlot };
+    } catch (err) {
+      console.error(`Error updating turno ${id}:`, err);
+      throw err;
+    }
+  },
+
+  async deleteTurno(id: number): Promise<boolean> {
+    try {
+      const res = await api.delete(`${API_BASE}/${id}`);
+      return res.status === 200 || res.status === 204;
+    } catch (err) {
+      console.error(`Error deleting turno ${id}:`, err);
+      return false;
     }
   },
 
