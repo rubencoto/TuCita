@@ -111,6 +111,13 @@ public class DoctorAppointmentsService : IDoctorAppointmentsService
                 .Include(c => c.Medico)
                     .ThenInclude(m => m.EspecialidadesMedico)
                         .ThenInclude(me => me.Especialidad)
+                // Cargar historial médico de la cita
+                .Include(c => c.Diagnosticos)
+                .Include(c => c.NotasClinicas)
+                .Include(c => c.Recetas)
+                    .ThenInclude(r => r.Items)
+                .Include(c => c.Documentos)
+                    .ThenInclude(d => d.Storage)
                 .FirstOrDefaultAsync(c => c.Id == citaId && c.MedicoId == medicoId);
 
             if (cita == null)
@@ -148,7 +155,51 @@ public class DoctorAppointmentsService : IDoctorAppointmentsService
                     : "Médico no disponible",
                 Especialidad = cita.Medico?.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre,
                 Inicio = cita.Inicio,
-                Fin = cita.Fin
+                Fin = cita.Fin,
+                // Mapear historial médico
+                Diagnosticos = cita.Diagnosticos.Select(d => new TuCita.DTOs.MedicalHistory.DiagnosticoDto
+                {
+                    Id = d.Id,
+                    CitaId = d.CitaId,
+                    Codigo = d.Codigo,
+                    Descripcion = d.Descripcion,
+                    Fecha = d.CreadoEn
+                }).ToList(),
+                NotasClinicas = cita.NotasClinicas.Select(n => new TuCita.DTOs.MedicalHistory.NotaClinicaDto
+                {
+                    Id = n.Id,
+                    CitaId = n.CitaId,
+                    Contenido = n.Nota,
+                    Fecha = n.CreadoEn
+                }).ToList(),
+                Recetas = cita.Recetas.Select(r => new TuCita.DTOs.MedicalHistory.RecetaDto
+                {
+                    Id = r.Id,
+                    CitaId = r.CitaId,
+                    Indicaciones = r.Indicaciones,
+                    Fecha = r.CreadoEn,
+                    Medicamentos = r.Items.Select(ri => new TuCita.DTOs.MedicalHistory.RecetaItemDto
+                    {
+                        Id = ri.Id,
+                        Medicamento = ri.Medicamento,
+                        Dosis = ri.Dosis,
+                        Frecuencia = ri.Frecuencia,
+                        Duracion = ri.Duracion,
+                        Notas = ri.Notas
+                    }).ToList()
+                }).ToList(),
+                Documentos = cita.Documentos.Select(d => new TuCita.DTOs.MedicalHistory.DocumentoDto
+                {
+                    Id = d.Id,
+                    CitaId = d.CitaId,
+                    Categoria = d.Categoria.ToString(),
+                    NombreArchivo = d.NombreArchivo,
+                    MimeType = d.MimeType,
+                    TamanoBytes = d.TamanoBytes,
+                    Notas = d.Notas,
+                    FechaSubida = d.CreadoEn,
+                    Etiquetas = d.Etiquetas?.Select(e => e.Etiqueta).ToList() ?? new List<string>()
+                }).ToList()
             };
         }
         catch (Exception ex)
@@ -300,6 +351,9 @@ public class DoctorAppointmentsService : IDoctorAppointmentsService
     {
         try
         {
+            _logger.LogInformation("?? Iniciando actualización de estado de cita: CitaId={CitaId}, MedicoId={MedicoId}", citaId, medicoId);
+            _logger.LogInformation("?? Request recibido: {@Request}", request);
+            
             var cita = await _context.Citas
                 .Include(c => c.Paciente)
                     .ThenInclude(p => p.Usuario)
@@ -312,62 +366,115 @@ public class DoctorAppointmentsService : IDoctorAppointmentsService
 
             if (cita == null)
             {
-                _logger.LogWarning("Cita no encontrada o no pertenece al médico: CitaId={CitaId}, MedicoId={MedicoId}", citaId, medicoId);
+                _logger.LogWarning("? Cita no encontrada o no pertenece al médico: CitaId={CitaId}, MedicoId={MedicoId}", citaId, medicoId);
                 return false;
             }
 
             var estadoAnterior = cita.Estado;
+            _logger.LogInformation("?? Estado anterior: {EstadoAnterior}", estadoAnterior);
 
             if (!string.IsNullOrEmpty(request.Estado) && Enum.TryParse<EstadoCita>(request.Estado.ToUpperInvariant(), out var nuevoEstado))
             {
                 cita.Estado = nuevoEstado;
+                _logger.LogInformation("?? Nuevo estado parseado: {NuevoEstado}", nuevoEstado);
+            }
+            else
+            {
+                _logger.LogWarning("?? No se pudo parsear el estado: {Estado}", request.Estado);
+                return false;
             }
 
             cita.ActualizadoEn = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _logger.LogInformation("?? Guardando cambios en la base de datos...");
+            
+            // IMPORTANTE: Debido al trigger trg_citas_touch, usamos una estrategia diferente
+            // El trigger puede estar actualizando automáticamente actualizado_en
+            // Deshabilitamos el tracking para forzar el UPDATE
+            _context.Entry(cita).State = EntityState.Modified;
+            
+            var changesCount = await _context.SaveChangesAsync();
+            _logger.LogInformation("? Cambios guardados: {ChangesCount} registros afectados", changesCount);
 
-            _logger.LogInformation("Estado de cita actualizado: CitaId={CitaId}, EstadoAnterior={EstadoAnterior}, EstadoNuevo={EstadoNuevo}",
+            // IMPORTANTE: Debido al trigger en la tabla Citas, necesitamos recargar la entidad
+            // para asegurarnos de que el estado se actualizó correctamente
+            _context.Entry(cita).State = EntityState.Detached; // Detach primero
+            
+            cita = await _context.Citas
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == citaId);
+                
+            if (cita == null)
+            {
+                _logger.LogError("? ERROR: No se pudo recargar la cita después de guardar");
+                return false;
+            }
+            
+            _logger.LogInformation("?? Entidad recargada desde la base de datos");
+            _logger.LogInformation("? Estado de cita actualizado: CitaId={CitaId}, EstadoAnterior={EstadoAnterior}, EstadoNuevo={EstadoNuevo}",
                 citaId, estadoAnterior, cita.Estado);
+
+            // Verificar que el estado realmente se guardó
+            _logger.LogInformation("?? Verificación post-guardado - Estado en BD: {EstadoVerificado}", cita.Estado);
+
+            // Si después de recargar el estado NO cambió, hay un problema con el trigger
+            if (cita.Estado != nuevoEstado)
+            {
+                _logger.LogError("? ERROR CRÍTICO: El estado no se guardó correctamente. Esperado: {Esperado}, Actual: {Actual}", 
+                    nuevoEstado, cita.Estado);
+                _logger.LogError("?? POSIBLE CAUSA: El trigger trg_citas_touch está revirtiendo el cambio");
+                return false;
+            }
 
             try
             {
-                var paciente = cita.Paciente.Usuario;
-                var medico = cita.Medico.Usuario;
-                var especialidad = cita.Medico.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre ?? "General";
+                // Recargar con navegación para el email
+                var citaCompleta = await _context.Citas
+                    .Include(c => c.Paciente).ThenInclude(p => p.Usuario)
+                    .Include(c => c.Medico).ThenInclude(m => m.Usuario)
+                    .Include(c => c.Medico).ThenInclude(m => m.EspecialidadesMedico).ThenInclude(me => me.Especialidad)
+                    .FirstOrDefaultAsync(c => c.Id == citaId);
 
-                if (cita.Estado == EstadoCita.CONFIRMADA && estadoAnterior != EstadoCita.CONFIRMADA)
+                if (citaCompleta == null) return true; // Ya guardamos, solo falta el email
+
+                var paciente = citaCompleta.Paciente.Usuario;
+                var medico = citaCompleta.Medico.Usuario;
+                var especialidad = citaCompleta.Medico.EspecialidadesMedico?.FirstOrDefault()?.Especialidad?.Nombre ?? "General";
+
+                if (citaCompleta.Estado == EstadoCita.CONFIRMADA && estadoAnterior != EstadoCita.CONFIRMADA)
                 {
+                    _logger.LogInformation("?? Enviando email de confirmación...");
                     await _emailService.EnviarCitaCreadaAsync(
                         paciente.Email,
                         $"{paciente.Nombre} {paciente.Apellido}",
                         $"{medico.Nombre} {medico.Apellido}",
-                        cita.Inicio,
-                        cita.Motivo ?? "Consulta general",
+                        citaCompleta.Inicio,
+                        citaCompleta.Motivo ?? "Consulta general",
                         especialidad
                     );
                 }
-                else if (cita.Estado == EstadoCita.CANCELADA && estadoAnterior != EstadoCita.CANCELADA)
+                else if (citaCompleta.Estado == EstadoCita.CANCELADA && estadoAnterior != EstadoCita.CANCELADA)
                 {
+                    _logger.LogInformation("?? Enviando email de cancelación...");
                     await _emailService.EnviarCitaCanceladaAsync(
                         paciente.Email,
                         $"{paciente.Nombre} {paciente.Apellido}",
                         $"{medico.Nombre} {medico.Apellido}",
-                        cita.Inicio,
+                        citaCompleta.Inicio,
                         especialidad
                     );
                 }
             }
             catch (Exception emailEx)
             {
-                _logger.LogError(emailEx, "Error al enviar email para CitaId={CitaId}", citaId);
+                _logger.LogError(emailEx, "? Error al enviar email para CitaId={CitaId}", citaId);
             }
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar estado de cita: CitaId={CitaId}", citaId);
+            _logger.LogError(ex, "? Error al actualizar estado de cita: CitaId={CitaId}", citaId);
             return false;
         }
     }

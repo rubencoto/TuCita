@@ -7,6 +7,12 @@ axios.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Deshabilitar caché en todas las peticiones
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    config.headers['Pragma'] = 'no-cache';
+    config.headers['Expires'] = '0';
+    
     return config;
   },
   (error) => {
@@ -14,16 +20,16 @@ axios.interceptors.request.use(
   }
 );
 
-// Interceptor para manejar errores de autenticaci�n
+// Interceptor para manejar errores de autenticación
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expirado o inv�lido
+      // Token expirado o inválido
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Solo redirigir si no estamos ya en la p�gina de login
+      // Solo redirigir si no estamos ya en la página de login
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

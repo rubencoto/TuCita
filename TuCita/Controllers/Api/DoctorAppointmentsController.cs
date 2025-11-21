@@ -8,15 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace TuCita.Controllers.Api;
 
+/// <summary>
+/// Controlador para gestionar las citas médicas desde la perspectiva del doctor
+/// Requiere autenticación con rol MEDICO
+/// </summary>
 [ApiController]
 [Route("api/doctor/appointments")]
-[Authorize(Roles = "DOCTOR")]
+[Authorize(Roles = "MEDICO")]
 public class DoctorAppointmentsController : ControllerBase
 {
     private readonly IDoctorAppointmentsService _appointmentsService;
     private readonly IMedicalHistoryService _medicalHistoryService;
     private readonly ILogger<DoctorAppointmentsController> _logger;
 
+    /// <summary>
+    /// Constructor del controlador de citas para doctores
+    /// </summary>
+    /// <param name="appointmentsService">Servicio de gestión de citas para doctores</param>
+    /// <param name="medicalHistoryService">Servicio de historial médico</param>
+    /// <param name="logger">Logger para registro de eventos</param>
     public DoctorAppointmentsController(
         IDoctorAppointmentsService appointmentsService,
         IMedicalHistoryService medicalHistoryService,
@@ -28,11 +38,16 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todas las citas del doctor autenticado
+    /// Obtiene todas las citas del doctor autenticado con filtros opcionales
     /// </summary>
     /// <param name="fechaInicio">Filtro opcional por fecha de inicio</param>
     /// <param name="fechaFin">Filtro opcional por fecha de fin</param>
     /// <param name="estado">Filtro opcional por estado (PENDIENTE, CONFIRMADA, ATENDIDA, etc.)</param>
+    /// <returns>Lista de citas del doctor que cumplen con los filtros especificados</returns>
+    /// <response code="200">Lista de citas obtenida exitosamente</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpGet]
     public async Task<IActionResult> GetDoctorAppointments(
         [FromQuery] DateTime? fechaInicio = null,
@@ -72,8 +87,13 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene la lista de pacientes que han tenido citas con el doctor
+    /// Obtiene la lista de pacientes únicos que han tenido citas con el doctor
     /// </summary>
+    /// <returns>Lista de pacientes del doctor con información básica</returns>
+    /// <response code="200">Lista de pacientes obtenida exitosamente</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpGet("patients")]
     public async Task<IActionResult> GetDoctorPatients()
     {
@@ -104,8 +124,14 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene el detalle completo de una cita específica
+    /// Obtiene el detalle completo de una cita específica incluyendo información del paciente
     /// </summary>
+    /// <param name="id">ID de la cita a consultar</param>
+    /// <returns>Detalles completos de la cita y datos del paciente</returns>
+    /// <response code="200">Detalle de cita obtenido exitosamente</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico o cita no encontrados</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAppointmentDetail(long id)
     {
@@ -143,6 +169,13 @@ public class DoctorAppointmentsController : ControllerBase
     /// <summary>
     /// Crea una nueva cita manualmente desde el panel del doctor
     /// </summary>
+    /// <param name="request">Datos de la cita (paciente, horario, motivo, etc.)</param>
+    /// <returns>Información de la cita creada</returns>
+    /// <response code="200">Cita creada exitosamente</response>
+    /// <response code="400">Datos inválidos, horario no disponible o paciente no existe</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost]
     public async Task<IActionResult> CreateAppointment([FromBody] CreateDoctorAppointmentRequest request)
     {
@@ -191,8 +224,16 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Actualiza el estado de una cita
+    /// Actualiza el estado de una cita (CONFIRMADA, ATENDIDA, CANCELADA, NO_ASISTIO)
     /// </summary>
+    /// <param name="id">ID de la cita a actualizar</param>
+    /// <param name="request">Nuevo estado y notas opcionales</param>
+    /// <returns>Mensaje de confirmación</returns>
+    /// <response code="200">Estado actualizado exitosamente</response>
+    /// <response code="400">Datos inválidos</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico o cita no encontrados o sin permisos</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateAppointmentStatus(long id, [FromBody] UpdateAppointmentStatusRequest request)
     {
@@ -233,8 +274,16 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Crea un nuevo diagnóstico para una cita
+    /// Crea un nuevo diagnóstico médico para una cita específica
     /// </summary>
+    /// <param name="id">ID de la cita</param>
+    /// <param name="request">Información del diagnóstico (descripción, códigos CIE, etc.)</param>
+    /// <returns>Diagnóstico creado con su ID asignado</returns>
+    /// <response code="200">Diagnóstico creado exitosamente</response>
+    /// <response code="400">Datos inválidos o cita no pertenece al doctor</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost("{id}/diagnostico")]
     public async Task<IActionResult> CreateDiagnostico(long id, [FromBody] CreateDiagnosticoRequest request)
     {
@@ -286,8 +335,16 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Crea una nueva nota clínica para una cita
+    /// Crea una nueva nota clínica para una cita específica
     /// </summary>
+    /// <param name="id">ID de la cita</param>
+    /// <param name="request">Contenido de la nota clínica</param>
+    /// <returns>Nota clínica creada con su ID asignado</returns>
+    /// <response code="200">Nota clínica creada exitosamente</response>
+    /// <response code="400">Datos inválidos o cita no pertenece al doctor</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost("{id}/nota")]
     public async Task<IActionResult> CreateNotaClinica(long id, [FromBody] CreateNotaClinicaRequest request)
     {
@@ -339,8 +396,16 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Crea una nueva receta con medicamentos para una cita
+    /// Crea una nueva receta médica con medicamentos para una cita específica
     /// </summary>
+    /// <param name="id">ID de la cita</param>
+    /// <param name="request">Información de la receta y lista de medicamentos</param>
+    /// <returns>Receta creada con sus medicamentos asociados</returns>
+    /// <response code="200">Receta creada exitosamente</response>
+    /// <response code="400">Datos inválidos o cita no pertenece al doctor</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost("{id}/receta")]
     public async Task<IActionResult> CreateReceta(long id, [FromBody] CreateRecetaRequest request)
     {
@@ -392,8 +457,16 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Sube un documento médico para una cita
+    /// Sube un documento médico (PDF, imagen, estudio, etc.) asociado a una cita
     /// </summary>
+    /// <param name="id">ID de la cita</param>
+    /// <param name="request">Información del documento (tipo, nombre, URL en Azure Storage)</param>
+    /// <returns>Documento creado con su información de almacenamiento</returns>
+    /// <response code="200">Documento subido exitosamente</response>
+    /// <response code="400">Datos inválidos o cita no pertenece al doctor</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Perfil de médico no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost("{id}/documento")]
     public async Task<IActionResult> CreateDocumento(long id, [FromBody] CreateDocumentoRequest request)
     {
@@ -445,8 +518,10 @@ public class DoctorAppointmentsController : ControllerBase
     }
 
     /// <summary>
-    /// Helper method para obtener el MedicoId del UsuarioId
+    /// Método auxiliar para obtener el ID del perfil médico a partir del ID de usuario
     /// </summary>
+    /// <param name="usuarioId">ID del usuario autenticado</param>
+    /// <returns>ID del perfil médico o null si no existe</returns>
     private async Task<long?> GetMedicoIdFromUsuarioId(long usuarioId)
     {
         using var scope = HttpContext.RequestServices.CreateScope();

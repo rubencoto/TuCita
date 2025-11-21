@@ -105,7 +105,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
   };
 
   const filteredAppointments = appointments.filter(apt => {
-    // Filtro por búsqueda (en memoria, ya que el backend filtra por fecha y estado)
+    // Filtro por bÃºsqueda (en memoria, ya que el backend filtra por fecha y estado)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       if (!apt.paciente.nombre.toLowerCase().includes(searchLower) &&
@@ -186,7 +186,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
     } catch (error: any) {
       console.error('Error al crear cita:', error);
       toast.error('Error al crear la cita', {
-        description: error.message || 'No se pudo crear la cita. Verifica que el horario esté disponible.'
+        description: error.message || 'No se pudo crear la cita. Verifica que el horario estÃ¡ disponible.'
       });
     } finally {
       setCreating(false);
@@ -216,10 +216,10 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Gestión de Citas
+                GestiÃ³n de Citas
               </h1>
               <p className="text-gray-600">
-                Administra todas las citas médicas de tus pacientes
+                Administra todas las citas mÃ©dicas de tus pacientes
               </p>
             </div>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -258,7 +258,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       </Select>
                       {pacientes.length === 0 && (
                         <p className="text-xs text-gray-500 mt-1">
-                          No tienes pacientes registrados aún
+                          No tienes pacientes registrados aÃºn
                         </p>
                       )}
                     </div>
@@ -316,7 +316,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                     <Label htmlFor="observaciones">Observaciones iniciales</Label>
                     <Textarea
                       id="observaciones"
-                      placeholder="Información adicional sobre la cita"
+                      placeholder="InformaciÃ¡n adicional sobre la cita"
                       value={newAppointment.observaciones}
                       onChange={(e) => setNewAppointment({ ...newAppointment, observaciones: e.target.value })}
                       rows={3}
@@ -462,8 +462,8 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                           <p className="text-gray-600 mb-1">No se encontraron citas</p>
                           <p className="text-sm text-gray-500">
                             {searchTerm || filterDate || filterStatus !== 'all'
-                              ? 'Intenta ajustar los filtros de búsqueda'
-                              : 'Aún no tienes citas programadas'}
+                              ? 'Intenta ajustar los filtros de bÃºsqueda'
+                              : 'AÃºn no tienes citas programadas'}
                           </p>
                         </div>
                       </TableCell>
@@ -486,7 +486,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                               <div>
                                 <p className="font-medium">{apt.paciente.nombre}</p>
                                 <p className="text-sm text-gray-500">
-                                  {apt.paciente.edad ? `${apt.paciente.edad} años` : 'Edad no disponible'}
+                                  {apt.paciente.edad ? `${apt.paciente.edad} aÃ±os` : 'Edad no disponible'}
                                 </p>
                               </div>
                             </div>

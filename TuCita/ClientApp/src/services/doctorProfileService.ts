@@ -71,8 +71,24 @@ class DoctorProfileService {
    */
   async updateProfile(data: UpdateDoctorProfileRequest): Promise<DoctorProfileResponse> {
     try {
-      const response = await api.put<DoctorProfileResponse>(API_BASE, data);
+      // Convertir a PascalCase para coincidir con el backend
+      const requestData = {
+        Nombre: data.nombre,
+        Apellido: data.apellido,
+        Email: data.email,
+        Telefono: data.telefono,
+        NumeroLicencia: data.numeroLicencia,
+        Biografia: data.biografia,
+        Direccion: data.direccion,
+        EspecialidadIds: data.especialidadIds
+      };
+
+      console.log('?? Enviando datos al servidor:', requestData);
+
+      const response = await api.put<DoctorProfileResponse>(API_BASE, requestData);
       
+      console.log('? Respuesta del servidor:', response.data);
+
       // Actualizar información en localStorage si es necesario
       const currentUser = localStorage.getItem('user');
       if (currentUser) {
@@ -88,9 +104,13 @@ class DoctorProfileService {
       
       return response.data;
     } catch (error: any) {
-      console.error('Error al actualizar perfil del doctor:', error);
+      console.error('? Error al actualizar perfil del doctor:', error);
+      console.error('?? Error response:', error.response);
+      console.error('?? Error data:', error.response?.data);
+      console.error('?? Error status:', error.response?.status);
+      
       throw new Error(
-        error.response?.data?.message || 'Error al actualizar el perfil del doctor'
+        error.response?.data?.message || error.response?.data?.title || 'Error interno del servidor'
       );
     }
   }

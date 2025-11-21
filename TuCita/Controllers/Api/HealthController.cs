@@ -4,6 +4,10 @@ using TuCita.Data;
 
 namespace TuCita.Controllers.Api;
 
+/// <summary>
+/// Controlador de health checks para monitoreo de la aplicación
+/// Verifica el estado de la base de datos y tablas principales
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class HealthController : ControllerBase
@@ -11,12 +15,28 @@ public class HealthController : ControllerBase
     private readonly TuCitaDbContext _context;
     private readonly ILogger<HealthController> _logger;
 
+    /// <summary>
+    /// Constructor del controlador de salud
+    /// </summary>
+    /// <param name="context">Contexto de base de datos inyectado por DI</param>
+    /// <param name="logger">Logger para registro de eventos</param>
     public HealthController(TuCitaDbContext context, ILogger<HealthController> logger)
     {
         _context = context;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Verifica el estado general de salud de la aplicación y conexión a base de datos
+    /// </summary>
+    /// <returns>Estado de salud con estadísticas básicas de tablas principales</returns>
+    /// <response code="200">Sistema saludable con conexión exitosa a la base de datos</response>
+    /// <response code="500">Error de conexión o problema en la base de datos</response>
+    /// <remarks>
+    /// Realiza verificaciones de:
+    /// - Conexión a base de datos
+    /// - Conteo de registros en tablas principales (roles, usuarios, especialidades)
+    /// </remarks>
     [HttpGet]
     public async Task<IActionResult> Get()
     {
@@ -66,6 +86,12 @@ public class HealthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Obtiene información detallada sobre la configuración de la base de datos
+    /// </summary>
+    /// <returns>Información del proveedor, servidor y versión de Entity Framework</returns>
+    /// <response code="200">Información obtenida exitosamente</response>
+    /// <response code="500">Error al obtener información</response>
     [HttpGet("database-info")]
     public async Task<IActionResult> GetDatabaseInfo()
     {
@@ -96,6 +122,23 @@ public class HealthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Ejecuta múltiples pruebas de conectividad y acceso a tablas
+    /// </summary>
+    /// <returns>Resultados detallados de cada prueba ejecutada con tiempos de respuesta</returns>
+    /// <response code="200">Todas las pruebas completadas (revisar detalles individuales)</response>
+    /// <response code="503">No se puede conectar a la base de datos</response>
+    /// <remarks>
+    /// Ejecuta las siguientes pruebas:
+    /// 1. CanConnect - Prueba de conexión básica
+    /// 2. ReadRoles - Lectura de tabla roles
+    /// 3. ReadUsuarios - Lectura de tabla usuarios
+    /// 4. ReadEspecialidades - Lectura de tabla especialidades
+    /// 5. ReadPerfilesMedicos - Lectura de tabla perfiles_medicos
+    /// 6. ReadCitas - Lectura de tabla citas
+    /// 
+    /// Cada prueba incluye tiempo de ejecución en milisegundos.
+    /// </remarks>
     [HttpGet("test-connection")]
     public async Task<IActionResult> TestConnection()
     {
@@ -294,6 +337,11 @@ public class HealthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Endpoint simple de ping para verificar que la API está respondiendo
+    /// </summary>
+    /// <returns>Mensaje de confirmación con timestamp</returns>
+    /// <response code="200">API funcionando correctamente</response>
     [HttpGet("ping")]
     public IActionResult Ping()
     {

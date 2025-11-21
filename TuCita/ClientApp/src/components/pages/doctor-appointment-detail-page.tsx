@@ -134,18 +134,32 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
   }, [appointmentId]);
 
   const loadAppointmentDetail = async () => {
+    console.log('üîÑ [loadAppointmentDetail] Iniciando carga de datos');
+    console.log('üìã appointmentId:', appointmentId);
+    
     setLoading(true);
     setError(null);
     
     try {
+      console.log('üåê Llamando a getAppointmentDetail...');
       const detail = await doctorAppointmentsService.getAppointmentDetail(appointmentId);
+      console.log('‚úÖ Datos recibidos del backend:', detail);
+      console.log('üìä Estado de la cita:', detail?.estado);
+      console.log('üìä Diagn√≥sticos:', detail?.diagnosticos?.length || 0);
+      console.log('üìä Notas cl√≠nicas:', detail?.notasClinicas?.length || 0);
+      console.log('üìä Recetas:', detail?.recetas?.length || 0);
+      console.log('üìä Documentos:', detail?.documentos?.length || 0);
+      
       setAppointmentDetail(detail);
+      console.log('‚úÖ Estado local actualizado con datos del backend');
     } catch (err: any) {
-      console.error('Error al cargar detalle de cita:', err);
+      console.error('‚ùå Error al cargar detalle de cita:', err);
+      console.error('‚ùå Error response:', err.response);
       setError(err.message || 'Error al cargar el detalle de la cita');
       toast.error('Error al cargar el detalle de la cita');
     } finally {
       setLoading(false);
+      console.log('‚úÖ loadAppointmentDetail finalizado');
     }
   };
 
@@ -176,7 +190,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       icon: AlertCircle
     },
     NO_SHOW: { 
-      label: 'No asistiÛ', 
+      label: 'No asisti√°', 
       color: 'bg-gray-100 text-gray-800 border-gray-200',
       icon: UserX
     },
@@ -197,8 +211,14 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
   const canAddToHistory = currentStatus === 'EN_PROGRESO' || currentStatus === 'ATENDIDA';
 
   const handleStatusChange = async (newStatus: string) => {
-    // Si el nuevo estado es ATENDIDA, mostrar el modal para agregar informaciÛn al historial
+    console.log('üîÑ [handleStatusChange] Iniciando cambio de estado');
+    console.log('üìä Estado actual:', currentStatus);
+    console.log('üìä Nuevo estado:', newStatus);
+    console.log('üìä appointmentDetail actual:', appointmentDetail);
+    
+    // Si el nuevo estado es ATENDIDA, mostrar el modal para agregar informaci√≥n al historial
     if (newStatus === 'ATENDIDA' && currentStatus !== 'ATENDIDA') {
+      console.log('‚úÖ Mostrando modal de completar cita');
       setShowCompleteAppointmentModal(true);
       return;
     }
@@ -206,19 +226,40 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
     // Para otros estados, actualizar directamente
     try {
       setSaving(true);
+      console.log('üíæ Guardando cambio de estado...');
+      
+      // IMPORTANTE: Actualizar el estado local INMEDIATAMENTE para evitar parpadeo
+      const previousState = appointmentDetail?.estado;
+      setAppointmentDetail((prev: any) => ({
+        ...prev,
+        estado: newStatus
+      }));
+      console.log('‚úÖ Estado local actualizado a:', newStatus);
+      
+      // Llamar al backend para guardar el cambio
+      console.log('üåê Llamando a updateAppointmentStatus...');
       await doctorAppointmentsService.updateAppointmentStatus(appointmentId, {
         estado: newStatus
       });
+      console.log('‚úÖ Backend respondi√≥ exitosamente');
       
       toast.success(`Estado actualizado a: ${statusConfig[newStatus as keyof typeof statusConfig]?.label}`);
       
-      // Recargar los datos de la cita
+      // Recargar los datos de la cita para asegurarse que todo est√° sincronizado
+      console.log('üîÑ Recargando datos desde el backend...');
       await loadAppointmentDetail();
+      console.log('‚úÖ Datos recargados exitosamente');
     } catch (err: any) {
-      console.error('Error al actualizar estado:', err);
+      console.error('‚ùå Error al actualizar estado:', err);
+      console.error('‚ùå Error response:', err.response);
       toast.error(err.message || 'Error al actualizar el estado de la cita');
+      
+      // En caso de error, recargar para revertir el cambio local
+      console.log('üîÑ Revirtiendo cambios debido a error...');
+      await loadAppointmentDetail();
     } finally {
       setSaving(false);
+      console.log('‚úÖ handleStatusChange finalizado');
     }
   };
 
@@ -260,9 +301,9 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
   };
 
   const handleCompleteAppointment = async () => {
-    // Validar que si se marcÛ agregar informaciÛn, estÈ completa
+    // Validar que si se marc√≥ agregar informaci√≥n, est√° completa
     if (completeAppointmentData.addDiagnostico && !completeAppointmentData.diagnostico.descripcion) {
-      toast.error('La descripciÛn del diagnÛstico es obligatoria');
+      toast.error('La descripci√≥n del diagn√≥stico es obligatoria');
       return;
     }
 
@@ -279,24 +320,24 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
     try {
       setSaving(true);
 
-      // 1. Guardar diagnÛstico si est· marcado
+      // 1. Guardar diagn√≥stico si est√° marcado
       if (completeAppointmentData.addDiagnostico) {
         await doctorAppointmentsService.createDiagnostico(appointmentId, {
           codigo: completeAppointmentData.diagnostico.codigo || undefined,
           descripcion: completeAppointmentData.diagnostico.descripcion
         });
-        toast.success('DiagnÛstico guardado');
+        toast.success('Diagn√≥stico guardado');
       }
 
-      // 2. Guardar nota clÌnica si est· marcada
+      // 2. Guardar nota cl√≠nica si est√° marcada
       if (completeAppointmentData.addNota) {
         await doctorAppointmentsService.createNotaClinica(appointmentId, {
           contenido: completeAppointmentData.nota.contenido
         });
-        toast.success('Nota clÌnica guardada');
+        toast.success('Nota cl√≠nica guardada');
       }
 
-      // 3. Guardar receta si est· marcada
+      // 3. Guardar receta si est√° marcada
       if (completeAppointmentData.addReceta) {
         await doctorAppointmentsService.createReceta(appointmentId, {
           indicaciones: completeAppointmentData.receta.indicaciones || undefined,
@@ -311,7 +352,12 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         toast.success('Receta guardada');
       }
 
-      // 4. Actualizar estado a ATENDIDA
+      // 4. Actualizar estado a ATENDIDA (actualizar local PRIMERO)
+      setAppointmentDetail((prev: any) => ({
+        ...prev,
+        estado: 'ATENDIDA'
+      }));
+      
       await doctorAppointmentsService.updateAppointmentStatus(appointmentId, {
         estado: 'ATENDIDA'
       });
@@ -329,20 +375,23 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         receta: { indicaciones: '', medicamentos: [] }
       });
       
-      // Recargar los datos de la cita
+      // Recargar los datos de la cita para sincronizar con el backend
       await loadAppointmentDetail();
     } catch (err: any) {
       console.error('Error al completar cita:', err);
       toast.error(err.message || 'Error al completar la cita');
+      
+      // En caso de error, recargar para revertir cambios locales
+      await loadAppointmentDetail();
     } finally {
       setSaving(false);
     }
   };
 
-  // Handlers para DiagnÛsticos
+  // Handlers para Diagn√≥sticos
   const handleSaveDiagnosis = async () => {
     if (!diagnosisForm.descripcion) {
-      toast.error('La descripciÛn del diagnÛstico es obligatoria');
+      toast.error('La descripci√≥n del diagn√≥stico es obligatoria');
       return;
     }
 
@@ -353,21 +402,21 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         descripcion: diagnosisForm.descripcion
       });
 
-      toast.success('DiagnÛstico agregado correctamente');
+      toast.success('Diagn√≥stico agregado correctamente');
       setShowDiagnosisForm(false);
       setDiagnosisForm({ codigo: '', descripcion: '' });
       
       // Recargar los datos de la cita
       await loadAppointmentDetail();
     } catch (err: any) {
-      console.error('Error al guardar diagnÛstico:', err);
-      toast.error(err.message || 'Error al guardar el diagnÛstico');
+      console.error('Error al guardar diagn√≥stico:', err);
+      toast.error(err.message || 'Error al guardar el diagn√≥stico');
     } finally {
       setSaving(false);
     }
   };
 
-  // Handlers para Notas ClÌnicas
+  // Handlers para Notas Cl√≠nicas
   const handleSaveNote = async () => {
     if (!noteForm.contenido) {
       toast.error('El contenido de la nota es obligatorio');
@@ -380,7 +429,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         contenido: noteForm.contenido
       });
 
-      toast.success('Nota clÌnica agregada correctamente');
+      toast.success('Nota cl√≠nica agregada correctamente');
       setShowNoteForm(false);
       setNoteForm({ contenido: '' });
       
@@ -388,7 +437,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       await loadAppointmentDetail();
     } catch (err: any) {
       console.error('Error al guardar nota:', err);
-      toast.error(err.message || 'Error al guardar la nota clÌnica');
+      toast.error(err.message || 'Error al guardar la nota cl√≠nica');
     } finally {
       setSaving(false);
     }
@@ -459,7 +508,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tamaÒo (50MB m·ximo)
+      // Validar tama√°o (50MB m√°ximo)
       if (file.size > 50 * 1024 * 1024) {
         toast.error('El archivo no puede superar los 50MB');
         return;
@@ -484,7 +533,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       setSaving(true);
       
       // TODO: Implementar upload real a storage
-      // Por ahora, simulamos que el archivo se subiÛ
+      // Por ahora, simulamos que el archivo se subi√°
       const mockStorageData = {
         storageId: 1,
         blobNombre: `doc_${Date.now()}_${documentForm.selectedFile.name}`,
@@ -598,7 +647,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       onLogout={onLogout}
     >
       <div className="p-8">
-        {/* Modal para completar cita con informaciÛn mÈdica */}
+        {/* Modal para completar cita con informaci√≥n m√©dica */}
         <Dialog open={showCompleteAppointmentModal} onOpenChange={setShowCompleteAppointmentModal}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -607,24 +656,24 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                 Completar Cita
               </DialogTitle>
               <DialogDescription>
-                Agrega la informaciÛn mÈdica relevante antes de marcar la cita como atendida. Puedes seleccionar quÈ informaciÛn deseas registrar.
+                Agrega la informaci√≥n m√©dica relevante antes de marcar la cita como atendida. Puedes seleccionar qu√° informaci√≥n deseas registrar.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6">
-              {/* Opciones de quÈ agregar */}
+              {/* Opciones de qu√™ agregar */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="add-diagnostico"
                     checked={completeAppointmentData.addDiagnostico}
-                    onCheckedChange={(checked) => setCompleteAppointmentData({
+                    onCheckedChange={(checked: boolean) => setCompleteAppointmentData({
                       ...completeAppointmentData,
-                      addDiagnostico: checked as boolean
+                      addDiagnostico: checked
                     })}
                   />
                   <Label htmlFor="add-diagnostico" className="text-base font-medium cursor-pointer">
-                    Agregar DiagnÛstico
+                    Agregar Diagn√≥stico
                   </Label>
                 </div>
 
@@ -632,7 +681,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                   <Card className="border-l-4 border-l-blue-500">
                     <CardContent className="pt-6 space-y-3">
                       <div>
-                        <Label htmlFor="diag-codigo">CÛdigo ICD-10 (opcional)</Label>
+                        <Label htmlFor="diag-codigo">C√°digo ICD-10 (opcional)</Label>
                         <Input
                           id="diag-codigo"
                           placeholder="Ej: J06.9, E11.9, M54.5"
@@ -644,10 +693,10 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                         />
                       </div>
                       <div>
-                        <Label htmlFor="diag-descripcion">DescripciÛn del DiagnÛstico *</Label>
+                        <Label htmlFor="diag-descripcion">Descripci√°n del Diagn√≥stico *</Label>
                         <Textarea
                           id="diag-descripcion"
-                          placeholder="Describe el diagnÛstico mÈdico detallado..."
+                          placeholder="Describe el diagn√≥stico m√°dico detallado..."
                           value={completeAppointmentData.diagnostico.descripcion}
                           onChange={(e) => setCompleteAppointmentData({
                             ...completeAppointmentData,
@@ -664,13 +713,13 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                   <Checkbox
                     id="add-nota"
                     checked={completeAppointmentData.addNota}
-                    onCheckedChange={(checked) => setCompleteAppointmentData({
+                    onCheckedChange={(checked: boolean) => setCompleteAppointmentData({
                       ...completeAppointmentData,
-                      addNota: checked as boolean
+                      addNota: checked
                     })}
                   />
                   <Label htmlFor="add-nota" className="text-base font-medium cursor-pointer">
-                    Agregar Nota ClÌnica
+                    Agregar Nota Cl√≠nica
                   </Label>
                 </div>
 
@@ -681,7 +730,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                         <Label htmlFor="nota-contenido">Contenido de la Nota *</Label>
                         <Textarea
                           id="nota-contenido"
-                          placeholder="Motivo de consulta, antecedentes, signos vitales, hallazgos, evoluciÛn, plan de seguimiento..."
+                          placeholder="Motivo de consulta, antecedentes, signos vitales, hallazgos, evoluci√°n, plan de seguimiento..."
                           value={completeAppointmentData.nota.contenido}
                           onChange={(e) => setCompleteAppointmentData({
                             ...completeAppointmentData,
@@ -698,9 +747,9 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                   <Checkbox
                     id="add-receta"
                     checked={completeAppointmentData.addReceta}
-                    onCheckedChange={(checked) => setCompleteAppointmentData({
+                    onCheckedChange={(checked: boolean) => setCompleteAppointmentData({
                       ...completeAppointmentData,
-                      addReceta: checked as boolean
+                      addReceta: checked
                     })}
                   />
                   <Label htmlFor="add-receta" className="text-base font-medium cursor-pointer">
@@ -766,10 +815,10 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                               />
                             </div>
                             <div>
-                              <Label htmlFor="med-duracion">DuraciÛn</Label>
+                              <Label htmlFor="med-duracion">Duraci√°n</Label>
                               <Input
                                 id="med-duracion"
-                                placeholder="Ej: 7 dÌas"
+                                placeholder="Ej: 7 d√°as"
                                 value={currentMedicamentoComplete.duracion}
                                 onChange={(e) => setCurrentMedicamentoComplete({ ...currentMedicamentoComplete, duracion: e.target.value })}
                               />
@@ -801,8 +850,8 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                   <div className="flex-1">
                                     <p className="font-semibold">{med.medicamento}</p>
                                     <p className="text-xs text-gray-600">
-                                      {med.dosis && `${med.dosis} ï `}
-                                      {med.frecuencia && `${med.frecuencia} ï `}
+                                      {med.dosis && `${med.dosis} √° `}
+                                      {med.frecuencia && `${med.frecuencia} √° `}
                                       {med.duracion && med.duracion}
                                     </p>
                                   </div>
@@ -869,7 +918,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                 </Badge>
               </div>
               <p className="text-gray-600">
-                Detalles de la consulta mÈdica con {appointmentDetail.paciente?.nombre || 'Paciente'}
+                Detalles de la consulta m√©dica con {appointmentDetail.paciente?.nombre || 'Paciente'}
               </p>
             </div>
             
@@ -886,7 +935,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     <SelectItem value="EN_PROGRESO">En progreso</SelectItem>
                     <SelectItem value="ATENDIDA">Atendida</SelectItem>
                     <SelectItem value="CANCELADA">Cancelada</SelectItem>
-                    <SelectItem value="NO_SHOW">No asistiÛ</SelectItem>
+                    <SelectItem value="NO_SHOW">No asisti√°</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -901,20 +950,20 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="appointment" className="flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
-                  InformaciÛn de la Cita
+                  Informaci√°n de la Cita
                 </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2">
                   <History className="h-4 w-4" />
-                  Historial MÈdico
+                  Historial M√°dico
                 </TabsTrigger>
               </TabsList>
 
-              {/* Tab: InformaciÛn de la cita */}
+              {/* Tab: Informaci√°n de la cita */}
               <TabsContent value="appointment" className="space-y-6">
                 {/* Detalles de la cita */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>InformaciÛn de la Cita</CardTitle>
+                    <CardTitle>Informaci√°n de la Cita</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -952,7 +1001,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                           <MapPin className="h-5 w-5 text-[#2E8BC0]" />
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600 mb-1">UbicaciÛn</p>
+                          <p className="text-sm text-gray-600 mb-1">Ubicaci√°n</p>
                           <p className="font-semibold">{appointmentDetail.ubicacion}</p>
                         </div>
                       </div>
@@ -976,23 +1025,81 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                   </CardContent>
                 </Card>
 
+                {/* Alerta informativa sobre agregar informaci√≥n al historial */}
                 {!canAddToHistory && (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Para agregar informaciÛn al historial mÈdico, cambia el estado de la cita a "En progreso" o "Atendida"
+                      Para agregar informaci√≥n al historial m√°dico, cambia el estado de la cita a "En progreso" o "Atendida"
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {/* Tarjeta de acceso r√°pido cuando se puede agregar informaci√≥n */}
+                {canAddToHistory && (
+                  <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-green-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-green-800">
+                        <CheckCircle2 className="h-5 w-5 mr-2" />
+                        Agregar Informaci√≥n M√©dica
+                      </CardTitle>
+                      <CardDescription className="text-green-700">
+                        Esta cita permite agregar diagn√≥sticos, notas, recetas y documentos al historial m√©dico del paciente
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="outline"
+                          className="justify-start bg-white hover:bg-blue-50 border-blue-200"
+                          onClick={() => setActiveTab('history')}
+                        >
+                          <Stethoscope className="h-4 w-4 mr-2 text-blue-600" />
+                          <span>Ir a Historial M√©dico</span>
+                        </Button>
+                        {currentStatus === 'EN_PROGRESO' && (
+                          <Button
+                            className="justify-start bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => setShowCompleteAppointmentModal(true)}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            <span>Completar Cita</span>
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <Separator className="my-4" />
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center text-gray-700">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                          {diagnosticos.length} diagn√≥stico(s)
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <div className="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
+                          {notasClinicas.length} nota(s) cl√≠nica(s)
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                          {recetas.length} receta(s)
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <div className="w-2 h-2 rounded-full bg-orange-500 mr-2"></div>
+                          {documentos.length} documento(s)
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
-              {/* Tab: Historial mÈdico del paciente */}
+              {/* Tab: Historial m√°dico del paciente */}
               <TabsContent value="history">
                 {!canAddToHistory ? (
                   <Alert className="mb-6">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Para agregar informaciÛn al historial mÈdico, cambia el estado de la cita a "En progreso" o "Atendida"
+                      Para agregar informaci√≥n al historial m√°dico, cambia el estado de la cita a "En progreso" o "Atendida"
                     </AlertDescription>
                   </Alert>
                 ) : null}
@@ -1001,7 +1108,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                   <TabsList className="grid w-full grid-cols-4 mb-6">
                     <TabsTrigger value="diagnosticos" className="flex items-center gap-2">
                       <Stethoscope className="h-4 w-4" />
-                      DiagnÛsticos
+                      Diagn√≥sticos
                       {diagnosticos.length > 0 && (
                         <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                           {diagnosticos.length}
@@ -1037,31 +1144,51 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     </TabsTrigger>
                   </TabsList>
 
-                  {/* Sub-tab: DiagnÛsticos */}
+                  {/* Sub-tab: Diagn√≥sticos */}
                   <TabsContent value="diagnosticos">
                     <Card>
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>DiagnÛsticos Registrados</CardTitle>
+                            <CardTitle>Diagn√≥sticos Registrados</CardTitle>
                             <CardDescription>
-                              Historial de diagnÛsticos del paciente con cÛdigos ICD-10
+                              Historial de diagn√≥sticos del paciente con c√≥digos ICD-10
                             </CardDescription>
                           </div>
                           {canAddToHistory && (
                             <Button onClick={() => setShowDiagnosisForm(!showDiagnosisForm)} disabled={saving}>
                               <Plus className="h-4 w-4 mr-2" />
-                              Agregar DiagnÛstico
+                              Agregar Diagn√≥stico
                             </Button>
                           )}
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Alerta de acceso disponible */}
+                        {canAddToHistory && !showDiagnosisForm && (
+                          <Alert className="bg-blue-50 border-blue-200">
+                            <ClipboardList className="h-4 w-4 text-blue-600" />
+                            <AlertDescription className="text-blue-800">
+                              <div className="flex items-center justify-between">
+                                <span>Puedes agregar diagn√≥sticos a esta cita</span>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setShowDiagnosisForm(true)}
+                                  className="bg-blue-600 hover:bg-blue-700 ml-2"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Agregar Ahora
+                                </Button>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         {showDiagnosisForm && canAddToHistory && (
                           <Card className="border-2 border-[#2E8BC0] bg-blue-50/30">
                             <CardContent className="pt-6 space-y-4">
                               <div>
-                                <Label htmlFor="codigo">CÛdigo ICD-10 (opcional)</Label>
+                                <Label htmlFor="codigo">C√°digo ICD-10 (opcional)</Label>
                                 <Input
                                   id="codigo"
                                   placeholder="Ej: J06.9, E11.9, M54.5"
@@ -1070,22 +1197,22 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                   disabled={saving}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                  CÛdigo de clasificaciÛn internacional de enfermedades
+                                  C√°digo de clasificaci√°n internacional de enfermedades
                                 </p>
                               </div>
 
                               <div>
-                                <Label htmlFor="descripcion">DescripciÛn del DiagnÛstico *</Label>
+                                <Label htmlFor="descripcion">Descripci√°n del Diagn√≥stico *</Label>
                                 <Textarea
                                   id="descripcion"
-                                  placeholder="Describe el diagnÛstico mÈdico detallado, hallazgos durante el examen fÌsico, sÌntomas principales..."
+                                  placeholder="Describe el diagn√≥stico m√°dico detallado, hallazgos durante el examen f√°sico, s√°ntomas principales..."
                                   value={diagnosisForm.descripcion}
                                   onChange={(e) => setDiagnosisForm({ ...diagnosisForm, descripcion: e.target.value })}
                                   rows={4}
                                   disabled={saving}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                  Incluye nombre de la condiciÛn, hallazgos relevantes y observaciones clÌnicas
+                                  Incluye nombre de la condici√°n, hallazgos relevantes y observaciones cl√≠nicas
                                 </p>
                               </div>
 
@@ -1099,7 +1226,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                   ) : (
                                     <>
                                       <Save className="h-4 w-4 mr-2" />
-                                      Guardar DiagnÛstico
+                                      Guardar Diagn√≥stico
                                     </>
                                   )}
                                 </Button>
@@ -1113,13 +1240,13 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
 
                         <Separator />
 
-                        {/* Lista de diagnÛsticos */}
+                        {/* Lista de diagn√≥sticos */}
                         {diagnosticos.length === 0 ? (
                           <div className="text-center py-12">
                             <Stethoscope className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-1">Sin diagnÛsticos registrados</p>
+                            <p className="text-gray-600 mb-1">Sin diagn√≥sticos registrados</p>
                             <p className="text-sm text-gray-500">
-                              Los diagnÛsticos aparecer·n aquÌ una vez registrados
+                              Los diagn√≥sticos aparecer√°n aqu√° una vez registrados
                             </p>
                           </div>
                         ) : (
@@ -1153,7 +1280,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     </Card>
                   </TabsContent>
 
-                  {/* Sub-tab: Notas ClÌnicas */}
+                  {/* Sub-tab: Notas Cl√≠nicas */}
                   <TabsContent value="notas">
                     <Card>
                       <CardHeader>
@@ -1161,7 +1288,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                           <div>
                             <CardTitle>Notas y Observaciones</CardTitle>
                             <CardDescription>
-                              Registro cronolÛgico de notas clÌnicas de la consulta
+                              Registro cronol√°gico de notas cl√≠nicas de la consulta
                             </CardDescription>
                           </div>
                           {canAddToHistory && (
@@ -1173,6 +1300,26 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Alerta de acceso disponible */}
+                        {canAddToHistory && !showNoteForm && (
+                          <Alert className="bg-purple-50 border-purple-200">
+                            <FileText className="h-4 w-4 text-purple-600" />
+                            <AlertDescription className="text-purple-800">
+                              <div className="flex items-center justify-between">
+                                <span>Puedes agregar notas cl√≠nicas a esta cita</span>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setShowNoteForm(true)}
+                                  className="bg-purple-600 hover:bg-purple-700 ml-2"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Agregar Ahora
+                                </Button>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         {showNoteForm && canAddToHistory && (
                           <Card className="border-2 border-[#2E8BC0] bg-blue-50/30">
                             <CardContent className="pt-6 space-y-4">
@@ -1180,14 +1327,14 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                 <Label htmlFor="contenido">Contenido de la Nota *</Label>
                                 <Textarea
                                   id="contenido"
-                                  placeholder="Documenta motivo de consulta, antecedentes, signos vitales, hallazgos del examen fÌsico, evoluciÛn, plan de seguimiento, recomendaciones..."
+                                  placeholder="Documenta motivo de consulta, antecedentes, signos vitales, hallazgos del examen f√°sico, evoluci√°n, plan de seguimiento, recomendaciones..."
                                   value={noteForm.contenido}
                                   onChange={(e) => setNoteForm({ ...noteForm, contenido: e.target.value })}
                                   rows={6}
                                   disabled={saving}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                  Registra toda la informaciÛn relevante de la consulta
+                                  Registra toda la informaci√≥n relevante de la consulta
                                 </p>
                               </div>
 
@@ -1219,14 +1366,14 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                         {notasClinicas.length === 0 ? (
                           <div className="text-center py-12">
                             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-1">Sin notas clÌnicas</p>
+                            <p className="text-gray-600 mb-1">Sin notas cl√≠nicas</p>
                             <p className="text-sm text-gray-500">
-                              Las notas de la consulta aparecer·n aquÌ
+                              Las notas de la consulta aparecer√°n aqu√°
                             </p>
                           </div>
                         ) : (
                           <div className="space-y-6 relative">
-                            {/* LÌnea vertical del timeline */}
+                            {/* L√°nea vertical del timeline */}
                             <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-[#2E8BC0]/20"></div>
                           
                             {notasClinicas.map((note: any) => (
@@ -1267,7 +1414,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                           <div>
                             <CardTitle>Medicamentos Recetados</CardTitle>
                             <CardDescription>
-                              Prescripciones mÈdicas con indicaciones detalladas
+                              Prescripciones m√©dicas con indicaciones detalladas
                             </CardDescription>
                           </div>
                           {canAddToHistory && (
@@ -1279,6 +1426,26 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Alerta de acceso disponible */}
+                        {canAddToHistory && !showPrescriptionForm && (
+                          <Alert className="bg-green-50 border-green-200">
+                            <Pill className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-green-800">
+                              <div className="flex items-center justify-between">
+                                <span>Puedes prescribir medicamentos en esta cita</span>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setShowPrescriptionForm(true)}
+                                  className="bg-green-600 hover:bg-green-700 ml-2"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Agregar Ahora
+                                </Button>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         {showPrescriptionForm && canAddToHistory && (
                           <Card className="border-2 border-[#2E8BC0] bg-blue-50/30">
                             <CardContent className="pt-6 space-y-4">
@@ -1308,7 +1475,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                       <Label htmlFor="medicamento">Medicamento *</Label>
                                       <Input
                                         id="medicamento"
-                                        placeholder="Nombre genÈrico o comercial"
+                                        placeholder="Nombre gen√°rico o comercial"
                                         value={currentMedicamento.medicamento}
                                         onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, medicamento: e.target.value })}
                                         disabled={saving}
@@ -1338,10 +1505,10 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                       />
                                     </div>
                                     <div>
-                                      <Label htmlFor="duracion">DuraciÛn</Label>
+                                      <Label htmlFor="duracion">Duraci√°n</Label>
                                       <Input
                                         id="duracion"
-                                        placeholder="Ej: 7 dÌas"
+                                        placeholder="Ej: 7 d√°as"
                                         value={currentMedicamento.duracion}
                                         onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, duracion: e.target.value })}
                                         disabled={saving}
@@ -1376,8 +1543,8 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                           <div className="flex-1">
                                             <p className="font-semibold text-gray-900">{med.medicamento}</p>
                                             <p className="text-sm text-gray-600">
-                                              {med.dosis && `${med.dosis} ï `}
-                                              {med.frecuencia && `${med.frecuencia} ï `}
+                                              {med.dosis && `${med.dosis} √° `}
+                                              {med.frecuencia && `${med.frecuencia} √° `}
                                               {med.duracion && med.duracion}
                                             </p>
                                             {med.notas && (
@@ -1394,6 +1561,12 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                           </Button>
                                         </div>
                                       ))}
+
+                                      {prescriptionForm.medicamentos.length > 3 && (
+                                        <p className="text-xs text-gray-500 mt-2">
+                                          Y {prescriptionForm.medicamentos.length - 3} medicamento(s) m√°s...
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -1432,7 +1605,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                             <Pill className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                             <p className="text-gray-600 mb-1">Sin recetas registradas</p>
                             <p className="text-sm text-gray-500">
-                              Las prescripciones mÈdicas aparecer·n aquÌ
+                              Las prescripciones m√©dicas aparecer√°n aqu√°
                             </p>
                           </div>
                         ) : (
@@ -1474,7 +1647,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                           <TableHead>Medicamento</TableHead>
                                           <TableHead>Dosis</TableHead>
                                           <TableHead>Frecuencia</TableHead>
-                                          <TableHead>DuraciÛn</TableHead>
+                                          <TableHead>Duraci√°n</TableHead>
                                           <TableHead>Notas</TableHead>
                                         </TableRow>
                                       </TableHeader>
@@ -1506,9 +1679,9 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>Documentos MÈdicos</CardTitle>
+                            <CardTitle>Documentos M√°dicos</CardTitle>
                             <CardDescription>
-                              Archivos, estudios e im·genes del paciente
+                              Archivos, estudios e im√°genes del paciente
                             </CardDescription>
                           </div>
                           {canAddToHistory && (
@@ -1520,11 +1693,31 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Alerta de acceso disponible */}
+                        {canAddToHistory && !showDocumentForm && (
+                          <Alert className="bg-orange-50 border-orange-200">
+                            <Upload className="h-4 w-4 text-orange-600" />
+                            <AlertDescription className="text-orange-800">
+                              <div className="flex items-center justify-between">
+                                <span>Puedes subir documentos m√©dicos a esta cita</span>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setShowDocumentForm(true)}
+                                  className="bg-orange-600 hover:bg-orange-700 ml-2"
+                                >
+                                  <Upload className="h-3 w-3 mr-1" />
+                                  Subir Ahora
+                                </Button>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         {showDocumentForm && canAddToHistory && (
                           <Card className="border-2 border-[#2E8BC0] bg-blue-50/30">
                             <CardContent className="pt-6 space-y-4">
                               <div>
-                                <Label htmlFor="categoria">CategorÌa *</Label>
+                                <Label htmlFor="categoria">Categor√°a *</Label>
                                 <Select 
                                   value={documentForm.categoria} 
                                   onValueChange={(value: any) => setDocumentForm({ ...documentForm, categoria: value })}
@@ -1535,9 +1728,9 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="LAB">LAB - Estudios de laboratorio</SelectItem>
-                                    <SelectItem value="IMAGEN">IMAGEN - Im·genes mÈdicas</SelectItem>
+                                    <SelectItem value="IMAGEN">IMAGEN - Im√°genes m√©dicas</SelectItem>
                                     <SelectItem value="REFERENCIA">REFERENCIA - Referencias a especialistas</SelectItem>
-                                    <SelectItem value="CONSTANCIA">CONSTANCIA - Certificados mÈdicos</SelectItem>
+                                    <SelectItem value="CONSTANCIA">CONSTANCIA - Certificados m√°dicos</SelectItem>
                                     <SelectItem value="OTRO">OTRO - Otros documentos</SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -1560,7 +1753,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                       {documentForm.selectedFile ? documentForm.selectedFile.name : 'Click para seleccionar archivo'}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      PDF, JPG, PNG, DICOM (m·x. 50MB)
+                                      PDF, JPG, PNG, DICOM (m√°x. 50MB)
                                     </p>
                                   </label>
                                 </div>
@@ -1582,7 +1775,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                 <Label htmlFor="etiquetas">Etiquetas (opcional)</Label>
                                 <Input
                                   id="etiquetas"
-                                  placeholder="Separadas por comas: urgente, control, prequir˙rgico"
+                                  placeholder="Separadas por comas: urgente, control, prequir√°rgico"
                                   value={documentForm.etiquetas}
                                   onChange={(e) => setDocumentForm({ ...documentForm, etiquetas: e.target.value })}
                                   disabled={saving}
@@ -1619,7 +1812,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                             <p className="text-gray-600 mb-1">Sin documentos subidos</p>
                             <p className="text-sm text-gray-500">
-                              Los archivos mÈdicos aparecer·n aquÌ
+                              Los archivos m√°dicos aparecer√°n aqu√°
                             </p>
                           </div>
                         ) : (
@@ -1640,7 +1833,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                           <div className="flex-1">
                                             <p className="font-semibold text-gray-900 truncate">{doc.nombreArchivo}</p>
                                             <p className="text-sm text-gray-500">
-                                              {categoryConfig.label} ï {(doc.tamanoBytes / 1024).toFixed(2)} KB
+                                              {categoryConfig.label} √° {(doc.tamanoBytes / 1024).toFixed(2)} KB
                                             </p>
                                           </div>
                                           <Badge variant="outline">{doc.categoria}</Badge>
@@ -1692,7 +1885,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
             </Tabs>
           </div>
 
-          {/* Sidebar - InformaciÛn del paciente */}
+          {/* Sidebar - Informaci√°n del paciente */}
           <div className="space-y-6">
             {/* Datos del paciente */}
             <Card>
@@ -1708,7 +1901,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     {appointmentDetail.paciente?.nombre || 'Paciente'}
                   </h3>
                   {appointmentDetail.paciente?.edad && (
-                    <p className="text-sm text-gray-600">{appointmentDetail.paciente.edad} aÒos</p>
+                    <p className="text-sm text-gray-600">{appointmentDetail.paciente.edad} a√°os</p>
                   )}
                 </div>
 
@@ -1727,7 +1920,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     <div className="flex items-start space-x-3">
                       <Phone className="h-4 w-4 text-gray-500 mt-1" />
                       <div className="flex-1">
-                        <p className="text-xs text-gray-600">TelÈfono</p>
+                        <p className="text-xs text-gray-600">Tel√°fono</p>
                         <p className="text-sm font-medium">{appointmentDetail.paciente.telefono}</p>
                       </div>
                     </div>
@@ -1757,10 +1950,10 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                   </div>
                   <div>
                     <p className="font-medium text-blue-900 mb-1">
-                      Sistema de Historial MÈdico
+                      Sistema de Historial M√°dico
                     </p>
                     <p className="text-sm text-blue-700">
-                      Al cambiar el estado a "Atendida", podr·s agregar diagnÛsticos, notas y recetas en un solo paso.
+                      Al cambiar el estado a "Atendida", podr√°s agregar diagn√≥sticos, notas y recetas en un solo paso.
                     </p>
                   </div>
                 </div>

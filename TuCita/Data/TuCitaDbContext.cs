@@ -72,6 +72,12 @@ public class TuCitaDbContext : DbContext
         modelBuilder.Entity<Cita>()
             .ToTable(tb => tb.UseSqlOutputClause(false));
 
+        modelBuilder.Entity<PerfilMedico>()
+            .ToTable(tb => tb.UseSqlOutputClause(false));
+
+        modelBuilder.Entity<Usuario>()
+            .ToTable(tb => tb.UseSqlOutputClause(false));
+
         // ============================================================
         // CONFIGURACIÓN ESPECÍFICA PARA SQL SERVER
         // ============================================================

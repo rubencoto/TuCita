@@ -3,6 +3,10 @@ using TuCita.Services;
 
 namespace TuCita.Controllers.Api;
 
+/// <summary>
+/// Controlador para realizar pruebas de conexión y validación de la base de datos
+/// Útil para diagnóstico y monitoreo de salud de la BD
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class DatabaseTestController : ControllerBase
@@ -10,6 +14,11 @@ public class DatabaseTestController : ControllerBase
     private readonly IDatabaseTestService _testService;
     private readonly ILogger<DatabaseTestController> _logger;
 
+    /// <summary>
+    /// Constructor del controlador de pruebas de base de datos
+    /// </summary>
+    /// <param name="testService">Servicio de pruebas de base de datos inyectado por DI</param>
+    /// <param name="logger">Logger para registro de eventos</param>
     public DatabaseTestController(
         IDatabaseTestService testService,
         ILogger<DatabaseTestController> logger)
@@ -19,8 +28,11 @@ public class DatabaseTestController : ControllerBase
     }
 
     /// <summary>
-    /// Prueba de conexión completa a la base de datos
+    /// Ejecuta una prueba completa de la base de datos incluyendo conexión, tablas y datos
     /// </summary>
+    /// <returns>Resultados detallados de todas las pruebas ejecutadas</returns>
+    /// <response code="200">Todas las pruebas pasaron exitosamente</response>
+    /// <response code="500">Una o más pruebas fallaron</response>
     [HttpGet("full-test")]
     public async Task<IActionResult> FullDatabaseTest()
     {
@@ -56,8 +68,11 @@ public class DatabaseTestController : ControllerBase
     }
 
     /// <summary>
-    /// Prueba solo la conexión a la base de datos
+    /// Verifica únicamente la conectividad con la base de datos
     /// </summary>
+    /// <returns>Información de conexión incluyendo servidor, base de datos y tiempo de respuesta</returns>
+    /// <response code="200">Conexión exitosa</response>
+    /// <response code="500">Error de conexión</response>
     [HttpGet("connection")]
     public async Task<IActionResult> TestConnection()
     {
@@ -71,8 +86,11 @@ public class DatabaseTestController : ControllerBase
     }
 
     /// <summary>
-    /// Verifica que todas las tablas existen
+    /// Verifica que todas las tablas necesarias existan en la base de datos
     /// </summary>
+    /// <returns>Lista de tablas verificadas y su estado de existencia</returns>
+    /// <response code="200">Todas las tablas existen</response>
+    /// <response code="500">Error de conexión o tablas faltantes</response>
     [HttpGet("tables")]
     public async Task<IActionResult> TestTables()
     {
@@ -97,8 +115,11 @@ public class DatabaseTestController : ControllerBase
     }
 
     /// <summary>
-    /// Verifica los datos iniciales (roles, especialidades, etc.)
+    /// Verifica que los datos iniciales (roles, especialidades, etc.) estén presentes
     /// </summary>
+    /// <returns>Conteo de registros en tablas principales y estado de inicialización</returns>
+    /// <response code="200">Datos iniciales verificados exitosamente</response>
+    /// <response code="500">Error de conexión o datos faltantes</response>
     [HttpGet("data")]
     public async Task<IActionResult> TestData()
     {
@@ -123,8 +144,15 @@ public class DatabaseTestController : ControllerBase
     }
 
     /// <summary>
-    /// Endpoint de salud simple para Azure Health Checks
+    /// Endpoint simplificado de salud para Azure Health Checks y monitoreo
     /// </summary>
+    /// <returns>Estado de salud de la base de datos con información mínima</returns>
+    /// <response code="200">Base de datos saludable y accesible</response>
+    /// <response code="503">Base de datos no disponible o con problemas</response>
+    /// <remarks>
+    /// Este endpoint está optimizado para ser usado por sistemas de monitoreo
+    /// y health checks automatizados de Azure.
+    /// </remarks>
     [HttpGet("health")]
     public async Task<IActionResult> HealthCheck()
     {
@@ -164,8 +192,11 @@ public class DatabaseTestController : ControllerBase
     }
 
     /// <summary>
-    /// Información resumida del estado de la base de datos
+    /// Obtiene información resumida y estadísticas del estado de la base de datos
     /// </summary>
+    /// <returns>Estadísticas de registros, estado de conexión y configuración del servidor</returns>
+    /// <response code="200">Información obtenida exitosamente</response>
+    /// <response code="500">Error al obtener información</response>
     [HttpGet("status")]
     public async Task<IActionResult> DatabaseStatus()
     {

@@ -6,6 +6,9 @@ using TuCita.DTOs.Appointments;
 
 namespace TuCita.Controllers.Api;
 
+/// <summary>
+/// Controlador para gestionar las citas médicas desde la perspectiva del paciente
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -13,12 +16,20 @@ public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentsService _appointmentsService;
 
+    /// <summary>
+    /// Constructor del controlador de citas
+    /// </summary>
+    /// <param name="appointmentsService">Servicio de gestión de citas inyectado por DI</param>
     public AppointmentsController(IAppointmentsService appointmentsService)
     {
         _appointmentsService = appointmentsService;
     }
 
-    // Método helper para mapear estados del backend al formato frontend
+    /// <summary>
+    /// Mapea el estado de la cita del formato de backend al formato del frontend
+    /// </summary>
+    /// <param name="estado">Estado en formato backend (PENDIENTE, CONFIRMADA, etc.)</param>
+    /// <returns>Estado en formato frontend (pending, confirmed, etc.)</returns>
     private static string MapEstadoToFrontend(string estado)
     {
         return estado.ToUpperInvariant() switch
@@ -33,6 +44,13 @@ public class AppointmentsController : ControllerBase
         };
     }
 
+    /// <summary>
+    /// Obtiene todas las citas del paciente autenticado
+    /// </summary>
+    /// <returns>Lista de citas del paciente con información del doctor, horario y estado</returns>
+    /// <response code="200">Lista de citas obtenida exitosamente</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpGet]
     public async Task<IActionResult> GetAppointments()
     {
@@ -76,6 +94,15 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Crea una nueva cita médica para el paciente autenticado
+    /// </summary>
+    /// <param name="request">Datos de la cita (turno ID, doctor ID y motivo de consulta)</param>
+    /// <returns>Información de la cita creada</returns>
+    /// <response code="200">Cita creada exitosamente</response>
+    /// <response code="400">Datos inválidos o turno no disponible</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost]
     public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentRequest request)
     {
@@ -150,6 +177,17 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Actualiza la información de una cita existente
+    /// </summary>
+    /// <param name="id">ID de la cita a actualizar</param>
+    /// <param name="request">Nuevos datos de la cita</param>
+    /// <returns>Mensaje de confirmación</returns>
+    /// <response code="200">Cita actualizada exitosamente</response>
+    /// <response code="400">ID inválido o datos incorrectos</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Cita no encontrada</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAppointment(string id, [FromBody] UpdateAppointmentRequest request)
     {
@@ -187,6 +225,16 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cancela una cita existente
+    /// </summary>
+    /// <param name="id">ID de la cita a cancelar</param>
+    /// <returns>Mensaje de confirmación de cancelación</returns>
+    /// <response code="200">Cita cancelada exitosamente</response>
+    /// <response code="400">ID de cita inválido</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Cita no encontrada o ya cancelada</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpDelete("{id}")]
     public async Task<IActionResult> CancelAppointment(string id)
     {
@@ -219,6 +267,16 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Reagenda una cita existente a un nuevo turno
+    /// </summary>
+    /// <param name="id">ID de la cita a reagendar</param>
+    /// <param name="request">Información del nuevo turno (NewTurnoId)</param>
+    /// <returns>Información de la cita reagendada con el nuevo horario</returns>
+    /// <response code="200">Cita reagendada exitosamente</response>
+    /// <response code="400">ID inválido, datos incorrectos o nuevo turno no disponible</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="500">Error interno del servidor</response>
     [HttpPost("{id}/reschedule")]
     public async Task<IActionResult> RescheduleAppointment(string id, [FromBody] RescheduleAppointmentRequest request)
     {

@@ -74,8 +74,8 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
       const calculatedStats = doctorAppointmentsService.calculateDashboardStats(appointments);
       setStats(calculatedStats);
     } catch (error: any) {
-      console.error('Error al cargar citas del dÌa:', error);
-      toast.error('Error al cargar las citas del dÌa');
+      console.error('Error al cargar citas del d√≠a:', error);
+      toast.error('Error al cargar las citas del d√≠a');
       setTodayAppointments([]);
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
 
     if (upcoming.length === 0) return null;
     
-    // Ordenar por fecha/hora m·s cercana
+    // Ordenar por fecha/hora m√°s cercana
     upcoming.sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime());
     
     const next = upcoming[0];
@@ -144,7 +144,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
       iconColor: 'text-yellow-600'
     },
     NO_SHOW: { 
-      label: 'No asistiÛ', 
+      label: 'No asisti√≥', 
       color: 'bg-gray-100 text-gray-800 border-gray-200',
       icon: UserX,
       iconColor: 'text-gray-600'
@@ -153,7 +153,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return 'Buenos dÌas';
+    if (hour < 12) return 'Buenos d√≠as';
     if (hour < 19) return 'Buenas tardes';
     return 'Buenas noches';
   };
@@ -161,7 +161,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
   const LoadingState = () => (
     <div className="flex items-center justify-center py-12">
       <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-      <span className="text-muted-foreground">Cargando citas del dÌa...</span>
+      <span className="text-muted-foreground">Cargando citas del d√≠a...</span>
     </div>
   );
 
@@ -210,7 +210,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Total del dÌa</p>
+                    <p className="text-sm text-gray-600 mb-1">Total del d√≠a</p>
                     <p className="text-3xl font-bold text-gray-900">{loading ? '-' : stats.total}</p>
                   </div>
                   <div className="bg-[#2E8BC0]/10 p-3 rounded-xl">
@@ -265,7 +265,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Citas del dÌa - Tabla */}
+          {/* Citas del d√≠a - Tabla */}
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
@@ -281,7 +281,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 font-medium">No hay citas programadas para hoy</p>
-                    <p className="text-sm text-gray-500 mt-2">Las citas aparecer·n aquÌ cuando estÈn agendadas</p>
+                    <p className="text-sm text-gray-500 mt-2">Las citas aparecer√°n aqu√° cuando est√°n agendadas</p>
                   </div>
                 ) : (
                   <Table>
@@ -337,13 +337,13 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
             </Card>
           </div>
 
-          {/* Sidebar - PrÛxima cita */}
+          {/* Sidebar - Pr√≥xima cita */}
           <div className="space-y-6">
             {loading ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-3" />
-                  <p className="text-sm text-gray-600">Cargando prÛxima cita...</p>
+                  <p className="text-sm text-gray-600">Cargando pr√≥xima cita...</p>
                 </CardContent>
               </Card>
             ) : nextAppointment ? (
@@ -351,7 +351,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <Clock className="h-5 w-5 mr-2" />
-                    PrÛxima cita
+                    Pr√≥xima cita
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -386,10 +386,10 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 <CardContent className="p-8 text-center">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
                   <p className="font-semibold text-gray-900 mb-1">
-                    No hay m·s citas pendientes
+                    No hay m√°s citas pendientes
                   </p>
                   <p className="text-sm text-gray-600">
-                    Has completado tu agenda del dÌa
+                    Has completado tu agenda del d√≠a
                   </p>
                 </CardContent>
               </Card>
@@ -398,7 +398,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Acciones r·pidas</CardTitle>
+                <CardTitle className="text-base">Acciones r√°pidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button 

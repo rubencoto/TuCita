@@ -23,7 +23,7 @@ public static class DbInitializer
         var roles = new[]
         {
             new Rol { Nombre = "PACIENTE" },
-            new Rol { Nombre = "DOCTOR" },  // Cambiado de MEDICO a DOCTOR
+            new Rol { Nombre = "MEDICO" },  // Mantener como MEDICO
             new Rol { Nombre = "ADMIN" }
         };
 
@@ -54,35 +54,35 @@ public static class DbInitializer
     }
 
     /// <summary>
-    /// Asegura que el rol DOCTOR existe en la base de datos
-    /// </summary>
-    public static async Task<Rol> EnsureDoctorRoleExistsAsync(TuCitaDbContext context)
-    {
-        var rolDoctor = await context.Roles
-            .FirstOrDefaultAsync(r => r.Nombre == "DOCTOR");
-
-        if (rolDoctor == null)
-        {
-            rolDoctor = new Rol 
-            { 
-                Nombre = "DOCTOR"
-            };
-            
-            context.Roles.Add(rolDoctor);
-            await context.SaveChangesAsync();
-        }
-
-        return rolDoctor;
-    }
-
-    /// <summary>
-    /// Asegura que el rol MEDICO existe en la base de datos (alias para DOCTOR)
-    /// Mantener para compatibilidad con código existente
+    /// Asegura que el rol MEDICO existe en la base de datos
     /// </summary>
     public static async Task<Rol> EnsureMedicoRoleExistsAsync(TuCitaDbContext context)
     {
-        // Redirigir a EnsureDoctorRoleExistsAsync para consistencia
-        return await EnsureDoctorRoleExistsAsync(context);
+        var rolMedico = await context.Roles
+            .FirstOrDefaultAsync(r => r.Nombre == "MEDICO");
+
+        if (rolMedico == null)
+        {
+            rolMedico = new Rol 
+            { 
+                Nombre = "MEDICO"
+            };
+            
+            context.Roles.Add(rolMedico);
+            await context.SaveChangesAsync();
+        }
+
+        return rolMedico;
+    }
+
+    /// <summary>
+    /// Asegura que el rol DOCTOR existe en la base de datos (alias para MEDICO)
+    /// Mantener para compatibilidad con código existente
+    /// </summary>
+    public static async Task<Rol> EnsureDoctorRoleExistsAsync(TuCitaDbContext context)
+    {
+        // Redirigir a EnsureMedicoRoleExistsAsync para consistencia
+        return await EnsureMedicoRoleExistsAsync(context);
     }
 
     /// <summary>
@@ -150,7 +150,7 @@ public static class DbInitializer
 
         Console.WriteLine("?? Creando médicos de prueba...");
 
-        var rolDoctor = await EnsureDoctorRoleExistsAsync(context);
+        var rolMedico = await EnsureMedicoRoleExistsAsync(context);
         
         // Obtener especialidades
         var especialidades = await context.Especialidades.ToListAsync();
@@ -196,7 +196,7 @@ public static class DbInitializer
             var rolUsuario = new RolUsuario
             {
                 UsuarioId = usuario.Id,
-                RolId = rolDoctor.Id
+                RolId = rolMedico.Id
             };
             context.RolesUsuarios.Add(rolUsuario);
 

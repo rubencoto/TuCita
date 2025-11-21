@@ -53,7 +53,7 @@ export function DoctorMedicalHistoryPage({ patientId, onNavigate, onLogout }: Do
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar historial médico
+  // Cargar historial mÃ©dico
   useEffect(() => {
     loadMedicalHistory();
   }, []);
@@ -66,14 +66,14 @@ export function DoctorMedicalHistoryPage({ patientId, onNavigate, onLogout }: Do
       const data = await medicalHistoryService.getDoctorAllPatientsHistory();
       setMedicalHistory(data);
     } catch (err: any) {
-      console.error('Error al cargar historial médico:', err);
-      setError(err.message || 'Error al cargar el historial médico');
+      console.error('Error al cargar historial mÃ©dico:', err);
+      setError(err.message || 'Error al cargar el historial mÃ©dico');
     } finally {
       setLoading(false);
     }
   };
 
-  // Lista de pacientes únicos
+  // Lista de pacientes Ã¡nicos
   const patients: PatientInfo[] = Array.from(
     new Map(
       medicalHistory.map(h => [
@@ -94,7 +94,7 @@ export function DoctorMedicalHistoryPage({ patientId, onNavigate, onLogout }: Do
       return false;
     }
 
-    // Filtro por búsqueda
+    // Filtro por bÃ¡squeda
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const diagnosticos = record.diagnosticos.map(d => d.descripcion).join(' ').toLowerCase();
@@ -123,7 +123,7 @@ export function DoctorMedicalHistoryPage({ patientId, onNavigate, onLogout }: Do
     const content = filteredHistory.map(record => {
       const diagnostico = record.diagnosticos.length > 0 
         ? record.diagnosticos[0].descripcion 
-        : 'Sin diagnóstico';
+        : 'Sin diagnÃ³stico';
       const tratamiento = record.recetas.length > 0 
         ? record.recetas[0].indicaciones || 'Sin tratamiento especificado' 
         : 'Sin tratamiento';
@@ -133,7 +133,7 @@ export function DoctorMedicalHistoryPage({ patientId, onNavigate, onLogout }: Do
       
       return `FECHA: ${new Date(record.fechaCita).toLocaleDateString('es-ES')}
 PACIENTE: ${record.nombrePaciente}
-DIAGNÓSTICO: ${diagnostico}
+DIAGNÃ¡STICO: ${diagnostico}
 TRATAMIENTO: ${tratamiento}
 INDICACIONES: ${indicaciones}
 DOCTOR: ${record.nombreMedico}
@@ -158,7 +158,7 @@ ${'='.repeat(80)}`;
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-gray-600">Cargando historial médico...</p>
+            <p className="text-gray-600">Cargando historial mÃ©dico...</p>
           </div>
         </div>
       </DoctorLayout>
@@ -195,10 +195,10 @@ ${'='.repeat(80)}`;
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Historial Médico
+                Historial MÃ©dico
               </h1>
               <p className="text-gray-600">
-                Consulta el historial médico completo de todos tus pacientes
+                Consulta el historial mÃ©dico completo de todos tus pacientes
               </p>
             </div>
             <Button onClick={handleExport} variant="outline">
@@ -214,7 +214,7 @@ ${'='.repeat(80)}`;
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Buscar paciente o diagnóstico..."
+                    placeholder="Buscar paciente o diagnÃ³stico..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -264,12 +264,12 @@ ${'='.repeat(80)}`;
           </Card>
         </div>
 
-        {/* Información importante */}
+        {/* InformaciÃ¡n importante */}
         <Alert className="mb-6 bg-blue-50 border-blue-200">
           <ClipboardList className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            Este es el historial médico completo en modo <strong>solo lectura</strong>. 
-            Para agregar nuevos registros, accede desde el detalle de una cita específica.
+            Este es el historial mÃ©dico completo en modo <strong>solo lectura</strong>. 
+            Para agregar nuevos registros, accede desde el detalle de una cita especÃ¡fica.
           </AlertDescription>
         </Alert>
 
@@ -281,7 +281,7 @@ ${'='.repeat(80)}`;
                 <TableRow>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Paciente</TableHead>
-                  <TableHead>Diagnóstico</TableHead>
+                  <TableHead>DiagnÃ¡stico</TableHead>
                   <TableHead>Doctor</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -294,7 +294,7 @@ ${'='.repeat(80)}`;
                         <FileText className="h-12 w-12 text-gray-400 mb-3" />
                         <p className="text-gray-600 mb-1">No se encontraron registros</p>
                         <p className="text-sm text-gray-500">
-                          Intenta ajustar los filtros de búsqueda
+                          Intenta ajustar los filtros de bÃ¡squeda
                         </p>
                       </div>
                     </TableCell>
@@ -303,7 +303,7 @@ ${'='.repeat(80)}`;
                   filteredHistory.map((record) => {
                     const diagnostico = record.diagnosticos.length > 0 
                       ? record.diagnosticos[0].descripcion 
-                      : 'Sin diagnóstico registrado';
+                      : 'Sin diagnÃ³stico registrado';
                     
                     return (
                       <TableRow key={record.citaId} className="hover:bg-gray-50">
@@ -335,7 +335,7 @@ ${'='.repeat(80)}`;
                             <div>
                               <p className="font-medium">{record.nombrePaciente}</p>
                               {record.edadPaciente && (
-                                <p className="text-sm text-gray-500">{record.edadPaciente} años</p>
+                                <p className="text-sm text-gray-500">{record.edadPaciente} aÃ¡os</p>
                               )}
                             </div>
                           </div>
@@ -358,11 +358,11 @@ ${'='.repeat(80)}`;
                             </DialogTrigger>
                             <DialogContent className="max-w-3xl">
                               <DialogHeader>
-                                <DialogTitle>Detalle del Registro Médico</DialogTitle>
+                                <DialogTitle>Detalle del Registro MÃ©dico</DialogTitle>
                               </DialogHeader>
                               {selectedRecord && (
                                 <div className="space-y-6 py-4">
-                                  {/* Información del paciente */}
+                                  {/* InformaciÃ¡n del paciente */}
                                   <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
                                     {selectedRecord.fotoPaciente ? (
                                       <ImageWithFallback
@@ -378,7 +378,7 @@ ${'='.repeat(80)}`;
                                     <div>
                                       <p className="font-semibold text-lg">{selectedRecord.nombrePaciente}</p>
                                       {selectedRecord.edadPaciente && (
-                                        <p className="text-sm text-gray-600">{selectedRecord.edadPaciente} años</p>
+                                        <p className="text-sm text-gray-600">{selectedRecord.edadPaciente} aÃ¡os</p>
                                       )}
                                     </div>
                                   </div>
@@ -408,7 +408,7 @@ ${'='.repeat(80)}`;
                                       <div className="bg-red-100 p-2 rounded-lg">
                                         <FileText className="h-5 w-5 text-red-600" />
                                       </div>
-                                      <h3 className="font-semibold text-lg">Diagnósticos</h3>
+                                      <h3 className="font-semibold text-lg">DiagnÃ¡sticos</h3>
                                     </div>
                                     {selectedRecord.diagnosticos.length > 0 ? (
                                       <div className="space-y-2">
@@ -416,14 +416,14 @@ ${'='.repeat(80)}`;
                                           <div key={diag.id} className="bg-gray-50 p-4 rounded-lg">
                                             <p className="text-gray-700">{diag.descripcion}</p>
                                             {diag.codigo && (
-                                              <p className="text-sm text-gray-500 mt-1">Código: {diag.codigo}</p>
+                                              <p className="text-sm text-gray-500 mt-1">CÃ¡digo: {diag.codigo}</p>
                                             )}
                                           </div>
                                         ))}
                                       </div>
                                     ) : (
                                       <p className="text-gray-500 bg-gray-50 p-4 rounded-lg">
-                                        No hay diagnósticos registrados
+                                        No hay diagnÃ³sticos registrados
                                       </p>
                                     )}
                                   </div>
@@ -450,7 +450,7 @@ ${'='.repeat(80)}`;
                                                     <p className="font-medium">{med.medicamento}</p>
                                                     {med.dosis && <p className="text-sm text-gray-600">Dosis: {med.dosis}</p>}
                                                     {med.frecuencia && <p className="text-sm text-gray-600">Frecuencia: {med.frecuencia}</p>}
-                                                    {med.duracion && <p className="text-sm text-gray-600">Duración: {med.duracion}</p>}
+                                                    {med.duracion && <p className="text-sm text-gray-600">DuraciÃ¡n: {med.duracion}</p>}
                                                     {med.notas && <p className="text-sm text-gray-500 italic mt-1">{med.notas}</p>}
                                                   </div>
                                                 ))}
@@ -471,7 +471,7 @@ ${'='.repeat(80)}`;
                                       <div className="bg-green-100 p-2 rounded-lg">
                                         <ClipboardList className="h-5 w-5 text-green-600" />
                                       </div>
-                                      <h3 className="font-semibold text-lg">Notas Clínicas</h3>
+                                      <h3 className="font-semibold text-lg">Notas ClÃ¡nicas</h3>
                                     </div>
                                     {selectedRecord.notasClinicas.length > 0 ? (
                                       <div className="space-y-2">
@@ -492,7 +492,7 @@ ${'='.repeat(80)}`;
                                       </div>
                                     ) : (
                                       <p className="text-gray-500 bg-gray-50 p-4 rounded-lg">
-                                        No hay notas clínicas registradas
+                                        No hay notas clÃ­nicas registradas
                                       </p>
                                     )}
                                   </div>
@@ -511,7 +511,7 @@ ${'='.repeat(80)}`;
                                             <div>
                                               <p className="font-medium">{doc.nombreArchivo}</p>
                                               <p className="text-sm text-gray-500">
-                                                {medicalHistoryService.getCategoryLabel(doc.categoria)} • 
+                                                {medicalHistoryService.getCategoryLabel(doc.categoria)} Ã¡ 
                                                 {medicalHistoryService.formatFileSize(doc.tamanoBytes)}
                                               </p>
                                             </div>

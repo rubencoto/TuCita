@@ -1,3 +1,5 @@
+using TuCita.DTOs.MedicalHistory;
+
 namespace TuCita.DTOs.Appointments;
 
 /// <summary>
@@ -23,6 +25,12 @@ public class AppointmentDetailDto
     
     public DateTime Inicio { get; set; }
     public DateTime Fin { get; set; }
+    
+    // Historial médico asociado a esta cita
+    public List<DiagnosticoDto> Diagnosticos { get; set; } = new();
+    public List<NotaClinicaDto> NotasClinicas { get; set; } = new();
+    public List<RecetaDto> Recetas { get; set; } = new();
+    public List<DocumentoDto> Documentos { get; set; } = new();
 }
 
 public class PatientDetailDto

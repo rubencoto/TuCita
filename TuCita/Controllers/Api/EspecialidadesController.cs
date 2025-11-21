@@ -5,7 +5,8 @@ using TuCita.Data;
 namespace TuCita.Controllers.Api;
 
 /// <summary>
-/// Controlador para gestionar especialidades médicas
+/// Controlador para gestionar el catálogo de especialidades médicas
+/// No requiere autenticación
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -14,6 +15,11 @@ public class EspecialidadesController : ControllerBase
     private readonly TuCitaDbContext _context;
     private readonly ILogger<EspecialidadesController> _logger;
 
+    /// <summary>
+    /// Constructor del controlador de especialidades
+    /// </summary>
+    /// <param name="context">Contexto de base de datos inyectado por DI</param>
+    /// <param name="logger">Logger para registro de eventos</param>
     public EspecialidadesController(
         TuCitaDbContext context,
         ILogger<EspecialidadesController> logger)
@@ -23,9 +29,18 @@ public class EspecialidadesController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener todas las especialidades disponibles
-    /// GET /api/especialidades
+    /// Obtiene el catálogo completo de especialidades médicas disponibles
     /// </summary>
+    /// <returns>Lista de todas las especialidades ordenadas alfabéticamente</returns>
+    /// <response code="200">Catálogo obtenido exitosamente</response>
+    /// <response code="500">Error interno del servidor</response>
+    /// <remarks>
+    /// Endpoint: GET /api/especialidades
+    /// 
+    /// Retorna todas las especialidades médicas registradas en el sistema.
+    /// Útil para poblar filtros de búsqueda y formularios de registro de doctores.
+    /// Las especialidades se retornan ordenadas alfabéticamente por nombre.
+    /// </remarks>
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -50,9 +65,18 @@ public class EspecialidadesController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener una especialidad por ID
-    /// GET /api/especialidades/{id}
+    /// Obtiene una especialidad médica específica por su ID
     /// </summary>
+    /// <param name="id">ID de la especialidad a consultar</param>
+    /// <returns>Información de la especialidad solicitada</returns>
+    /// <response code="200">Especialidad obtenida exitosamente</response>
+    /// <response code="404">Especialidad no encontrada</response>
+    /// <response code="500">Error interno del servidor</response>
+    /// <remarks>
+    /// Endpoint: GET /api/especialidades/{id}
+    /// 
+    /// Retorna los detalles de una especialidad médica específica.
+    /// </remarks>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {

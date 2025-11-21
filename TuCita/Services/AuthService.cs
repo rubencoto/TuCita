@@ -104,11 +104,11 @@ public class AuthService : IAuthService
             };
         }
 
-        // Verificar que el usuario tiene rol de DOCTOR
-        var esMedico = usuario.RolesUsuarios.Any(ru => ru.Rol.Nombre == "DOCTOR");
+        // Verificar que el usuario tiene rol de MEDICO (cambiar de DOCTOR a MEDICO)
+        var esMedico = usuario.RolesUsuarios.Any(ru => ru.Rol.Nombre == "MEDICO");
         if (!esMedico)
         {
-            _logger.LogWarning("Intento de login de doctor fallido: usuario sin rol DOCTOR - {Email}", request.Email);
+            _logger.LogWarning("Intento de login de doctor fallido: usuario sin rol MEDICO - {Email}", request.Email);
             return new DoctorAuthResult 
             { 
                 Success = false, 
@@ -119,7 +119,7 @@ public class AuthService : IAuthService
         // Verificar que tiene perfil médico
         if (usuario.PerfilMedico == null)
         {
-            _logger.LogWarning("Login de doctor: usuario tiene rol DOCTOR pero no perfil médico - {Email}", request.Email);
+            _logger.LogWarning("Login de doctor: usuario tiene rol MEDICO pero no perfil médico - {Email}", request.Email);
             return new DoctorAuthResult 
             { 
                 Success = false, 

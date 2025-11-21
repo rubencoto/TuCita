@@ -36,7 +36,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   
-  // Estado para el formulario de edición
+  // Estado para el formulario de ediciÃ³n
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -95,22 +95,22 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
   const handleSaveProfile = async () => {
     // Validaciones
     if (!formData.nombre.trim() || !formData.apellido.trim()) {
-      toast.error('Error de validación', {
+      toast.error('Error de validaciÃ³n', {
         description: 'El nombre y apellido son obligatorios'
       });
       return;
     }
 
     if (!doctorProfileService.isValidEmail(formData.email)) {
-      toast.error('Error de validación', {
-        description: 'El formato del email no es válido'
+      toast.error('Error de validaciÃ³n', {
+        description: 'El formato del email no es vÃ¡lido'
       });
       return;
     }
 
     if (formData.telefono && !doctorProfileService.isValidPhone(formData.telefono)) {
-      toast.error('Error de validación', {
-        description: 'El formato del teléfono no es válido'
+      toast.error('Error de validaciÃ³n', {
+        description: 'El formato del telÃ©fono no es vÃ¡lido'
       });
       return;
     }
@@ -133,13 +133,13 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
 
   const handleChangePassword = async () => {
     if (passwords.new !== passwords.confirm) {
-      toast.error('Las contraseñas no coinciden');
+      toast.error('Las contraseÃ±as no coinciden');
       return;
     }
 
     const validation = doctorProfileService.validatePassword(passwords.new);
     if (!validation.valid) {
-      toast.error('Contraseña inválida', {
+      toast.error('ContraseÃ±a invÃ¡lida', {
         description: validation.message
       });
       return;
@@ -152,12 +152,12 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
         confirmPassword: passwords.confirm
       });
       
-      toast.success('Contraseña actualizada correctamente');
+      toast.success('ContraseÃ±a actualizada correctamente');
       setShowPasswordDialog(false);
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (error: any) {
-      console.error('Error al cambiar contraseña:', error);
-      toast.error('Error al cambiar la contraseña', {
+      console.error('Error al cambiar contraseÃ±a:', error);
+      toast.error('Error al cambiar la contraseÃ±a', {
         description: error.message
       });
     }
@@ -169,15 +169,15 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      toast.error('Error de validación', {
+      toast.error('Error de validaciÃ³n', {
         description: 'El archivo debe ser una imagen'
       });
       return;
     }
 
-    // Validar tamaño (máximo 5MB)
+    // Validar tamaÃ¡o (mÃ¡ximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Error de validación', {
+      toast.error('Error de validaciÃ³n', {
         description: 'La imagen no puede superar los 5MB'
       });
       return;
@@ -185,7 +185,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
 
     try {
       // Por ahora, solo mostrar preview local
-      // TODO: Implementar subida al servidor cuando esté listo
+      // TODO: Implementar subida al servidor cuando estÃ¡ listo
       const reader = new FileReader();
       reader.onloadend = () => {
         if (profile) {
@@ -256,7 +256,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
             Mi Perfil
           </h1>
           <p className="text-gray-600">
-            Gestiona tu información personal y profesional
+            Gestiona tu informaciÃ³n personal y profesional
           </p>
         </div>
 
@@ -322,7 +322,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
               </CardContent>
             </Card>
 
-            {/* Cambiar contraseña */}
+            {/* Cambiar contraseÃ±a */}
             <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="text-base">Seguridad</CardTitle>
@@ -332,19 +332,19 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Lock className="h-4 w-4 mr-2" />
-                      Cambiar Contraseña
+                      Cambiar ContraseÃ±a
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Cambiar Contraseña</DialogTitle>
+                      <DialogTitle>Cambiar ContraseÃ±a</DialogTitle>
                       <DialogDescription>
-                        Ingresa tu contraseña actual y la nueva contraseña
+                        Ingresa tu contraseÃ±a actual y la nueva contraseÃ±a
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div>
-                        <Label htmlFor="current-password">Contraseña actual</Label>
+                        <Label htmlFor="current-password">ContraseÃ±a actual</Label>
                         <Input
                           id="current-password"
                           type="password"
@@ -353,7 +353,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                         />
                       </div>
                       <div>
-                        <Label htmlFor="new-password">Nueva contraseña</Label>
+                        <Label htmlFor="new-password">Nueva contraseÃ±a</Label>
                         <Input
                           id="new-password"
                           type="password"
@@ -362,7 +362,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                         />
                       </div>
                       <div>
-                        <Label htmlFor="confirm-password">Confirmar contraseña</Label>
+                        <Label htmlFor="confirm-password">Confirmar contraseÃ±a</Label>
                         <Input
                           id="confirm-password"
                           type="password"
@@ -373,11 +373,11 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                       <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                          La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números
+                          La contraseÃ±a debe tener al menos 8 caracteres, incluir mayÃ¡sculas, minÃ¡sculas y nÃºmeros
                         </AlertDescription>
                       </Alert>
                       <Button onClick={handleChangePassword} className="w-full bg-[#2E8BC0]">
-                        Actualizar contraseña
+                        Actualizar contraseÃ±a
                       </Button>
                     </div>
                   </DialogContent>
@@ -386,13 +386,13 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
             </Card>
           </div>
 
-          {/* Información del perfil */}
+          {/* InformaciÃ³n del perfil */}
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Información Personal</CardTitle>
+                    <CardTitle>InformaciÃ³n Personal</CardTitle>
                     <CardDescription>
                       Actualiza tus datos personales y profesionales
                     </CardDescription>
@@ -452,12 +452,12 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   </div>
                 </div>
 
-                {/* Email y Teléfono */}
+                {/* Email y TelÃ©fono */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="correo" className="flex items-center mb-2">
                       <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                      Correo electrónico
+                      Correo electrÃ¡nico
                     </Label>
                     <Input
                       id="correo"
@@ -470,7 +470,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   <div>
                     <Label htmlFor="telefono" className="flex items-center mb-2">
                       <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                      Teléfono
+                      TelÃ©fono
                     </Label>
                     <Input
                       id="telefono"
@@ -481,11 +481,11 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   </div>
                 </div>
 
-                {/* Número de Licencia */}
+                {/* NÃºmero de Licencia */}
                 <div>
                   <Label htmlFor="licencia" className="flex items-center mb-2">
                     <FileText className="h-4 w-4 mr-2 text-gray-500" />
-                    Número de licencia profesional
+                    NÃºmero de licencia profesional
                   </Label>
                   <Input
                     id="licencia"
@@ -495,11 +495,11 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   />
                 </div>
 
-                {/* Dirección */}
+                {/* DirecciÃ³n */}
                 <div>
                   <Label htmlFor="direccion" className="flex items-center mb-2">
                     <MapPin className="h-4 w-4 mr-2 text-gray-500" />
-                    Dirección del consultorio
+                    DirecciÃ³n del consultorio
                   </Label>
                   <Input
                     id="direccion"
@@ -509,10 +509,10 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   />
                 </div>
 
-                {/* Biografía */}
+                {/* BiografÃ­a */}
                 <div>
                   <Label htmlFor="biografia" className="mb-2 block">
-                    Biografía profesional
+                    BiografÃ­a profesional
                   </Label>
                   <Textarea
                     id="biografia"
@@ -520,7 +520,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                     onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
                     disabled={!isEditing}
                     rows={4}
-                    placeholder="Cuéntanos sobre tu experiencia, formación y áreas de interés..."
+                    placeholder="CuÃ¡ntanos sobre tu experiencia, formaciÃ³n y Ã¡reas de interÃ©s..."
                   />
                 </div>
 

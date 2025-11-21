@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -23,12 +23,21 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
     password: '',
   });
 
+  // Helper para autocompletar credenciales de prueba (solo en desarrollo)
+  const fillTestCredentials = () => {
+    setLoginForm({
+      email: 'doctor@tucitaonline.com',
+      password: 'Doctor123!',
+    });
+    toast.info('Credenciales de prueba cargadas');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // ValidaciÛn b·sica
+    // Validaci√≥n b√°sica
     if (!loginForm.email || !loginForm.password) {
-      toast.error('Error de validaciÛn', {
+      toast.error('Error de validaci√≥n', {
         description: 'Por favor completa todos los campos',
       });
       return;
@@ -37,28 +46,30 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
     setIsLoading(true);
 
     try {
-      // Llamar al servicio de autenticaciÛn de doctores
+      console.log('üîê Intentando login con:', { email: loginForm.email });
+      
+      // Llamar al servicio de autenticaci√≥n de doctores
       const doctorData = await doctorAuthService.login({
         email: loginForm.email,
         password: loginForm.password,
       });
 
-      console.log('? Login exitoso de doctor:', doctorData);
+      console.log('‚úÖ Login exitoso de doctor:', doctorData);
 
-      // Guardar en el estado de la aplicaciÛn
-      // El servicio ya guardÛ en localStorage, solo necesitamos llamar a onLogin
+      // Guardar en el estado de la aplicaci√≥n
+      // El servicio ya guard√≥ en localStorage, solo necesitamos llamar a onLogin
       onLogin(doctorData);
       
-      toast.success('°Bienvenido!', {
-        description: `Has iniciado sesiÛn como ${doctorData.name}`,
+      toast.success('¬°Bienvenido!', {
+        description: `Has iniciado sesi√≥n como ${doctorData.name}`,
       });
 
       onNavigate('doctor-dashboard');
     } catch (error: any) {
-      console.error('? Error al iniciar sesiÛn:', error);
+      console.error('‚ùå Error al iniciar sesi√≥n:', error);
       
-      toast.error('Error al iniciar sesiÛn', {
-        description: error.message || 'Credenciales inv·lidas o usuario no autorizado',
+      toast.error('Error al iniciar sesi√≥n', {
+        description: error.message || 'Credenciales inv√°lidas o usuario no autorizado',
       });
     } finally {
       setIsLoading(false);
@@ -75,7 +86,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                 <Stethoscope className="h-8 w-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-gray-900">Portal MÈdico</CardTitle>
+            <CardTitle className="text-2xl text-gray-900">Portal M√©dico</CardTitle>
             <CardDescription className="text-base">
               Acceso exclusivo para profesionales de la salud
             </CardDescription>
@@ -85,19 +96,44 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
             <Alert className="mb-6 bg-blue-50 border-blue-200">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                Este portal es exclusivo para mÈdicos registrados en TuCitaOnline
+                Este portal es exclusivo para m√©dicos registrados en TuCitaOnline
               </AlertDescription>
             </Alert>
 
+            {/* Credenciales de prueba (solo desarrollo) */}
+            {(process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') && (
+              <Alert className="mb-6 bg-amber-50 border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  <div className="space-y-2">
+                    <p className="font-medium text-sm">Credenciales de prueba:</p>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Email:</strong> doctor@tucitaonline.com</p>
+                      <p><strong>Contrase√±a:</strong> Doctor123!</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={fillTestCredentials}
+                      className="mt-2 w-full bg-white"
+                    >
+                      Usar credenciales de prueba
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="doctor-email">Correo ElectrÛnico Profesional</Label>
+                <Label htmlFor="doctor-email">Correo Electr√≥nico Profesional</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="doctor-email"
                     type="email"
-                    placeholder="doctor@hospital.com"
+                    placeholder="doctor@tucitaonline.org"
                     value={loginForm.email}
                     onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
                     className="pl-10"
@@ -109,13 +145,13 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="doctor-password">ContraseÒa</Label>
+                <Label htmlFor="doctor-password">Contrase√±a</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="doctor-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Tu contraseÒa segura"
+                    placeholder="Tu contrase√±a segura"
                     value={loginForm.password}
                     onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
                     className="pl-10 pr-10"
@@ -149,7 +185,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                   onClick={() => onNavigate('forgot-password')}
                   disabled={isLoading}
                 >
-                  øOlvidaste tu contraseÒa?
+                  ¬øOlvidaste tu contrase√±a?
                 </button>
               </div>
 
@@ -161,12 +197,12 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Iniciando sesiÛn...
+                    Iniciando sesi√≥n...
                   </>
                 ) : (
                   <>
                     <Stethoscope className="h-4 w-4 mr-2" />
-                    Acceder al Panel MÈdico
+                    Acceder al Panel M√©dico
                   </>
                 )}
               </Button>
@@ -187,14 +223,14 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
 
                 <div className="pt-2 border-t">
                   <p className="text-sm text-gray-600 mb-2">
-                    øA˙n no est·s registrado como mÈdico?
+                    ¬øA√∫n no est√°s registrado como m√©dico?
                   </p>
                   <button
                     type="button"
                     className="text-sm text-[#2E8BC0] hover:underline font-medium disabled:opacity-50"
                     onClick={() => {
-                      toast.info('InformaciÛn de Registro', {
-                        description: 'Contacta a administraciÛn para registrarte como mÈdico: admin@tucitaonline.com',
+                      toast.info('Informaci√≥n de Registro', {
+                        description: 'Contacta a administraci√≥n para registrarte como m√©dico: admin@tucitaonline.com',
                       });
                     }}
                     disabled={isLoading}
@@ -207,8 +243,8 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
 
             <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500 text-center">
-                <strong>Aviso de Seguridad:</strong> Este portal maneja informaciÛn mÈdica confidencial. 
-                Tu sesiÛn est· protegida con encriptaciÛn de extremo a extremo.
+                <strong>Aviso de Seguridad:</strong> Este portal maneja informaci√≥n m√©dica confidencial. 
+                Tu sesi√≥n est√° protegida con encriptaci√≥n de extremo a extremo.
               </p>
             </div>
           </CardContent>
