@@ -26,7 +26,7 @@ import {
   X,
   Loader2
 } from 'lucide-react';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { Alert, AlertDescription } from '../ui/alert';
 import { medicalHistoryService, HistorialMedicoExtendidoDto } from '../../services/medicalHistoryService';
 import { DoctorLayout } from '../doctor/DoctorLayout';

@@ -1,8 +1,8 @@
-import { Card, CardContent, CardFooter } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { MapPin, Star, Calendar } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface Doctor {
   id: string;
@@ -71,7 +71,7 @@ export function DoctorCard({ doctor, onViewSchedule }: DoctorCardProps) {
             <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
               <Badge variant="secondary" className="text-xs">
                 <Calendar className="h-3 w-3 mr-1" />
-                {doctor.availableSlots} espacio{doctor.availableSlots !== 1 ? 's' : ''} disponible{doctor.availableSlots !== 1 ? 's' : ''}
+                {doctor.availableSlots} espacio{doctor.availableSlots !== 1 ? 's' : ''} disponible{doctor.availableSlots !== 1 ? 's' : ''} 
               </Badge>
               <p className="text-xs text-muted-foreground">
                 Próximo: {doctor.nextAvailable}

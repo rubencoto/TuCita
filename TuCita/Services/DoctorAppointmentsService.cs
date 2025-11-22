@@ -375,8 +375,25 @@ public class DoctorAppointmentsService : IDoctorAppointmentsService
 
             if (!string.IsNullOrEmpty(request.Estado) && Enum.TryParse<EstadoCita>(request.Estado.ToUpperInvariant(), out var nuevoEstado))
             {
+                // ? VALIDACIÓN: Si la cita está EN_PROGRESO, mantenerla en ese estado
+                // Solo se permite cambiar a ATENDIDA, CANCELADA o NO_ATENDIDA desde EN_PROGRESO
+                if (estadoAnterior == EstadoCita.EN_PROGRESO)
+                {
+                    if (nuevoEstado != EstadoCita.ATENDIDA && 
+                        nuevoEstado != EstadoCita.CANCELADA && 
+                        nuevoEstado != EstadoCita.NO_ATENDIDA &&
+                        nuevoEstado != EstadoCita.EN_PROGRESO)
+                    {
+                        _logger.LogWarning("?? Intento de cambiar cita EN_PROGRESO a estado no permitido: {NuevoEstado}. Manteniendo EN_PROGRESO.", nuevoEstado);
+                        _logger.LogWarning("?? Solo se permite cambiar de EN_PROGRESO a: ATENDIDA, CANCELADA, NO_ATENDIDA o mantener EN_PROGRESO");
+                        
+                        // Mantener el estado EN_PROGRESO
+                        nuevoEstado = EstadoCita.EN_PROGRESO;
+                    }
+                }
+                
                 cita.Estado = nuevoEstado;
-                _logger.LogInformation("?? Nuevo estado parseado: {NuevoEstado}", nuevoEstado);
+                _logger.LogInformation("? Nuevo estado parseado: {NuevoEstado}", nuevoEstado);
             }
             else
             {

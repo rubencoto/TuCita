@@ -40,7 +40,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { Alert, AlertDescription } from '../ui/alert';
 import doctorAppointmentsService from '../../services/doctorAppointmentsService';
 import { DoctorLayout } from '../doctor/DoctorLayout';
@@ -189,8 +189,13 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       icon: AlertCircle
     },
-    NO_SHOW: { 
-      label: 'No asistiá', 
+    RECHAZADA: { 
+      label: 'Rechazada', 
+      color: 'bg-orange-100 text-orange-800 border-orange-200',
+      icon: XCircle
+    },
+    NO_ATENDIDA: { 
+      label: 'No asistió', 
       color: 'bg-gray-100 text-gray-800 border-gray-200',
       icon: UserX
     },
@@ -935,7 +940,8 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     <SelectItem value="EN_PROGRESO">En progreso</SelectItem>
                     <SelectItem value="ATENDIDA">Atendida</SelectItem>
                     <SelectItem value="CANCELADA">Cancelada</SelectItem>
-                    <SelectItem value="NO_SHOW">No asistiá</SelectItem>
+                    <SelectItem value="RECHAZADA">Rechazada</SelectItem>
+                    <SelectItem value="NO_ATENDIDA">No asistió</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

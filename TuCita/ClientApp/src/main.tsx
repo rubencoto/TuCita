@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import "./services/axiosConfig"; // Importar configuraci�n de Axios
+import "./services/api/axiosConfig"; // Importar configuración de Axios
 
-createRoot(document.getElementById("root")!).render(<App />);  
+createRoot(document.getElementById("root")!).render(<App />);

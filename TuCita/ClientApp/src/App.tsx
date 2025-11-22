@@ -1,30 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Toaster } from './components/ui/sonner';
-import { Navbar } from './components/navbar';
-import { Footer } from './components/footer';
-import { HomePage } from './components/pages/home-page';
-import { AuthPage } from './components/pages/auth-page';
-import { DoctorAuthPage } from './components/pages/doctor-auth-page';
-import { SearchPage } from './components/pages/search-page';
-import { BookingPage } from './components/pages/booking-page';
-import { AppointmentsPage } from './components/pages/appointments-page';
-import { ProfilePage } from './components/pages/profile-page';
-import { ForgotPasswordPage } from './components/pages/forgot-password-page';
-import { ResetPasswordPage } from './components/pages/reset-password-page';
-import { MedicalHistoryPage } from './components/pages/medical-history-page';
-import { AppointmentDetailPage } from './components/pages/appointment-detail-page';
-import { ReschedulePage } from './components/pages/reschedule-page';
-import { DoctorDashboardPage } from './components/pages/doctor-dashboard-page';
-import { DoctorAppointmentsPage } from './components/pages/doctor-appointments-page';
-import { DoctorAppointmentDetailPage } from './components/pages/doctor-appointment-detail-page';
-import { DoctorMedicalHistoryPage } from './components/pages/doctor-medical-history-page';
-import { DoctorAvailabilityPage } from './components/pages/doctor-availability-page';
-import { DoctorProfilePage } from './components/pages/doctor-profile-page';
-import { authService, AuthResponse } from './services/authService';
-import doctorAuthService from './services/doctorAuthService';
-import appointmentsService from './services/appointmentsService';
+import { Navbar } from './components/layout/navbar';
+import { Footer } from './components/layout/footer';
+import { HomePage } from './components/pages/patient/home-page';
+import { AuthPage } from './components/pages/auth/auth-page';
+import { DoctorAuthPage } from './components/pages/auth/doctor-auth-page';
+import { SearchPage } from './components/pages/patient/search-page';
+import { BookingPage } from './components/pages/patient/booking-page';
+import { AppointmentsPage } from './components/pages/patient/appointments-page';
+import { ProfilePage } from './components/pages/patient/profile-page';
+import { ForgotPasswordPage } from './components/pages/auth/forgot-password-page';
+import { ResetPasswordPage } from './components/pages/auth/reset-password-page';
+import { MedicalHistoryPage } from './components/pages/patient/medical-history-page';
+import { AppointmentDetailPage } from './components/pages/patient/appointment-detail-page';
+import { ReschedulePage } from './components/pages/patient/reschedule-page';
+import { DoctorDashboardPage } from './components/pages/doctor/doctor-dashboard-page';
+import { DoctorAppointmentsPage } from './components/pages/doctor/doctor-appointments-page';
+import { DoctorAppointmentDetailPage } from './components/pages/doctor/doctor-appointment-detail-page';
+import { DoctorMedicalHistoryPage } from './components/pages/doctor/doctor-medical-history-page';
+import { DoctorAvailabilityPage } from './components/pages/doctor/doctor-availability-page';
+import { DoctorProfilePage } from './components/pages/doctor/doctor-profile-page';
+import { authService, AuthResponse } from './services/api/auth/authService';
+import doctorAuthService from './services/api/auth/doctorAuthService';
+import adminAuthService from './services/api/auth/adminAuthService';
+import appointmentsService from './services/api/patient/appointmentsService';
 
-type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-profile';
+type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-profile' | 'admin-panel';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -34,6 +35,7 @@ export default function App() {
   const [pageData, setPageData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [isDoctor, setIsDoctor] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   // Verificar si hay una sesión activa al cargar la app
   useEffect(() => {
@@ -55,6 +57,20 @@ export default function App() {
           return;
         }
         
+        // Si es un admin
+        if (userRole === 'ADMIN') {
+          const currentAdmin = adminAuthService.getCurrentAdmin();
+          if (currentAdmin && adminAuthService.isAuthenticated()) {
+            console.log('✅ Sesión de admin detectada:', currentAdmin);
+            setUser(currentAdmin);
+            setIsLoggedIn(true);
+            setIsAdmin(true);
+            setIsDoctor(false);
+            setCurrentPage('admin-panel');
+            return;
+          }
+        }
+        
         // Si es un doctor
         if (userRole === 'DOCTOR') {
           const currentDoctor = doctorAuthService.getCurrentDoctor();
@@ -63,6 +79,7 @@ export default function App() {
             setUser(currentDoctor);
             setIsLoggedIn(true);
             setIsDoctor(true);
+            setIsAdmin(false);
             setCurrentPage('doctor-dashboard');
             return;
           }
@@ -76,6 +93,7 @@ export default function App() {
             setUser(currentUser);
             setIsLoggedIn(true);
             setIsDoctor(false);
+            setIsAdmin(false);
             // Cargar citas del usuario
             loadUserAppointments();
             return;
@@ -123,13 +141,21 @@ export default function App() {
     setUser(userData);
     setIsLoggedIn(true);
     
+    // Verificar si es un admin
+    if (userData.role === 'admin' || userData.role === 'ADMIN') {
+      console.log('👨‍💼 Usuario es administrador');
+      setIsAdmin(true);
+      setIsDoctor(false);
+    }
     // Verificar si es un doctor
-    if (userData.role === 'doctor' || userData.role === 'DOCTOR') {
+    else if (userData.role === 'doctor' || userData.role === 'DOCTOR') {
       console.log('👨‍⚕️ Usuario es doctor');
       setIsDoctor(true);
+      setIsAdmin(false);
     } else {
       console.log('👤 Usuario es paciente');
       setIsDoctor(false);
+      setIsAdmin(false);
       // Cargar citas del usuario recién logueado
       await loadUserAppointments();
     }
@@ -138,7 +164,9 @@ export default function App() {
   const handleLogout = async (): Promise<void> => {
     console.log('👋 Cerrando sesión...');
     
-    if (isDoctor) {
+    if (isAdmin) {
+      await adminAuthService.logout();
+    } else if (isDoctor) {
       await doctorAuthService.logout();
     } else {
       await authService.logout();
@@ -147,6 +175,7 @@ export default function App() {
     setUser(null);
     setIsLoggedIn(false);
     setIsDoctor(false);
+    setIsAdmin(false);
     setAppointments([]);
     setCurrentPage('home');
   };
@@ -459,6 +488,20 @@ export default function App() {
           />
         );
       
+      // Ruta del Admin
+      case 'admin-panel':
+        if (!isLoggedIn || !isAdmin) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <div>Panel de Admin</div>
+        );
+      
       case 'home':
       default:
         return (
@@ -476,7 +519,8 @@ export default function App() {
     currentPage === 'doctor-login' || 
     currentPage === 'forgot-password' || 
     currentPage === 'reset-password' ||
-    currentPage.startsWith('doctor-')
+    currentPage.startsWith('doctor-') ||
+    currentPage === 'admin-panel'
   );
 
   return (

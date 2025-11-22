@@ -202,7 +202,9 @@ public enum EstadoCita
     CONFIRMADA,
     RECHAZADA,
     CANCELADA,
-    ATENDIDA
+    EN_PROGRESO,
+    ATENDIDA,
+    NO_ATENDIDA
 }
 
 [Table("agenda_turnos")]

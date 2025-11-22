@@ -25,10 +25,12 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  UserX,
+  Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import doctorAppointmentsService, { DoctorAppointment, DoctorPatient } from '../../services/doctorAppointmentsService';
 import { DoctorLayout } from '../doctor/DoctorLayout';
 
@@ -61,7 +63,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
   useEffect(() => {
     loadAppointments();
     loadPatients();
-  }, schematypings);
+  }, []);
 
   // Recargar citas cuando cambian los filtros de fecha o estado
   useEffect(() => {
@@ -129,6 +131,11 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
       color: 'bg-green-100 text-green-800 border-green-200',
       icon: CheckCircle2
     },
+    EN_PROGRESO: { 
+      label: 'En progreso', 
+      color: 'bg-purple-100 text-purple-800 border-purple-200',
+      icon: Activity
+    },
     CANCELADA: { 
       label: 'Cancelada', 
       color: 'bg-red-100 text-red-800 border-red-200',
@@ -141,8 +148,13 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
     },
     RECHAZADA: { 
       label: 'Rechazada', 
-      color: 'bg-red-100 text-red-800 border-red-200',
+      color: 'bg-orange-100 text-orange-800 border-orange-200',
       icon: XCircle
+    },
+    NO_ATENDIDA: { 
+      label: 'No asistió', 
+      color: 'bg-gray-100 text-gray-800 border-gray-200',
+      icon: UserX
     },
   };
 
@@ -242,7 +254,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       <Label htmlFor="paciente">Paciente *</Label>
                       <Select
                         value={newAppointment.pacienteId.toString()}
-                        onValueChange={(value) => setNewAppointment({ ...newAppointment, pacienteId: parseInt(value) })}
+                        onValueChange={(value: string) => setNewAppointment({ ...newAppointment, pacienteId: parseInt(value) })}
                         disabled={creating || pacientes.length === 0}
                       >
                         <SelectTrigger id="paciente">
@@ -266,7 +278,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       <Label htmlFor="estado">Estado inicial</Label>
                       <Select
                         value={newAppointment.estado}
-                        onValueChange={(value) => setNewAppointment({ ...newAppointment, estado: value })}
+                        onValueChange={(value: string) => setNewAppointment({ ...newAppointment, estado: value })}
                         disabled={creating}
                       >
                         <SelectTrigger id="estado">
@@ -316,7 +328,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                     <Label htmlFor="observaciones">Observaciones iniciales</Label>
                     <Textarea
                       id="observaciones"
-                      placeholder="Informacián adicional sobre la cita"
+                      placeholder="Información adicional sobre la cita"
                       value={newAppointment.observaciones}
                       onChange={(e) => setNewAppointment({ ...newAppointment, observaciones: e.target.value })}
                       rows={3}
@@ -382,9 +394,11 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       <SelectItem value="all">Todos los estados</SelectItem>
                       <SelectItem value="PENDIENTE">Pendiente</SelectItem>
                       <SelectItem value="CONFIRMADA">Confirmada</SelectItem>
+                      <SelectItem value="EN_PROGRESO">En progreso</SelectItem>
                       <SelectItem value="ATENDIDA">Atendida</SelectItem>
                       <SelectItem value="CANCELADA">Cancelada</SelectItem>
                       <SelectItem value="RECHAZADA">Rechazada</SelectItem>
+                      <SelectItem value="NO_ATENDIDA">No asistió</SelectItem>
                     </SelectContent>
                   </Select>
                   {(searchTerm || filterDate || filterStatus !== 'all') && (
@@ -405,7 +419,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
 
         {/* Tabs por estado */}
         <Tabs value={filterStatus} onValueChange={setFilterStatus} className="mb-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="all" disabled={loading}>
               Todas
               <Badge variant="secondary" className="ml-2">{getTabCount('all')}</Badge>
@@ -418,6 +432,10 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
               Confirmadas
               <Badge variant="secondary" className="ml-2">{getTabCount('CONFIRMADA')}</Badge>
             </TabsTrigger>
+            <TabsTrigger value="EN_PROGRESO" disabled={loading}>
+              En Progreso
+              <Badge variant="secondary" className="ml-2">{getTabCount('EN_PROGRESO')}</Badge>
+            </TabsTrigger>
             <TabsTrigger value="ATENDIDA" disabled={loading}>
               Atendidas
               <Badge variant="secondary" className="ml-2">{getTabCount('ATENDIDA')}</Badge>
@@ -429,6 +447,10 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
             <TabsTrigger value="RECHAZADA" disabled={loading}>
               Rechazadas
               <Badge variant="secondary" className="ml-2">{getTabCount('RECHAZADA')}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="NO_ATENDIDA" disabled={loading}>
+              No Asistió
+              <Badge variant="secondary" className="ml-2">{getTabCount('NO_ATENDIDA')}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>

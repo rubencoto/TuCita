@@ -13,6 +13,7 @@ public interface IAuthService
 {
     Task<AuthResult> LoginAsync(LoginRequestDto request);
     Task<DoctorAuthResult> LoginDoctorAsync(LoginRequestDto request);
+    Task<AdminAuthResult> LoginAdminAsync(LoginRequestDto request);
     Task<AuthResult> RegisterAsync(RegisterRequestDto request);
     Task<Usuario?> GetUserByIdAsync(long userId);
     Task<AuthResult> RequestPasswordResetAsync(string email);
@@ -153,6 +154,66 @@ public class AuthService : IAuthService
                 Biografia = usuario.PerfilMedico.Biografia,
                 Direccion = usuario.PerfilMedico.Direccion,
                 Especialidades = especialidades
+            }
+        };
+    }
+
+    public async Task<AdminAuthResult> LoginAdminAsync(LoginRequestDto request)
+    {
+        // Buscar usuario con rol de administrador
+        var usuario = await _context.Usuarios
+            .Include(u => u.RolesUsuarios)
+                .ThenInclude(ru => ru.Rol)
+            .FirstOrDefaultAsync(u => u.EmailNormalizado == request.Email.ToLower());
+
+        if (usuario == null || !usuario.Activo)
+        {
+            _logger.LogWarning("Intento de login de admin fallido: usuario no encontrado o inactivo - {Email}", request.Email);
+            return new AdminAuthResult 
+            { 
+                Success = false, 
+                Message = "Credenciales inválidas o usuario no autorizado como administrador" 
+            };
+        }
+
+        if (!VerifyPassword(request.Password, usuario.PasswordHash))
+        {
+            _logger.LogWarning("Intento de login de admin fallido: contraseña incorrecta - {Email}", request.Email);
+            return new AdminAuthResult 
+            { 
+                Success = false, 
+                Message = "Credenciales inválidas" 
+            };
+        }
+
+        // Verificar que el usuario tiene rol de ADMIN (ID = 3)
+        var esAdmin = usuario.RolesUsuarios.Any(ru => ru.Rol.Nombre == "ADMIN" || ru.RolId == 3);
+        if (!esAdmin)
+        {
+            _logger.LogWarning("Intento de login de admin fallido: usuario sin rol ADMIN - {Email}", request.Email);
+            return new AdminAuthResult 
+            { 
+                Success = false, 
+                Message = "Usuario no autorizado como administrador" 
+            };
+        }
+
+        var token = GenerateJwtToken(usuario);
+
+        _logger.LogInformation("Login exitoso de administrador: {Email} - {AdminId}", request.Email, usuario.Id);
+
+        return new AdminAuthResult
+        {
+            Success = true,
+            Token = token,
+            Admin = new AdminAuthResponseDto
+            {
+                Id = usuario.Id,
+                Name = $"{usuario.Nombre} {usuario.Apellido}",
+                Email = usuario.Email,
+                Phone = usuario.Telefono,
+                Token = token,
+                Role = "ADMIN"
             }
         };
     }
@@ -418,4 +479,13 @@ public class DoctorAuthResult
     public string? Message { get; set; }
     public string? Token { get; set; }
     public DoctorAuthResponseDto? Doctor { get; set; }
+}
+
+// Clase auxiliar para el resultado de autenticación de administrador
+public class AdminAuthResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public string? Token { get; set; }
+    public AdminAuthResponseDto? Admin { get; set; }
 }

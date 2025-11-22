@@ -78,6 +78,33 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Endpoint específico para autenticación de administradores
+    /// Retorna información del perfil de administrador
+    /// </summary>
+    /// <param name="request">Credenciales de inicio de sesión (email y contraseña)</param>
+    /// <returns>Información del administrador con token JWT</returns>
+    /// <response code="200">Login exitoso, retorna datos del administrador con token JWT</response>
+    /// <response code="400">Modelo de datos inválido</response>
+    /// <response code="401">Credenciales incorrectas o el usuario no es un administrador</response>
+    [HttpPost("admin/login")]
+    public async Task<IActionResult> AdminLogin([FromBody] LoginRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _authService.LoginAdminAsync(request);
+
+        if (!result.Success)
+        {
+            return Unauthorized(new { message = result.Message });
+        }
+
+        return Ok(result.Admin);
+    }
+
+    /// <summary>
     /// Registra un nuevo usuario en el sistema
     /// </summary>
     /// <param name="request">Información del nuevo usuario (nombre, apellido, email, teléfono, contraseña)</param>
