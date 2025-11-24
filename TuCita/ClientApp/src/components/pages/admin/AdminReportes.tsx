@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+Ôªøimport { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -67,7 +67,7 @@ export function AdminReportes() {
       setFormatosDisponibles(formatos);
     } catch (error: any) {
       console.error('Error al cargar datos iniciales:', error);
-      toast.error('Error al cargar configuraciÛn', {
+      toast.error('Error al cargar configuraci√≥n', {
         description: 'No se pudieron cargar los tipos de reportes'
       });
     } finally {
@@ -90,7 +90,7 @@ export function AdminReportes() {
       setReporteGenerado(reporte);
 
       toast.success('Reporte generado exitosamente', {
-        description: `Se generÛ el reporte: ${reporte.titulo}`
+        description: `Se gener√≥ el reporte: ${reporte.titulo}`
       });
     } catch (error: any) {
       console.error('Error al generar reporte:', error);
@@ -134,7 +134,7 @@ export function AdminReportes() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando mÛdulo de reportes...</p>
+          <p className="text-gray-600">Cargando m√≥dulo de reportes...</p>
         </div>
       </div>
     );
@@ -196,7 +196,7 @@ export function AdminReportes() {
             <Filter className="h-5 w-5" />
             Filtros de Reporte
           </CardTitle>
-          <CardDescription>Configura los par·metros del reporte a generar</CardDescription>
+          <CardDescription>Configura los par√°metros del reporte a generar</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -241,9 +241,9 @@ export function AdminReportes() {
               />
             </div>
 
-            {/* Formato de ExportaciÛn */}
+            {/* Formato de Exportaci√≥n */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Formato de ExportaciÛn</label>
+              <label className="text-sm font-medium text-gray-700">Formato de Exportaci√≥n</label>
               <select
                 value={formatoExportacion}
                 onChange={(e) => setFormatoExportacion(Number(e.target.value) as FormatoExportacion)}
@@ -291,7 +291,7 @@ export function AdminReportes() {
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 text-yellow-600 mb-1">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Tasa CancelaciÛn</span>
+                    <span className="text-sm font-medium">Tasa cancelaci√≥n</span>
                   </div>
                   <p className="text-2xl font-bold text-gray-900">{reporteGenerado.resumen.tasaCancelacion}%</p>
                 </div>
@@ -326,12 +326,12 @@ export function AdminReportes() {
             </CardContent>
           </Card>
 
-          {/* Gr·ficas */}
+          {/* Gr√°ficas */}
           {reporteGenerado.datosGraficas && reporteGenerado.datosGraficas.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>VisualizaciÛn de Datos</CardTitle>
-                <CardDescription>Gr·ficas del reporte generado</CardDescription>
+                <CardTitle>Visualizaci√≥n de Datos</CardTitle>
+                <CardDescription>Gr√°ficas del reporte generado</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
@@ -355,7 +355,7 @@ export function AdminReportes() {
           <Card>
             <CardHeader>
               <CardTitle>Datos Detallados</CardTitle>
-              <CardDescription>InformaciÛn completa del reporte</CardDescription>
+              <CardDescription>Informaci√≥n completa del reporte</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -368,7 +368,7 @@ export function AdminReportes() {
         </>
       )}
 
-      {/* Estado vacÌo */}
+      {/* Estado vac√≥o */}
       {!reporteGenerado && !generandoReporte && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">

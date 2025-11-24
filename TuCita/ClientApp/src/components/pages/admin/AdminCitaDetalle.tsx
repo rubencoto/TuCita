@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+锘縤mport { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -103,7 +103,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
   const handleCancelar = async () => {
     if (!citaId) return;
 
-    const confirmado = confirm('縀st醩 seguro de que deseas cancelar esta cita?');
+    const confirmado = confirm('驴Est贸s seguro de que deseas cancelar esta cita?');
     if (!confirmado) return;
 
     try {
@@ -153,7 +153,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
             Detalle de Cita
           </DialogTitle>
           <DialogDescription>
-            Informaci髇 completa de la cita m閐ica
+            Informaci贸n completa de la cita m茅dica
           </DialogDescription>
         </DialogHeader>
 
@@ -185,11 +185,11 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
 
               <Separator />
 
-              {/* Informaci髇 del Paciente */}
+              {/* Informaci贸n del Paciente */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   <User className="h-4 w-4 text-teal-600" />
-                  Informaci髇 del Paciente
+                  Informaci贸n del Paciente
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="grid grid-cols-2 gap-4">
@@ -210,7 +210,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
                       <div>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           <Phone className="h-3 w-3" />
-                          Tel閒ono
+                          Tel茅fono
                         </p>
                         <p className="text-sm text-gray-900">{cita.pacienteTelefono}</p>
                       </div>
@@ -219,7 +219,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
                       <div>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           <CreditCard className="h-3 w-3" />
-                          Identificaci髇
+                          Identificaci贸n
                         </p>
                         <p className="text-sm text-gray-900">{cita.pacienteIdentificacion}</p>
                       </div>
@@ -230,11 +230,11 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
 
               <Separator />
 
-              {/* Informaci髇 del Doctor */}
+              {/* Informaci贸n del Doctor */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   <Stethoscope className="h-4 w-4 text-teal-600" />
-                  Informaci髇 del Doctor
+                  Informaci贸n del Doctor
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="grid grid-cols-2 gap-4">
@@ -261,7 +261,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
                       <div>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           <Phone className="h-3 w-3" />
-                          Tel閒ono
+                          Tel茅fono
                         </p>
                         <p className="text-sm text-gray-900">{cita.doctorTelefono}</p>
                       </div>
@@ -272,7 +272,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
 
               <Separator />
 
-              {/* Informaci髇 de la Cita */}
+              {/* Informaci贸n de la Cita */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-teal-600" />
@@ -303,12 +303,12 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
                 </div>
               </div>
 
-              {/* Acciones R醦idas */}
+              {/* Acciones r谩pidas */}
               {(cita.estado === 'PROGRAMADA' || cita.estado === 'CONFIRMADA') && (
                 <>
                   <Separator />
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900">Acciones R醦idas</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">Acciones r谩pidas</h3>
                     <div className="flex gap-2">
                       {cita.estado === 'CONFIRMADA' && (
                         <Button
@@ -338,7 +338,7 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
         ) : (
           <div className="text-center py-8 text-gray-500">
             <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-            <p>No se pudo cargar la informaci髇 de la cita</p>
+            <p>No se pudo cargar la Informaci贸n de la cita</p>
           </div>
         )}
 

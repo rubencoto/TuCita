@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+锘縤mport { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, CheckCircle, XCircle, UserCheck, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -125,7 +125,7 @@ export function AdminDashboard() {
     },
   ];
 
-  // Transformar datos semanales para el gr醘ico de barras
+  // Transformar datos semanales para el gr谩fico de barras
   const chartData = dashboardData.datosSemanales.map(item => ({
     name: item.dia,
     PROGRAMADA: item.programada,
@@ -134,7 +134,7 @@ export function AdminDashboard() {
     NO_SHOW: item.noShow
   }));
 
-  // Transformar datos de distribuci髇 para el gr醘ico de pastel
+  // Transformar datos de distribuci贸n para el gr谩fico de pastel
   const pieData = dashboardData.distribucionEstados.map(item => ({
     name: item.estado,
     value: item.cantidad,
@@ -171,8 +171,8 @@ export function AdminDashboard() {
         {/* Bar Chart */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Citas por estado (鷏timos 7 d韆s)</CardTitle>
-            <CardDescription>Evoluci髇 semanal del estado de las citas</CardDescription>
+            <CardTitle>Citas por estado (煤ltimos 7 d铆as)</CardTitle>
+            <CardDescription>Evoluci贸n semanal del estado de las citas</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -194,7 +194,7 @@ export function AdminDashboard() {
         {/* Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Distribuci髇 total</CardTitle>
+            <CardTitle>distribuci贸n total</CardTitle>
             <CardDescription>Por estado de cita</CardDescription>
           </CardHeader>
           <CardContent>
@@ -226,13 +226,13 @@ export function AdminDashboard() {
         {/* Upcoming Appointments */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Pr髕imas citas de hoy</CardTitle>
-            <CardDescription>Agenda del d韆 en curso</CardDescription>
+            <CardTitle>Pr贸ximas citas de hoy</CardTitle>
+            <CardDescription>Agenda del d贸a en curso</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData.proximasCitas.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No hay citas programadas para el resto del d韆
+                No hay citas programadas para el resto del d贸a
               </div>
             ) : (
               <div className="overflow-x-auto">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ï»¿import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorConEspecialidad | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<SlotDisponible | null>(null);
   
-  // Estados de búsqueda
+  // Estados de bÃºsqueda
   const [searchPatient, setSearchPatient] = useState('');
   const [pacientesEncontrados, setPacientesEncontrados] = useState<PacienteSearch[]>([]);
   const [doctores, setDoctores] = useState<DoctorConEspecialidad[]>([]);
@@ -54,7 +54,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
   const [creatingAppointment, setCreatingAppointment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Buscar pacientes cuando cambia el término de búsqueda
+  // Buscar pacientes cuando cambia el tÃ©rmino de bÃºsqueda
   useEffect(() => {
     const searchPacientes = async () => {
       if (searchPatient.length < 2) {
@@ -176,7 +176,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
       });
 
       toast.success(
-        `¡Cita creada exitosamente!${citaCreada.emailEnviado ? ' Email enviado al paciente.' : ''}`,
+        `Ã³Cita creada exitosamente!${citaCreada.emailEnviado ? ' Email enviado al paciente.' : ''}`,
         {
           description: `Cita para ${citaCreada.nombrePaciente} con ${citaCreada.nombreMedico}`
         }
@@ -276,7 +276,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por nombre, email o ID (mínimo 2 caracteres)..."
+                placeholder="Buscar por nombre, email o ID (mÃ­nimo 2 caracteres)..."
                 value={searchPatient}
                 onChange={(e) => setSearchPatient(e.target.value)}
                 className="pl-10"
@@ -303,8 +303,8 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
                         <p className="text-sm font-medium text-gray-900">{patient.nombreCompleto}</p>
                         <p className="text-xs text-gray-500">
                           {patient.email}
-                          {patient.telefono && ` • ${patient.telefono}`}
-                          {patient.identificacion && ` • ID: ${patient.identificacion}`}
+                          {patient.telefono && ` Ã³ ${patient.telefono}`}
+                          {patient.identificacion && ` Ã³ ID: ${patient.identificacion}`}
                         </p>
                       </div>
                     </div>
@@ -360,7 +360,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
         <Card>
           <CardHeader>
             <CardTitle>2. Seleccionar doctor</CardTitle>
-            <CardDescription>Elige el médico para la cita</CardDescription>
+            <CardDescription>Elige el mÃ©dico para la cita</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {loadingDoctors ? (
@@ -477,7 +477,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
         <Card>
           <CardHeader>
             <CardTitle>4. Detalles de la cita</CardTitle>
-            <CardDescription>Información adicional y confirmación</CardDescription>
+            <CardDescription>informaciÃ³n adicional y confirmaciÃ³n</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -495,7 +495,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
               <Label htmlFor="notas">Notas internas (opcional)</Label>
               <Textarea
                 id="notas"
-                placeholder="Notas para el staff médico..."
+                placeholder="Notas para el staff mÃ©dico..."
                 value={notasInternas}
                 onChange={(e) => setNotasInternas(e.target.value)}
                 maxLength={500}
@@ -507,8 +507,8 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
 
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="email">Enviar correo de confirmación al paciente</Label>
-                <p className="text-xs text-gray-500">Se enviará un email con los detalles de la cita</p>
+                <Label htmlFor="email">Enviar correo de confirmaciÃ³n al paciente</Label>
+                <p className="text-xs text-gray-500">Se enviarÃ¡ un email con los detalles de la cita</p>
               </div>
               <Switch
                 id="email"

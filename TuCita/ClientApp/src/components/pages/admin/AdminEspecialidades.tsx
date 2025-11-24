@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ï»¿import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +86,7 @@ export function AdminEspecialidades() {
   };
 
   const handleDelete = async (id: number, nombre: string) => {
-    if (!confirm(`¿Está seguro que desea eliminar la especialidad "${nombre}"?`)) {
+    if (!confirm(`Â¿EstÃ³ seguro que desea eliminar la especialidad "${nombre}"?`)) {
       return;
     }
 
@@ -113,7 +113,7 @@ export function AdminEspecialidades() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Especialidades médicas</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Especialidades MÃ©dicas</h2>
           <p className="text-sm text-gray-500 mt-1">Gestiona las especialidades disponibles en el sistema</p>
         </div>
         <Button
@@ -190,7 +190,7 @@ export function AdminEspecialidades() {
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nueva'} especialidad</DialogTitle>
             <DialogDescription>
-              {editingId ? 'Modifica los datos de la especialidad médica' : 'Completa la información de la nueva especialidad médica'}
+              {editingId ? 'Modifica los datos de la especialidad MÃ©dica' : 'Completa la informaciÃ³n de la nueva especialidad MÃ©dica'}
             </DialogDescription>
           </DialogHeader>
 
@@ -199,7 +199,7 @@ export function AdminEspecialidades() {
               <Label htmlFor="nombre">Nombre de la especialidad</Label>
               <Input
                 id="nombre"
-                placeholder="ej. Cardiología"
+                placeholder="ej. CardiologÃ­a"
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                 maxLength={120}

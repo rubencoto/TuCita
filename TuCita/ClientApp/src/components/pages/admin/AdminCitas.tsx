@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ï»¿import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,7 @@ const origenColors: Record<string, string> = {
   ADMIN: 'bg-purple-100 text-purple-800',
 };
 
-// Configuración de acciones por estado
+// configuraciÃ³n de acciones por estado
 const statusActions = {
   PROGRAMADA: [
     { estado: 'CONFIRMADA', label: 'Confirmar', icon: CheckCircle, color: 'text-blue-600' },
@@ -105,13 +105,13 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   
-  // Paginación
+  // paginaciÃ³n
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const pageSize = 20;
 
-  // Diálogos
+  // DiÃ¡logos
   const [statusUpdateDialog, setStatusUpdateDialog] = useState<StatusUpdateDialog>({
     isOpen: false,
     citaId: null,
@@ -214,7 +214,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   };
 
   const handleDetalleUpdateSuccess = () => {
-    loadCitas(); // Recargar lista después de actualizar desde el detalle
+    loadCitas(); // Recargar lista despuÃ³s de actualizar desde el detalle
   };
 
   const handleResetFilters = () => {
@@ -317,7 +317,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de citas</h2>
+          <h2 className="text-2xl font-bold text-gray-900">GestiÃ³n de citas</h2>
           <p className="text-sm text-gray-500 mt-1">Administra y crea citas en nombre de pacientes</p>
         </div>
         <Button
@@ -536,7 +536,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
               <div className="text-sm text-gray-600">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </div>
               <div className="flex gap-2">
                 <Button
@@ -561,7 +561,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
         </CardContent>
       </Card>
 
-      {/* Diálogo de Actualización de Estado */}
+      {/* DiÃ¡logo de actualizaciÃ³n de Estado */}
       <AlertDialog open={statusUpdateDialog.isOpen} onOpenChange={(open) => {
         if (!open) {
           setStatusUpdateDialog({ isOpen: false, citaId: null, nuevoEstado: null, citaNombre: '' });
@@ -572,7 +572,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Actualizar Estado de Cita</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de cambiar el estado a <strong>{statusUpdateDialog.nuevoEstado}</strong> para:
+              Â¿EstÃ³s seguro de cambiar el estado a <strong>{statusUpdateDialog.nuevoEstado}</strong> para:
               <br />
               <span className="font-medium text-gray-900">{statusUpdateDialog.citaNombre}</span>?
             </AlertDialogDescription>
@@ -610,7 +610,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diálogo de Eliminación */}
+      {/* DiÃ¡logo de EliminaciÃ³n */}
       <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => {
         if (!open) {
           setDeleteDialog({ isOpen: false, citaId: null, citaNombre: '' });
@@ -621,20 +621,20 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Cita</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de eliminar permanentemente esta cita?
+              Â¿EstÃ³s seguro de eliminar permanentemente esta cita?
               <br />
               <span className="font-medium text-gray-900">{deleteDialog.citaNombre}</span>
               <br />
               <br />
-              Esta acción no se puede deshacer y el turno se liberará para otros pacientes.
+              Esta acciÃ³n no se puede deshacer y el turno se liberarÃ³ para otros pacientes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           
           <div className="py-4">
-            <Label htmlFor="delete-notas">Motivo de eliminación (opcional)</Label>
+            <Label htmlFor="delete-notas">Motivo de EliminaciÃ³n (opcional)</Label>
             <Textarea
               id="delete-notas"
-              placeholder="Describe el motivo de la eliminación..."
+              placeholder="Describe el motivo de la EliminaciÃ³n..."
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
               className="mt-2"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ï»¿import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +67,7 @@ export function AdminUsuarios() {
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [emailError, setEmailError] = useState('');
 
-  // State para confirmación de eliminación
+  // State para confirmaciÃ³n de eliminaciÃ³n
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   
@@ -123,7 +123,7 @@ export function AdminUsuarios() {
     } catch (error: any) {
       console.error('Error al cargar usuarios:', error);
       toast.error('Error al cargar usuarios', {
-        description: error.response?.data?.message || 'Ocurrió un error al cargar los datos'
+        description: error.response?.data?.message || 'OcurriÃ³ un error al cargar los datos'
       });
     } finally {
       setLoading(false);
@@ -154,7 +154,7 @@ export function AdminUsuarios() {
     if (email.length > 3) {
       try {
         const existe = await adminUsuariosService.existeEmail(email, editingUser?.id);
-        setEmailError(existe ? 'Este email ya está registrado' : '');
+        setEmailError(existe ? 'Este email ya estÃ³ registrado' : '');
       } catch (error) {
         console.error('Error al verificar email:', error);
       }
@@ -270,7 +270,7 @@ export function AdminUsuarios() {
 
         await adminUsuariosService.createUsuario(createData);
         toast.success('Usuario creado exitosamente', {
-          description: 'Contraseña temporal asignada: TuCita2024!'
+          description: 'ContraseÃ³a temporal asignada: TuCita2024!'
         });
       }
 
@@ -279,7 +279,7 @@ export function AdminUsuarios() {
     } catch (error: any) {
       console.error('Error al guardar usuario:', error);
       toast.error('Error al guardar usuario', {
-        description: error.response?.data?.message || 'Ocurrió un error al guardar'
+        description: error.response?.data?.message || 'OcurriÃ³ un error al guardar'
       });
     } finally {
       setLoading(false);
@@ -294,7 +294,7 @@ export function AdminUsuarios() {
     } catch (error: any) {
       console.error('Error al cambiar estado:', error);
       toast.error('Error al cambiar estado', {
-        description: error.response?.data?.message || 'Ocurrió un error'
+        description: error.response?.data?.message || 'OcurriÃ³ un error'
       });
     }
   };
@@ -311,7 +311,7 @@ export function AdminUsuarios() {
     } catch (error: any) {
       console.error('Error al eliminar usuario:', error);
       toast.error('Error al eliminar usuario', {
-        description: error.response?.data?.message || 'Ocurrió un error al eliminar'
+        description: error.response?.data?.message || 'OcurriÃ³ un error al eliminar'
       });
     }
   };
@@ -321,7 +321,7 @@ export function AdminUsuarios() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de usuarios</h2>
+          <h2 className="text-2xl font-bold text-gray-900">GestiÃ³n de usuarios</h2>
           <p className="text-sm text-gray-500 mt-1">Administra todos los usuarios del sistema</p>
         </div>
         <Button
@@ -356,7 +356,7 @@ export function AdminUsuarios() {
                 <SelectItem value="Todos">Todos los roles</SelectItem>
                 <SelectItem value="PACIENTE">Paciente</SelectItem>
                 <SelectItem value="DOCTOR">Doctor</SelectItem>
-                <SelectItem value="RECEPCION">Recepción</SelectItem>
+                <SelectItem value="RECEPCION">RecepciÃ³n</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -385,7 +385,7 @@ export function AdminUsuarios() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Correo</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Roles</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Estado</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Fecha creación</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Fecha creaciÃ³n</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Acciones</th>
                 </tr>
               </thead>
@@ -469,7 +469,7 @@ export function AdminUsuarios() {
             </table>
           </div>
 
-          {/* Paginación */}
+          {/* paginaciÃ³n */}
           {totalPaginas > 1 && (
             <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 mt-4">
               <div className="text-sm text-gray-500">
@@ -486,7 +486,7 @@ export function AdminUsuarios() {
                 </Button>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">
-                    Página {paginaActual} de {totalPaginas}
+                    PÃ¡gina {paginaActual} de {totalPaginas}
                   </span>
                 </div>
                 <Button
@@ -510,8 +510,8 @@ export function AdminUsuarios() {
             <DialogTitle>{editingUser ? 'Editar usuario' : 'Crear nuevo usuario'}</DialogTitle>
             <DialogDescription>
               {editingUser 
-                ? 'Actualiza los datos del usuario. Los cambios se aplicarán inmediatamente.' 
-                : 'Completa los datos del usuario. Se asignará una contraseña temporal: TuCita2024!'}
+                ? 'Actualiza los datos del usuario. Los cambios se aplicarÃ³n inmediatamente.' 
+                : 'Completa los datos del usuario. Se asignarÃ³ una contraseÃ³a temporal: TuCita2024!'}
             </DialogDescription>
           </DialogHeader>
 
@@ -537,7 +537,7 @@ export function AdminUsuarios() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Correo electrónico *</Label>
+                  <Label htmlFor="email">Correo electrÃ³nico *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -550,7 +550,7 @@ export function AdminUsuarios() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="telefono">Teléfono</Label>
+                  <Label htmlFor="telefono">TelÃ©fono</Label>
                   <Input
                     id="telefono"
                     value={formData.telefono}
@@ -586,10 +586,10 @@ export function AdminUsuarios() {
               <>
                 <Separator />
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Información médica</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">informaciÃ³n mÃ©dica</h3>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="numeroLicencia">Número de licencia médica</Label>
+                      <Label htmlFor="numeroLicencia">NÃºmero de licencia mÃ©dica</Label>
                       <Input
                         id="numeroLicencia"
                         value={formData.numeroLicencia}
@@ -597,16 +597,16 @@ export function AdminUsuarios() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="biografia">Biografía</Label>
+                      <Label htmlFor="biografia">BiografÃ­a</Label>
                       <Input
                         id="biografia"
                         value={formData.biografia}
                         onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
-                        placeholder="Breve descripción profesional"
+                        placeholder="Breve descripciÃ³n profesional"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="direccion">Dirección de consultorio</Label>
+                      <Label htmlFor="direccion">DirecciÃ³n de consultorio</Label>
                       <Input
                         id="direccion"
                         value={formData.direccion}
@@ -640,10 +640,10 @@ export function AdminUsuarios() {
               <>
                 <Separator />
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Información del paciente</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">informaciÃ³n del paciente</h3>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="identificacion">Identificación (DNI/Pasaporte)</Label>
+                      <Label htmlFor="identificacion">identificaciÃ³n (DNI/Pasaporte)</Label>
                       <Input
                         id="identificacion"
                         value={formData.identificacion}
@@ -660,7 +660,7 @@ export function AdminUsuarios() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="telefonoEmergencia">Teléfono de emergencia</Label>
+                      <Label htmlFor="telefonoEmergencia">TelÃ©fono de emergencia</Label>
                       <Input
                         id="telefonoEmergencia"
                         value={formData.telefonoEmergencia}
@@ -720,12 +720,12 @@ export function AdminUsuarios() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogTitle>Â¿Eliminar usuario?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. El usuario será eliminado permanentemente del sistema.
+              Esta acciÃ³n no se puede deshacer. El usuario serÃ¡ eliminado permanentemente del sistema.
               {usuarios.find(u => u.id === userToDelete)?.roles.includes('PACIENTE') && (
                 <span className="block mt-2 text-amber-600 font-medium">
-                  Nota: Si el usuario tiene citas asociadas, no podrá ser eliminado.
+                  Nota: Si el usuario tiene citas asociadas, no podrÃ¡ ser eliminado.
                 </span>
               )}
             </AlertDialogDescription>
