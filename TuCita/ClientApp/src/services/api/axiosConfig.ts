@@ -1,7 +1,17 @@
 import axios from 'axios';
 
+// Configurar base URL desde variable de entorno o usar /api para proxy local
+const baseURL = import.meta.env.VITE_API_URL || '/api';
+
+const axiosInstance = axios.create({
+  baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Configurar Axios para usar el token en todas las peticiones
-axios.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -21,7 +31,7 @@ axios.interceptors.request.use(
 );
 
 // Interceptor para manejar errores de autenticación
-axios.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
@@ -38,4 +48,4 @@ axios.interceptors.response.use(
   }
 );
 
-export default axios;
+export default axiosInstance;
