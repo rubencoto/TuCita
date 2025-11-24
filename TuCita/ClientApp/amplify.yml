@@ -1,0 +1,22 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Navegar al directorio del frontend
+        - cd TuCita/ClientApp
+        # Instalar dependencias usando npm ci (más rápido y determinístico)
+        - npm ci
+    build:
+      commands:
+        # Build de producción con Vite
+        - npm run build
+  artifacts:
+    # Vite genera los archivos en el directorio 'dist' dentro de ClientApp
+    baseDirectory: TuCita/ClientApp/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      # Cachear node_modules para builds más rápidos
+      - TuCita/ClientApp/node_modules/**/*

@@ -18,20 +18,22 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 // Construir cadena de conexión para SQL Server desde variables de entorno
 var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? throw new InvalidOperationException("DB_SERVER no configurada en .env");
+var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "1433";
 var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME no configurada en .env");
 var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER no configurada en .env");
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD no configurada en .env");
 
-// Cadena de conexión para SQL Server / Azure SQL Database
-var connectionString = $"Server={dbServer};Database={dbName};User Id={dbUser};Password={dbPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+// Cadena de conexión para AWS RDS SQL Server
+var connectionString = $"Data Source={dbServer},{dbPort};Initial Catalog={dbName};User ID={dbUser};Password={dbPassword};Persist Security Info=True;Pooling=False;MultipleActiveResultSets=False;Connect Timeout=30;Encrypt=True;TrustServerCertificate=True;Command Timeout=0";
 
 // Logging de diagnóstico para conexión a BD (sin exponer la contraseña completa)
-Console.WriteLine($"?? Configuración de conexión SQL Server:");
-Console.WriteLine($"   Servidor: {dbServer}");
+Console.WriteLine($"?? Configuración de conexión AWS RDS SQL Server:");
+Console.WriteLine($"   Servidor: {dbServer}:{dbPort}");
 Console.WriteLine($"   Base de datos: {dbName}");
 Console.WriteLine($"   Usuario: {dbUser}");
 Console.WriteLine($"   Contraseña configurada: {!string.IsNullOrEmpty(dbPassword)} (longitud: {dbPassword?.Length ?? 0})");
 Console.WriteLine($"   Encrypt: True");
+Console.WriteLine($"   TrustServerCertificate: True");
 
 // Add Entity Framework con SQL Server
 builder.Services.AddDbContext<TuCitaDbContext>(options =>

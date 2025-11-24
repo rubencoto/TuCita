@@ -20,7 +20,7 @@ appsettings.Production.json
 *.db
 *.db-*
 
-# Node.js / React
+# Node.js / React / Vite
 ClientApp/node_modules/
 ClientApp/dist/
 ClientApp/build/
@@ -87,7 +87,7 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# ? Variables de entorno - CRÍTICO: NUNCA SUBIR ESTOS ARCHIVOS
+# ?? Variables de entorno - CRÍTICO: NUNCA SUBIR ESTOS ARCHIVOS
 .env
 .env.local
 .env.development
@@ -116,3 +116,10 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/
+
+# AWS Amplify (opcional - descomentar si usas Amplify CLI)
+# amplify-backup/
+# amplify/#current-cloud-backend
+# amplify/.config/
+# amplify/mock-data/
+# amplify/mock-api-resources/

@@ -31,30 +31,30 @@ public class Usuario
     public long Id { get; set; }
 
     [Required]
-    [StringLength(150)]
+    [StringLength(300)]
     [Column("email")]
     public string Email { get; set; } = string.Empty;
 
-    [StringLength(150)]
+    [StringLength(300)]
     [Column("email_normalizado")]
-    public string EmailNormalizado { get; set; } = string.Empty;
+    public string? EmailNormalizado { get; set; } // Nullable para compatibilidad con AWS RDS
 
     [Required]
-    [StringLength(255)]
+    [StringLength(510)]
     [Column("password_hash")]
     public string PasswordHash { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(80)]
+    [StringLength(160)]
     [Column("nombre")]
     public string Nombre { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(80)]
+    [StringLength(160)]
     [Column("apellido")]
     public string Apellido { get; set; } = string.Empty;
 
-    [StringLength(30)]
+    [StringLength(60)]
     [Column("telefono")]
     public string? Telefono { get; set; }
 
@@ -570,18 +570,18 @@ public class DocumentoDescarga
     [Column("usuario_id")]
     public long UsuarioId { get; set; }
 
-    [StringLength(45)]
+    [StringLength(90)]
     [Column("ip_cliente")]
     public string? IpCliente { get; set; }
 
-    [StringLength(255)]
+    [StringLength(510)]
     [Column("user_agent")]
     public string? UserAgent { get; set; }
 
     [Column("exito")]
     public bool Exito { get; set; }
 
-    [StringLength(200)]
+    [StringLength(400)]
     [Column("motivo_error")]
     public string? MotivoError { get; set; }
 

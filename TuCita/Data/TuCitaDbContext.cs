@@ -82,10 +82,17 @@ public class TuCitaDbContext : DbContext
         // CONFIGURACIÓN ESPECÍFICA PARA SQL SERVER
         // ============================================================
 
-        // Computed column para email normalizado (SQL Server syntax)
+        // Email normalizado - comentado porque no existe como columna computada en AWS RDS
+        // Si necesitas columna computada, debes crearla en la base de datos primero
+        // modelBuilder.Entity<Usuario>()
+        //     .Property(e => e.EmailNormalizado)
+        //     .HasComputedColumnSql("LOWER(LTRIM(RTRIM([email])))", stored: true);
+
+        // Por ahora, EmailNormalizado se maneja en el código C# (ver AuthService)
         modelBuilder.Entity<Usuario>()
             .Property(e => e.EmailNormalizado)
-            .HasComputedColumnSql("LOWER(LTRIM(RTRIM([email])))", stored: true);
+            .HasMaxLength(300)
+            .IsRequired(false); // Permitir NULL temporalmente para compatibilidad
 
         // Configuración de tipos de columna específicos de SQL Server
         modelBuilder.Entity<Usuario>()
