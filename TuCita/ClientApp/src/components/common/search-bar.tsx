@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Stethoscope, Filter } from 'lucide-react';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface SearchBarProps {
   onSearch: (filters: SearchFilters) => void;
@@ -111,7 +111,7 @@ export function SearchBar({ onSearch, showFilters = false }: SearchBarProps) {
             <div className="lg:w-64">
               <Select
                 value={filters.specialty || 'all-specialties'}
-                onValueChange={(value) => handleFilterChange('specialty', value)}
+                onValueChange={(value: string) => handleFilterChange('specialty', value)}
               >
                 <SelectTrigger>
                   <div className="flex items-center">
@@ -134,7 +134,7 @@ export function SearchBar({ onSearch, showFilters = false }: SearchBarProps) {
             <div className="lg:w-48">
               <Select
                 value={filters.location || 'all-locations'}
-                onValueChange={(value) => handleFilterChange('location', value)}
+                onValueChange={(value: string) => handleFilterChange('location', value)}
               >
                 <SelectTrigger>
                   <div className="flex items-center">
@@ -186,7 +186,7 @@ export function SearchBar({ onSearch, showFilters = false }: SearchBarProps) {
                 </label>
                 <Select
                   value={filters.availability || 'all-availability'}
-                  onValueChange={(value) => handleFilterChange('availability', value)}
+                  onValueChange={(value: string) => handleFilterChange('availability', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar" />

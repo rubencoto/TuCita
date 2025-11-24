@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Separator } from '../ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '../ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Checkbox } from '../ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   ArrowLeft,
   Calendar,
@@ -41,9 +41,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '@/components/common/ImageWithFallback';
-import { Alert, AlertDescription } from '../ui/alert';
-import doctorAppointmentsService from '../../services/doctorAppointmentsService';
-import { DoctorLayout } from '../doctor/DoctorLayout';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import doctorAppointmentsService from '@/services/api/doctor/doctorAppointmentsService';
+import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
 
 interface DoctorAppointmentDetailPageProps {
   appointmentId: number;
@@ -81,7 +81,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         frecuencia: string;
         duracion: string;
         notas: string;
-      }>
+      }>,
     }
   });
   const [currentMedicamentoComplete, setCurrentMedicamentoComplete] = useState({

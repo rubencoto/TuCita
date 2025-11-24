@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../ui/table';
+} from '@/components/ui/table';
 import { 
   Calendar, 
   Clock, 
@@ -21,9 +21,9 @@ import {
   TrendingUp,
   Loader2
 } from 'lucide-react';
-import doctorAppointmentsService, { DoctorAppointment, DashboardStats } from '../../services/doctorAppointmentsService';
+import doctorAppointmentsService, { DoctorAppointment, DashboardStats } from '@/services/api/doctor/doctorAppointmentsService';
 import { toast } from 'sonner';
-import { DoctorLayout } from '../doctor/DoctorLayout';
+import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
 
 interface DoctorDashboardPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -375,6 +375,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                     <Button 
                       className="w-full bg-white text-[#2E8BC0] hover:bg-gray-100"
                       onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: nextAppointment.id })}
+
                     >
                       Ver detalles
                     </Button>

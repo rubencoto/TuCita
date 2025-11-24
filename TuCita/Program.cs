@@ -77,6 +77,11 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
 builder.Services.AddScoped<IDoctorProfileService, DoctorProfileService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<IAdminEspecialidadesService, AdminEspecialidadesService>();
+builder.Services.AddScoped<IAdminUsuariosService, AdminUsuariosService>();
+builder.Services.AddScoped<IAdminCitasService, AdminCitasService>();
+builder.Services.AddScoped<IAdminReportesService, AdminReportesService>();
 
 // EmailService es suficiente - sin tablas de notificaciones en BD
 

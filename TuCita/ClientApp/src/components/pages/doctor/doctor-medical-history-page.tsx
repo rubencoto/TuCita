@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -11,9 +11,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { Separator } from '../ui/separator';
+} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { 
   Search,
   FileText,
@@ -27,9 +27,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { ImageWithFallback } from '@/components/common/ImageWithFallback';
-import { Alert, AlertDescription } from '../ui/alert';
-import { medicalHistoryService, HistorialMedicoExtendidoDto } from '../../services/medicalHistoryService';
-import { DoctorLayout } from '../doctor/DoctorLayout';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { medicalHistoryService, HistorialMedicoExtendidoDto } from '@/services/api/patient/medicalHistoryService';
+import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
 
 interface DoctorMedicalHistoryPageProps {
   patientId?: string;
@@ -461,7 +461,7 @@ ${'='.repeat(80)}`;
                                       </div>
                                     ) : (
                                       <p className="text-gray-500 bg-gray-50 p-4 rounded-lg">
-                                        No hay recetas registradas
+                                        No hay recetas o tratamientos registrados
                                       </p>
                                     )}
                                   </div>
@@ -471,22 +471,13 @@ ${'='.repeat(80)}`;
                                       <div className="bg-green-100 p-2 rounded-lg">
                                         <ClipboardList className="h-5 w-5 text-green-600" />
                                       </div>
-                                      <h3 className="font-semibold text-lg">Notas Clánicas</h3>
+                                      <h3 className="font-semibold text-lg">Notas Clínicas</h3>
                                     </div>
                                     {selectedRecord.notasClinicas.length > 0 ? (
                                       <div className="space-y-2">
                                         {selectedRecord.notasClinicas.map((nota) => (
                                           <div key={nota.id} className="bg-gray-50 p-4 rounded-lg">
                                             <p className="text-gray-700">{nota.contenido}</p>
-                                            <p className="text-xs text-gray-500 mt-2">
-                                              {new Date(nota.fecha).toLocaleDateString('es-ES', {
-                                                day: '2-digit',
-                                                month: 'short',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                              })}
-                                            </p>
                                           </div>
                                         ))}
                                       </div>
@@ -495,36 +486,6 @@ ${'='.repeat(80)}`;
                                         No hay notas clínicas registradas
                                       </p>
                                     )}
-                                  </div>
-
-                                  {selectedRecord.documentos.length > 0 && (
-                                    <div>
-                                      <div className="flex items-center space-x-2 mb-3">
-                                        <div className="bg-purple-100 p-2 rounded-lg">
-                                          <FileText className="h-5 w-5 text-purple-600" />
-                                        </div>
-                                        <h3 className="font-semibold text-lg">Documentos</h3>
-                                      </div>
-                                      <div className="space-y-2">
-                                        {selectedRecord.documentos.map((doc) => (
-                                          <div key={doc.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
-                                            <div>
-                                              <p className="font-medium">{doc.nombreArchivo}</p>
-                                              <p className="text-sm text-gray-500">
-                                                {medicalHistoryService.getCategoryLabel(doc.categoria)} á 
-                                                {medicalHistoryService.formatFileSize(doc.tamanoBytes)}
-                                              </p>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  <div className="pt-4 border-t">
-                                    <p className="text-xs text-gray-500">
-                                      Cita ID: #{selectedRecord.citaId}
-                                    </p>
                                   </div>
                                 </div>
                               )}

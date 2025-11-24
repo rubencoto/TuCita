@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { Heart, Menu, X, User, Calendar, Search, Home, FileText } from 'lucide-react';
 
 interface NavbarProps {

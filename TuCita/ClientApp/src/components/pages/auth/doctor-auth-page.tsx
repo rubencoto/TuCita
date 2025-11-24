@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Separator } from '../ui/separator';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Mail, Lock, Stethoscope, AlertCircle, ArrowLeft, Settings, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import doctorAuthService from '../../services/doctorAuthService';
-import adminAuthService from '../../services/adminAuthService';
+import doctorAuthService from '@/services/api/auth/doctorAuthService';
+import adminAuthService from '@/services/api/auth/adminAuthService';
 
 interface DoctorAuthPageProps {
   onLogin: (userData: any) => void;

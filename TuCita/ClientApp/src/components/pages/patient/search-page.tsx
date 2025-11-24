@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { SearchBar } from '../search-bar';
-import { DoctorCard } from '../doctor-card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Card, CardContent } from '../ui/card';
+import { SearchBar } from '@/components/common/search-bar';
+import { DoctorCard } from '@/components/common/doctor-card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Filter, SortAsc, MapPin, Loader2 } from 'lucide-react';
-import doctorsService, { Doctor } from '../../services/doctorsService';
+import doctorsService, { Doctor } from '@/services/api/doctor/doctorsService';
 import { toast } from 'sonner';
 
 interface SearchPageProps {
@@ -68,10 +68,10 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
         // Aplicar filtro de query localmente
         let filtered = data;
         if (filters.query) {
-          filtered = data.filter(doctor =>
+          filtered = data.filter((doctor: Doctor) =>
             doctor.nombre.toLowerCase().includes(filters.query.toLowerCase()) ||
-            doctor.especialidades.some(e => e.toLowerCase().includes(filters.query.toLowerCase())) ||
-            doctor.sedes.some(s => s.location.toLowerCase().includes(filters.query.toLowerCase()))
+            doctor.especialidades.some((e: string) => e.toLowerCase().includes(filters.query.toLowerCase())) ||
+            doctor.sedes.some((s: any) => s.location.toLowerCase().includes(filters.query.toLowerCase()))
           );
         }
         
@@ -81,8 +81,8 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
         let filtered = doctors.filter(doctor => {
           const matchesQuery = !filters.query ||
             doctor.nombre.toLowerCase().includes(filters.query.toLowerCase()) ||
-            doctor.especialidades.some(e => e.toLowerCase().includes(filters.query.toLowerCase())) ||
-            doctor.sedes.some(s => s.location.toLowerCase().includes(filters.query.toLowerCase()));
+            doctor.especialidades.some((e: string) => e.toLowerCase().includes(filters.query.toLowerCase())) ||
+            doctor.sedes.some((s: any) => s.location.toLowerCase().includes(filters.query.toLowerCase()));
 
           return matchesQuery;
         });
@@ -178,6 +178,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
               <div className="flex items-center space-x-2">
                 <Badge variant="secondary">
                   {activeFilterCount} filtro{activeFilterCount > 1 ? 's' : ''} activo{activeFilterCount > 1 ? 's' : ''}
+
                 </Badge>
                 <Button 
                   variant="ghost" 

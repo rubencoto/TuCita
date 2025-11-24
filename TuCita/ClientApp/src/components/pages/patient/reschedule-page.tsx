@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Alert, AlertDescription } from '../ui/alert';
-import { AppointmentCalendar } from '../appointment-calendar';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AppointmentCalendar } from '@/components/common/appointment-calendar';
+import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -254,6 +254,8 @@ export function ReschedulePage({
                       : appointment.doctorSpecialty}
                   </p>
                   
+
+
                   <Badge 
                     variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}
                     className="mt-2"
@@ -407,6 +409,7 @@ export function ReschedulePage({
                       >
                         {isRescheduling ? (
                           <>
+
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             Reagendando...
                           </>

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   User, 
   Mail, 
@@ -19,9 +19,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription } from '../ui/alert';
-import doctorProfileService, { DoctorProfileResponse, Especialidad } from '../../services/doctorProfileService';
-import { DoctorLayout } from '../doctor/DoctorLayout';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import doctorProfileService, { DoctorProfileResponse, Especialidad } from '@/services/api/doctor/doctorProfileService';
+import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
 
 interface DoctorProfilePageProps {
   onNavigate: (page: string) => void;
@@ -517,7 +517,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   <Textarea
                     id="biografia"
                     value={formData.biografia}
-                    onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
+                    onChange={( e) => setFormData({ ...formData, biografia: e.target.value })}
                     disabled={!isEditing}
                     rows={4}
                     placeholder="Cuántanos sobre tu experiencia, formación y áreas de interés..."

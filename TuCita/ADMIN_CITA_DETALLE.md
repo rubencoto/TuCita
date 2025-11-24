@@ -1,0 +1,465 @@
+# AdminCitaDetalle - Modal de Vista de Detalle
+
+## ?? Descripción
+
+Componente modal para mostrar información completa y detallada de una cita médica. Incluye acciones rápidas para gestionar el estado de la cita directamente desde la vista de detalle.
+
+## ?? Características Principales
+
+### **Información Mostrada:**
+
+1. **Estado y Origen de la Cita**
+   - Badge de color según estado
+   - Icono representativo del estado
+   - Badge de origen (Paciente/Admin)
+   - ID de la cita
+
+2. **Información del Paciente**
+   - ? Nombre completo
+   - ? Email (si disponible)
+   - ? Teléfono (si disponible)
+   - ? Identificación (si disponible)
+
+3. **Información del Doctor**
+   - ? Nombre completo
+   - ? Especialidad (badge)
+   - ? Email (si disponible)
+   - ? Teléfono (si disponible)
+
+4. **Detalles de la Cita**
+   - ? Fecha completa (formato legible)
+   - ? Hora de la cita
+   - ? Motivo de consulta (si disponible)
+
+5. **Acciones Rápidas**
+   - ? Marcar como Atendida (si estado = CONFIRMADA)
+   - ? Cancelar Cita (disponible siempre)
+
+## ?? Componentes UI Utilizados
+
+```typescript
+// Diálogos
+Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
+
+// Visualización
+Badge, Separator, ScrollArea
+
+// Botones y Acciones
+Button
+
+// Iconos (lucide-react)
+User, Mail, Phone, CreditCard       // Info de paciente
+Stethoscope                          // Info de doctor
+Calendar, Clock                      // Info de cita
+FileText, AlertCircle                // Generales
+Loader2, X                           // UI
+CheckCircle, XCircle, Ban            // Estados
+```
+
+## ?? Props
+
+```typescript
+interface AdminCitaDetalleProps {
+  isOpen: boolean;              // Controla si el modal está abierto
+  onClose: () => void;          // Callback al cerrar el modal
+  citaId: number | null;        // ID de la cita a mostrar
+  onUpdateSuccess?: () => void; // Callback al actualizar exitosamente
+}
+```
+
+## ?? Estados Visuales
+
+### **Colores por Estado de Cita:**
+
+```typescript
+const statusColors = {
+  PROGRAMADA:   'bg-blue-100 text-blue-800 border-blue-200',
+  CONFIRMADA:   'bg-blue-100 text-blue-800 border-blue-200',
+  ATENDIDA:     'bg-green-100 text-green-800 border-green-200',
+  CANCELADA:    'bg-yellow-100 text-yellow-800 border-yellow-200',
+  NO_SHOW:      'bg-red-100 text-red-800 border-red-200',
+  RECHAZADA:    'bg-red-100 text-red-800 border-red-200',
+  REPROGRAMADA: 'bg-purple-100 text-purple-800 border-purple-200',
+};
+```
+
+### **Iconos por Estado:**
+
+```typescript
+PROGRAMADA     ? ?? Clock
+CONFIRMADA     ? ? CheckCircle
+ATENDIDA       ? ? CheckCircle
+CANCELADA      ? ? XCircle
+NO_SHOW        ? ??  AlertCircle
+RECHAZADA      ? ?? Ban
+REPROGRAMADA   ? ?? Clock
+```
+
+### **Colores por Origen:**
+
+```typescript
+PACIENTE ? ?? Teal  (Agendada por Paciente)
+ADMIN    ? ?? Purple (Agendada por Admin)
+```
+
+## ?? Flujo de Uso
+
+### **Abrir Modal:**
+
+```typescript
+// Desde AdminCitas.tsx
+const handleViewDetails = (citaId: number) => {
+  setDetalleModal({
+    isOpen: true,
+    citaId,
+  });
+};
+
+<Button onClick={() => handleViewDetails(cita.id)}>
+  <Eye className="h-4 w-4" />
+</Button>
+```
+
+### **Usar Componente:**
+
+```typescript
+<AdminCitaDetalle
+  isOpen={detalleModal.isOpen}
+  onClose={handleDetalleClose}
+  citaId={detalleModal.citaId}
+  onUpdateSuccess={handleDetalleUpdateSuccess}
+/>
+```
+
+## ?? Funcionalidades Técnicas
+
+### 1. **Carga Automática de Datos**
+
+```typescript
+useEffect(() => {
+  if (isOpen && citaId) {
+    loadCitaDetalle();
+  } else {
+    setCita(null);
+  }
+}, [isOpen, citaId]);
+```
+
+### 2. **Formateo de Fechas**
+
+```typescript
+const formatearFecha = (fecha: string) => {
+  try {
+    return format(new Date(fecha), "EEEE, d 'de' MMMM 'de' yyyy", { 
+      locale: es 
+    });
+  } catch {
+    return fecha;
+  }
+};
+
+// Resultado: "lunes, 15 de enero de 2025"
+```
+
+### 3. **Manejo de Errores**
+
+```typescript
+try {
+  const data = await adminCitasService.getCitaDetalle(citaId);
+  setCita(data as CitaDetallada);
+} catch (error: any) {
+  console.error('Error al cargar detalle:', error);
+  toast.error(error.message || 'Error al cargar el detalle');
+  onClose(); // Cierra el modal si hay error
+}
+```
+
+## ?? Acciones Rápidas
+
+### **Marcar como Atendida**
+
+```typescript
+const handleMarcarAtendida = async () => {
+  if (!citaId) return;
+
+  try {
+    await adminCitasService.updateEstadoCita(citaId, {
+      estado: 'ATENDIDA',
+      notas: 'Marcada como atendida desde vista de detalle',
+    });
+    toast.success('Cita marcada como atendida');
+    loadCitaDetalle(); // Recargar para ver el nuevo estado
+    onUpdateSuccess?.(); // Notificar al componente padre
+  } catch (error: any) {
+    toast.error(error.message || 'Error al actualizar la cita');
+  }
+};
+```
+
+### **Cancelar Cita**
+
+```typescript
+const handleCancelar = async () => {
+  if (!citaId) return;
+
+  const confirmado = confirm('¿Estás seguro de que deseas cancelar esta cita?');
+  if (!confirmado) return;
+
+  try {
+    await adminCitasService.deleteCita(citaId);
+    toast.success('Cita cancelada exitosamente');
+    onUpdateSuccess?.();
+    onClose();
+  } catch (error: any) {
+    toast.error(error.message || 'Error al cancelar la cita');
+  }
+};
+```
+
+## ?? Vista del Componente
+
+```
+??????????????????????????????????????????????????????????
+? ?? Detalle de Cita                                  [X]?
+? Información completa de la cita médica                  ?
+??????????????????????????????????????????????????????????
+?                                                         ?
+? [CONFIRMADA] [Agendada por Admin]           ID: #123   ?
+?                                                         ?
+? ????????????????????????????????????????????????????   ?
+?                                                         ?
+? ?? Información del Paciente                            ?
+? ????????????????????????????????????????????????????  ?
+? ? Nombre completo:      Juan Pérez López           ?  ?
+? ? ?? Email:             juan@email.com             ?  ?
+? ? ?? Teléfono:          +506 1234-5678             ?  ?
+? ? ?? Identificación:    1-2345-6789                ?  ?
+? ????????????????????????????????????????????????????  ?
+?                                                         ?
+? ????????????????????????????????????????????????????   ?
+?                                                         ?
+? ?? Información del Doctor                              ?
+? ????????????????????????????????????????????????????  ?
+? ? Nombre completo:      Dr. Carlos Martínez        ?  ?
+? ? Especialidad:         [Cardiología]              ?  ?
+? ? ?? Email:             carlos@hospital.com        ?  ?
+? ? ?? Teléfono:          +506 8888-9999             ?  ?
+? ????????????????????????????????????????????????????  ?
+?                                                         ?
+? ????????????????????????????????????????????????????   ?
+?                                                         ?
+? ?? Detalles de la Cita                                 ?
+? ????????????????????????????????????????????????????  ?
+? ? Fecha:  lunes, 15 de enero de 2025               ?  ?
+? ? ?? Hora: 09:00                                    ?  ?
+? ? ???????????????????????????????????????????????  ?  ?
+? ? Motivo de consulta:                               ?  ?
+? ? Dolor de cabeza persistente                       ?  ?
+? ????????????????????????????????????????????????????  ?
+?                                                         ?
+? ????????????????????????????????????????????????????   ?
+?                                                         ?
+? Acciones Rápidas                                       ?
+? [? Marcar como Atendida] [? Cancelar Cita]          ?
+?                                                         ?
+??????????????????????????????????????????????????????????
+?                                         [Cerrar]        ?
+??????????????????????????????????????????????????????????
+```
+
+## ?? Estados del Modal
+
+### **Cargando:**
+
+```
+??????????????????????????????????????
+? ?? Detalle de Cita              [X]?
+??????????????????????????????????????
+?                                    ?
+?            ? Cargando...          ?
+?                                    ?
+??????????????????????????????????????
+```
+
+### **Error:**
+
+```
+??????????????????????????????????????
+? ?? Detalle de Cita              [X]?
+??????????????????????????????????????
+?                                    ?
+?         ??  Error                  ?
+?    No se pudo cargar la            ?
+?    información de la cita          ?
+?                                    ?
+??????????????????????????????????????
+```
+
+## ?? Condicionales de Acciones
+
+### **Mostrar "Marcar como Atendida":**
+
+```typescript
+{cita.estado === 'CONFIRMADA' && (
+  <Button onClick={handleMarcarAtendida}>
+    Marcar como Atendida
+  </Button>
+)}
+```
+
+### **Mostrar "Cancelar Cita":**
+
+```typescript
+{(cita.estado === 'PROGRAMADA' || cita.estado === 'CONFIRMADA') && (
+  <Button onClick={handleCancelar}>
+    Cancelar Cita
+  </Button>
+)}
+```
+
+## ?? Integración con AdminCitas
+
+### **Estado en AdminCitas:**
+
+```typescript
+const [detalleModal, setDetalleModal] = useState<{
+  isOpen: boolean;
+  citaId: number | null;
+}>({
+  isOpen: false,
+  citaId: null,
+});
+```
+
+### **Abrir Modal:**
+
+```typescript
+const handleViewDetails = (citaId: number) => {
+  setDetalleModal({
+    isOpen: true,
+    citaId,
+  });
+};
+```
+
+### **Cerrar Modal:**
+
+```typescript
+const handleDetalleClose = () => {
+  setDetalleModal({
+    isOpen: false,
+    citaId: null,
+  });
+};
+```
+
+### **Actualizar después de cambios:**
+
+```typescript
+const handleDetalleUpdateSuccess = () => {
+  loadCitas(); // Recargar lista principal
+};
+```
+
+## ?? Interface de Datos
+
+```typescript
+interface CitaDetallada extends AdminCitaList {
+  pacienteEmail?: string;
+  pacienteTelefono?: string;
+  pacienteIdentificacion?: string;
+  doctorEmail?: string;
+  doctorTelefono?: string;
+}
+```
+
+## ?? Diseño Responsive
+
+```typescript
+<DialogContent className="sm:max-w-[700px] max-h-[90vh]">
+  <ScrollArea className="max-h-[calc(90vh-180px)] pr-4">
+    {/* Contenido scrollable */}
+  </ScrollArea>
+</DialogContent>
+```
+
+## ? Ventajas del Diseño
+
+1. **Vista completa** - Toda la información en un solo lugar
+2. **Acciones rápidas** - Cambiar estado sin cerrar modal
+3. **Feedback inmediato** - Toast de éxito/error
+4. **Diseño limpio** - Secciones organizadas con separadores
+5. **Iconos descriptivos** - Identificación rápida de campos
+6. **ScrollArea** - Maneja contenido largo sin problemas
+7. **Responsive** - Se adapta a diferentes tamaños de pantalla
+
+## ?? Próximas Mejoras Opcionales
+
+1. **Historial de cambios** - Mostrar log de cambios de estado
+2. **Notas del doctor** - Campo para agregar notas post-consulta
+3. **Archivos adjuntos** - Subir resultados de laboratorio
+4. **Reagendar desde detalle** - Opción de cambiar fecha/hora
+5. **Compartir por email** - Enviar resumen al paciente
+6. **Imprimir** - Generar PDF del detalle
+7. **Llamar directamente** - Links en números telefónicos
+
+---
+
+## ?? Uso en Producción
+
+### **Ejemplo Completo:**
+
+```typescript
+import { AdminCitaDetalle } from './AdminCitaDetalle';
+
+function AdminCitas() {
+  const [detalleModal, setDetalleModal] = useState({
+    isOpen: false,
+    citaId: null,
+  });
+
+  return (
+    <>
+      {/* Tabla de citas */}
+      <table>
+        <tbody>
+          {citas.map(cita => (
+            <tr key={cita.id}>
+              <td>
+                <Button onClick={() => setDetalleModal({
+                  isOpen: true,
+                  citaId: cita.id
+                })}>
+                  Ver Detalle
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Modal de detalle */}
+      <AdminCitaDetalle
+        isOpen={detalleModal.isOpen}
+        onClose={() => setDetalleModal({
+          isOpen: false,
+          citaId: null
+        })}
+        citaId={detalleModal.citaId}
+        onUpdateSuccess={() => loadCitas()}
+      />
+    </>
+  );
+}
+```
+
+---
+
+**Estado:** ? Completado y funcional
+
+**Última actualización:** Noviembre 2025
+
+**Archivos relacionados:**
+- `AdminCitaDetalle.tsx` - Componente principal
+- `AdminCitas.tsx` - Integración
+- `adminCitasService.ts` - Servicio API

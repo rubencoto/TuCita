@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Switch } from '../ui/switch';
-import { Separator } from '../ui/separator';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { 
   User, 
   Mail, 
@@ -22,8 +22,8 @@ import {
   Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
-import profileService from '../../services/profileService';
-import type { AuthResponse } from '../../services/authService';
+import profileService from '@/services/api/patient/profileService';
+import type { AuthResponse } from '@/services/api/auth/authService';
 
 interface ProfilePageProps {
   user: any;
@@ -115,7 +115,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
         email: personalInfo.email,
         telefono: personalInfo.phone || undefined,
         fechaNacimiento: personalInfo.birthDate || undefined,
-        identificacion: personalInfo.identificacion || undefined,
+        identificacion: personalInfo.identification || undefined,
         telefonoEmergencia: personalInfo.emergencyPhone || undefined,
       });
       

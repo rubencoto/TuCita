@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { AppointmentCard } from '../appointment-card';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Badge } from '../ui/badge';
+import { AppointmentCard } from '@/components/common/appointment-card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Plus, Filter, Search, Loader2 } from 'lucide-react';
-import { Input } from '../ui/input';
+import { Input } from '@/components/ui/input';
 
 interface AppointmentsPageProps {
   appointments: any[];
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, data?: any) => void;
   onUpdateAppointment: (appointmentId: string, status: string) => void;
   onCancelAppointment: (appointmentId: string) => Promise<boolean>;
   loading?: boolean;

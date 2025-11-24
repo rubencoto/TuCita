@@ -20,6 +20,7 @@ import { DoctorAppointmentDetailPage } from './components/pages/doctor/doctor-ap
 import { DoctorMedicalHistoryPage } from './components/pages/doctor/doctor-medical-history-page';
 import { DoctorAvailabilityPage } from './components/pages/doctor/doctor-availability-page';
 import { DoctorProfilePage } from './components/pages/doctor/doctor-profile-page';
+import { AdminPanel } from './components/pages/admin/AdminPanel';
 import { authService, AuthResponse } from './services/api/auth/authService';
 import doctorAuthService from './services/api/auth/doctorAuthService';
 import adminAuthService from './services/api/auth/adminAuthService';
@@ -499,7 +500,10 @@ export default function App() {
           );
         }
         return (
-          <div>Panel de Admin</div>
+          <AdminPanel
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
         );
       
       case 'home':

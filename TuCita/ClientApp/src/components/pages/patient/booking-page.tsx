@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { AppointmentCalendar } from '../appointment-calendar';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AppointmentCalendar } from '@/components/common/appointment-calendar';
+import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -15,9 +15,9 @@ import {
   Mail,
   Heart
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
-import { AgendaTurno } from '@/services/doctorsService';
-import appointmentsService from '@/services/appointmentsService';
+import { toast } from 'sonner';
+import { AgendaTurno } from '@/services/api/doctor/doctorsService';
+import appointmentsService from '@/services/api/patient/appointmentsService';
 
 interface BookingPageProps {
   doctor: any;

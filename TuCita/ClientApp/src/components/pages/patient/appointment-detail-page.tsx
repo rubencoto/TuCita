@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Separator } from '../ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft,
   Calendar,
@@ -20,7 +20,6 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -28,9 +27,9 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '../ui/breadcrumb';
+} from '@/components/ui/breadcrumb';
 import { toast } from 'sonner';
-import medicalHistoryService, { CitaDetalleDto } from '../../services/medicalHistoryService';
+import medicalHistoryService, { CitaDetalleDto } from '@/services/api/patient/medicalHistoryService';
 
 interface AppointmentDetailPageProps {
   appointment: any;
@@ -219,7 +218,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
                     <span className="text-2xl font-semibold text-primary">
-                      {citaDetalle.nombreMedico.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      {citaDetalle.nombreMedico.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </span>
                   </div>
                   <div>
@@ -349,7 +348,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                 
                 {citaDetalle.diagnosticos.length > 0 ? (
                   <div className="space-y-3">
-                    {citaDetalle.diagnosticos.map((diagnostico) => (
+                    {citaDetalle.diagnosticos.map((diagnostico: any) => (
                       <Card key={diagnostico.id}>
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -382,7 +381,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
 
                 {citaDetalle.notasClinicas.length > 0 ? (
                   <div className="space-y-4">
-                    {citaDetalle.notasClinicas.map((nota, index) => (
+                    {citaDetalle.notasClinicas.map((nota: any, index: number) => (
                       <div key={nota.id} className="relative pl-6 pb-6 border-l-2 border-primary/30 last:pb-0">
                         <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-primary border-4 border-background" />
                         <Card>
@@ -412,7 +411,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
 
                 {citaDetalle.recetas.length > 0 ? (
                   <div className="space-y-4">
-                    {citaDetalle.recetas.map((receta) => (
+                    {citaDetalle.recetas.map((receta: any) => (
                       <Card key={receta.id}>
                         <CardHeader>
                           <div className="flex items-center justify-between">
@@ -437,7 +436,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                                 </tr>
                               </thead>
                               <tbody>
-                                {receta.medicamentos.map((med) => (
+                                {receta.medicamentos.map((med: any) => (
                                   <tr key={med.id} className="border-b border-border hover:bg-muted/50">
                                     <td className="py-3 px-4 font-medium text-foreground">{med.medicamento}</td>
                                     <td className="py-3 px-4 text-foreground">{med.dosis || '-'}</td>
@@ -454,7 +453,7 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                     ))}
                   </div>
                 ) : (
-                  <EmptySection message="No se prescribieron medicamentos en esta cita" />
+                  <EmptySection message="No se encontraron recetas para esta cita" />
                 )}
               </TabsContent>
 
@@ -465,43 +464,29 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                 </div>
 
                 {citaDetalle.documentos.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {citaDetalle.documentos.map((documento) => (
-                      <Card key={documento.id} className="hover:shadow-md transition-shadow">
+                  <div className="space-y-3">
+                    {citaDetalle.documentos.map((documento: any) => (
+                      <Card key={documento.id}>
                         <CardContent className="p-4">
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-primary/10 rounded-lg p-3">
-                              <File className="h-8 w-8 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground truncate">{documento.nombreArchivo}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline" className="text-xs">
-                                  {medicalHistoryService.getCategoryLabel(documento.categoria)}
-                                </Badge>
-                                <p className="text-sm text-muted-foreground">
-                                  {medicalHistoryService.formatFileSize(documento.tamanoBytes)}
-                                </p>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                {documento.tipo && (
+                                  <Badge variant="outline">{documento.tipo}</Badge>
+                                )}
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {medicalHistoryService.formatDate(documento.fechaSubida)}
+                              <p className="font-medium text-foreground">{documento.nombre}</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Adjuntado: {medicalHistoryService.formatDateTime(documento.fechaAdjunto)}
                               </p>
-                              {documento.notas && (
-                                <p className="text-xs text-muted-foreground mt-1 truncate">
-                                  {documento.notas}
-                                </p>
-                              )}
                             </div>
-                            <Button size="sm" variant="ghost" title="Descargar documento">
-                              <Download className="h-4 w-4" />
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <EmptySection message="No hay documentos adjuntos para esta cita" />
+                  <EmptySection message="No se encontraron documentos para esta cita" />
                 )}
               </TabsContent>
             </Tabs>
