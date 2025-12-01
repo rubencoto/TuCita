@@ -1,6 +1,6 @@
 import apiClient from '@/services/api/axiosConfig';
 
-const API_URL = '/api/admin/especialidades';
+const API_URL = '/admin/especialidades';
 
 export interface EspecialidadDto {
   id: number;

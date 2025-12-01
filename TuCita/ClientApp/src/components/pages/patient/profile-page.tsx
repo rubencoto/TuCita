@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ImageWithFallback } from '@/components/common/ImageWithFallback';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { 
   User, 
   Mail, 
@@ -315,18 +316,12 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Teléfono</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={personalInfo.phone}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, phone: e.target.value }))}
-                      disabled={!isEditing || isLoading}
-                      className="pl-10"
-                      placeholder={originalInfo.phone || '+506 1234-5678'}
-                    />
-                  </div>
+                  <PhoneInput
+                    id="phone"
+                    value={personalInfo.phone}
+                    onChange={(value) => setPersonalInfo(prev => ({ ...prev, phone: value }))}
+                    disabled={!isEditing || isLoading}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -354,13 +349,11 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="emergencyPhone">Teléfono de Emergencia</Label>
-                  <Input
+                  <PhoneInput
                     id="emergencyPhone"
-                    type="tel"
                     value={personalInfo.emergencyPhone}
-                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, emergencyPhone: e.target.value }))}
+                    onChange={(value) => setPersonalInfo(prev => ({ ...prev, emergencyPhone: value }))}
                     disabled={!isEditing || isLoading}
-                    placeholder={originalInfo.emergencyPhone || 'Contacto de emergencia'}
                   />
                 </div>
 

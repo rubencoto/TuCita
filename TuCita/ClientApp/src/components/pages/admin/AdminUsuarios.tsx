@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { PhoneInput } from '@/components/ui/phone-input';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Search, Edit, Power, Trash2, Loader2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus, Search, Edit, Power, Trash2, Loader2, User, Stethoscope, UserCog } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import adminUsuariosService, { Usuario, CrearUsuarioDto, ActualizarUsuarioDto } from '@/services/api/admin/adminUsuariosService';
@@ -43,9 +45,68 @@ const estadoColors: Record<string, string> = {
 
 const roleColors: Record<string, string> = {
   ADMIN: 'bg-purple-100 text-purple-800',
-  DOCTOR: 'bg-blue-100 text-blue-800',
+  MEDICO: 'bg-blue-100 text-blue-800',
   PACIENTE: 'bg-teal-100 text-teal-800',
   RECEPCION: 'bg-orange-100 text-orange-800',
+};
+
+// Definición de roles con sus íconos y descripciones
+const ROLES_INFO = {
+  PACIENTE: {
+    id: 1,
+    nombre: 'PACIENTE',
+    label: 'Paciente',
+    icon: User,
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-50',
+    description: 'Usuario que agenda y asiste a citas médicas'
+  },
+  MEDICO: {
+    id: 2,
+    nombre: 'MEDICO',
+    label: 'Médico',
+    icon: Stethoscope,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50',
+    description: 'Profesional de salud que atiende consultas'
+  },
+  ADMIN: {
+    id: 3,
+    nombre: 'ADMIN',
+    label: 'Administrador',
+    icon: UserCog,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50',
+    description: 'Gestiona todo el sistema y usuarios'
+  }
+};
+
+// Función para generar email automático basado en nombre, apellido y rol
+const generarEmailAutomatico = (nombre: string, apellido: string, rol: string): string => {
+  // Limpiar y normalizar strings (quitar espacios, convertir a minúsculas, quitar acentos)
+  const limpiarTexto = (texto: string): string => {
+    return texto
+      .toLowerCase()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+      .replace(/\s+/g, ''); // Quitar espacios
+  };
+
+  const nombreLimpio = limpiarTexto(nombre);
+  const apellidoLimpio = limpiarTexto(apellido);
+
+  if (!nombreLimpio || !apellidoLimpio) {
+    return '';
+  }
+
+  if (rol === 'MEDICO') {
+    return `dr.${nombreLimpio}${apellidoLimpio}@tucitaonline.org`;
+  } else if (rol === 'ADMIN') {
+    return `${nombreLimpio}${apellidoLimpio}@tucitaonline.org`;
+  }
+  
+  return ''; // Para PACIENTE, el email se ingresa manualmente
 };
 
 export function AdminUsuarios() {
@@ -71,17 +132,19 @@ export function AdminUsuarios() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   
-  // Form state
+  // Form state - CAMBIADO: rol ahora es string único en lugar de array
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
-    roles: [] as string[],
+    rol: '', // CAMBIADO: de roles: [] a rol: ''
+    // Campos específicos de Doctor
     numeroLicencia: '',
     biografia: '',
     direccion: '',
     especialidadesIds: [] as number[],
+    // Campos específicos de Paciente
     identificacion: '',
     fechaNacimiento: '',
     telefonoEmergencia: '',
@@ -130,15 +193,6 @@ export function AdminUsuarios() {
     }
   };
 
-  const handleRoleToggle = (role: string) => {
-    setFormData(prev => ({
-      ...prev,
-      roles: prev.roles.includes(role)
-        ? prev.roles.filter(r => r !== role)
-        : [...prev.roles, role]
-    }));
-  };
-
   const handleEspecialidadToggle = (especialidadId: number) => {
     setFormData(prev => ({
       ...prev,
@@ -154,7 +208,7 @@ export function AdminUsuarios() {
     if (email.length > 3) {
       try {
         const existe = await adminUsuariosService.existeEmail(email, editingUser?.id);
-        setEmailError(existe ? 'Este email ya estó registrado' : '');
+        setEmailError(existe ? 'Este email ya está registrado' : '');
       } catch (error) {
         console.error('Error al verificar email:', error);
       }
@@ -170,7 +224,7 @@ export function AdminUsuarios() {
       apellido: '',
       email: '',
       telefono: '',
-      roles: [],
+      rol: '', // CAMBIADO
       numeroLicencia: '',
       biografia: '',
       direccion: '',
@@ -184,15 +238,67 @@ export function AdminUsuarios() {
     setShowModal(true);
   };
 
+  // Función para manejar cambio en nombre o apellido y regenerar email si aplica
+  const handleNombreApellidoChange = (field: 'nombre' | 'apellido', value: string) => {
+    const newFormData = { ...formData, [field]: value };
+    
+    // Si el rol es MEDICO o ADMIN, regenerar email automáticamente
+    if (newFormData.rol === 'MEDICO' || newFormData.rol === 'ADMIN') {
+      const emailGenerado = generarEmailAutomatico(
+        newFormData.nombre, 
+        newFormData.apellido, 
+        newFormData.rol
+      );
+      newFormData.email = emailGenerado;
+    }
+    
+    setFormData(newFormData);
+    
+    // Limpiar error de email si se está regenerando
+    if (newFormData.rol === 'MEDICO' || newFormData.rol === 'ADMIN') {
+      setEmailError('');
+    }
+  };
+
+  // Función para manejar cambio de rol y regenerar email si aplica
+  const handleRolChange = (nuevoRol: string) => {
+    const newFormData = { ...formData, rol: nuevoRol };
+    
+    // Si el nuevo rol es MEDICO o ADMIN, generar email automáticamente
+    if (nuevoRol === 'MEDICO' || nuevoRol === 'ADMIN') {
+      const emailGenerado = generarEmailAutomatico(
+        newFormData.nombre, 
+        newFormData.apellido, 
+        nuevoRol
+      );
+      newFormData.email = emailGenerado;
+      setEmailError(''); // Limpiar errores previos
+    } else if (nuevoRol === 'PACIENTE') {
+      // Para pacientes, limpiar el email para que lo ingresen manualmente
+      if (!editingUser) { // Solo limpiar si es usuario nuevo
+        newFormData.email = '';
+      }
+    }
+    
+    setFormData(newFormData);
+  };
+
   const handleEditUser = (user: Usuario) => {
     setEditingUser(user);
+    
+    // Quitar el prefijo "MED-" del número de licencia si existe
+    let numeroLicenciaSinPrefijo = user.numeroLicencia || '';
+    if (numeroLicenciaSinPrefijo.startsWith('MED-')) {
+      numeroLicenciaSinPrefijo = numeroLicenciaSinPrefijo.substring(4); // Quitar "MED-"
+    }
+    
     setFormData({
       nombre: user.nombre,
       apellido: user.apellido,
       email: user.email,
       telefono: user.telefono || '',
-      roles: user.roles,
-      numeroLicencia: user.numeroLicencia || '',
+      rol: user.roles[0] || '', // CAMBIADO: tomar el primer rol del array
+      numeroLicencia: numeroLicenciaSinPrefijo,
       biografia: '',
       direccion: '',
       especialidadesIds: [],
@@ -206,7 +312,7 @@ export function AdminUsuarios() {
   };
 
   const handleSaveUser = async () => {
-    // Validaciones
+    // Validaciones básicas
     if (!formData.nombre.trim()) {
       toast.error('El nombre es requerido');
       return;
@@ -219,8 +325,8 @@ export function AdminUsuarios() {
       toast.error('El email es requerido');
       return;
     }
-    if (formData.roles.length === 0) {
-      toast.error('Debe asignar al menos un rol');
+    if (!formData.rol) {
+      toast.error('Debe seleccionar un rol');
       return;
     }
     if (emailError) {
@@ -228,49 +334,116 @@ export function AdminUsuarios() {
       return;
     }
 
+    // Validaciones específicas por rol
+    if (formData.rol === 'MEDICO') {
+      if (!formData.numeroLicencia.trim()) {
+        toast.error('El número de licencia es requerido para médicos');
+        return;
+      }
+      if (formData.especialidadesIds.length === 0) {
+        toast.error('Debe seleccionar al menos una especialidad');
+        return;
+      }
+    }
+
+    if (formData.rol === 'PACIENTE') {
+      if (!formData.identificacion.trim()) {
+        toast.error('La identificación es requerida para pacientes');
+        return;
+      }
+      if (!formData.fechaNacimiento) {
+        toast.error('La fecha de nacimiento es requerida para pacientes');
+        return;
+      }
+    }
+
     try {
       setLoading(true);
 
       if (editingUser) {
         // Actualizar usuario existente
-        const updateData: ActualizarUsuarioDto = {
+        const updateData: any = {
           nombre: formData.nombre,
           apellido: formData.apellido,
           email: formData.email,
-          telefono: formData.telefono || undefined,
-          roles: formData.roles,
+          roles: [formData.rol],
           activo: formData.activo,
-          numeroLicencia: formData.numeroLicencia || undefined,
-          biografia: formData.biografia || undefined,
-          direccion: formData.direccion || undefined,
-          especialidadesIds: formData.especialidadesIds.length > 0 ? formData.especialidadesIds : undefined,
-          identificacion: formData.identificacion || undefined,
-          fechaNacimiento: formData.fechaNacimiento || undefined,
-          telefonoEmergencia: formData.telefonoEmergencia || undefined,
         };
 
-        await adminUsuariosService.updateUsuario(editingUser.id, updateData);
+        // Agregar teléfono solo si existe
+        if (formData.telefono) {
+          updateData.telefono = formData.telefono;
+        }
+
+        // Campos específicos para DOCTOR
+        if (formData.rol === 'MEDICO') {
+          updateData.numeroLicencia = `MED-${formData.numeroLicencia}`;
+          updateData.especialidadesIds = formData.especialidadesIds;
+          
+          if (formData.biografia) {
+            updateData.biografia = formData.biografia;
+          }
+          if (formData.direccion) {
+            updateData.direccion = formData.direccion;
+          }
+        }
+
+        // Campos específicos para PACIENTE
+        if (formData.rol === 'PACIENTE') {
+          updateData.identificacion = formData.identificacion;
+          updateData.fechaNacimiento = formData.fechaNacimiento;
+          
+          if (formData.telefonoEmergencia) {
+            updateData.telefonoEmergencia = formData.telefonoEmergencia;
+          }
+        }
+
+        console.log('Datos a actualizar:', updateData); // Para debugging
+
+        await adminUsuariosService.updateUsuario(editingUser.id, updateData as ActualizarUsuarioDto);
         toast.success('Usuario actualizado exitosamente');
       } else {
         // Crear nuevo usuario
-        const createData: CrearUsuarioDto = {
+        const createData: any = {
           nombre: formData.nombre,
           apellido: formData.apellido,
           email: formData.email,
-          telefono: formData.telefono || undefined,
-          roles: formData.roles,
-          numeroLicencia: formData.numeroLicencia || undefined,
-          biografia: formData.biografia || undefined,
-          direccion: formData.direccion || undefined,
-          especialidadesIds: formData.especialidadesIds.length > 0 ? formData.especialidadesIds : undefined,
-          identificacion: formData.identificacion || undefined,
-          fechaNacimiento: formData.fechaNacimiento || undefined,
-          telefonoEmergencia: formData.telefonoEmergencia || undefined,
+          roles: [formData.rol],
         };
 
-        await adminUsuariosService.createUsuario(createData);
+        // Agregar teléfono solo si existe
+        if (formData.telefono) {
+          createData.telefono = formData.telefono;
+        }
+
+        // Campos específicos para DOCTOR
+        if (formData.rol === 'MEDICO') {
+          createData.numeroLicencia = `MED-${formData.numeroLicencia}`;
+          createData.especialidadesIds = formData.especialidadesIds;
+          
+          if (formData.biografia) {
+            createData.biografia = formData.biografia;
+          }
+          if (formData.direccion) {
+            createData.direccion = formData.direccion;
+          }
+        }
+
+        // Campos específicos para PACIENTE
+        if (formData.rol === 'PACIENTE') {
+          createData.identificacion = formData.identificacion;
+          createData.fechaNacimiento = formData.fechaNacimiento;
+          
+          if (formData.telefonoEmergencia) {
+            createData.telefonoEmergencia = formData.telefonoEmergencia;
+          }
+        }
+
+        console.log('Datos a enviar:', createData); // Para debugging
+
+        await adminUsuariosService.createUsuario(createData as CrearUsuarioDto);
         toast.success('Usuario creado exitosamente', {
-          description: 'Contraseóa temporal asignada: TuCita2024!'
+          description: 'Contraseña temporal asignada: TuCita2024!'
         });
       }
 
@@ -355,8 +528,7 @@ export function AdminUsuarios() {
               <SelectContent>
                 <SelectItem value="Todos">Todos los roles</SelectItem>
                 <SelectItem value="PACIENTE">Paciente</SelectItem>
-                <SelectItem value="DOCTOR">Doctor</SelectItem>
-                <SelectItem value="RECEPCION">Recepción</SelectItem>
+                <SelectItem value="MEDICO">Médico</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -503,20 +675,66 @@ export function AdminUsuarios() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit User Modal */}
+      {/* Create/Edit User Modal - MEJORADO CON ROL ÚNICO */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Editar usuario' : 'Crear nuevo usuario'}</DialogTitle>
             <DialogDescription>
               {editingUser 
-                ? 'Actualiza los datos del usuario. Los cambios se aplicarón inmediatamente.' 
-                : 'Completa los datos del usuario. Se asignaró una contraseóa temporal: TuCita2024!'}
+                ? 'Actualiza los datos del usuario. Los cambios se aplicarán inmediatamente.' 
+                : 'Completa los datos del usuario. Se asignará una contraseña temporal: TuCita2024!'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Personal Data */}
+            {/* Selección de Rol - NUEVO DISEÑO CON RADIO BUTTONS */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">Tipo de usuario *</h3>
+              <RadioGroup 
+                value={formData.rol} 
+                onValueChange={handleRolChange}
+                className="grid grid-cols-3 gap-4"
+              >
+                {Object.values(ROLES_INFO).map((roleInfo) => {
+                  const Icon = roleInfo.icon;
+                  const isSelected = formData.rol === roleInfo.nombre;
+                  
+                  return (
+                    <div key={roleInfo.nombre}>
+                      <RadioGroupItem 
+                        value={roleInfo.nombre} 
+                        id={`role-${roleInfo.nombre}`}
+                        className="peer sr-only"
+                      />
+                      <Label
+                        htmlFor={`role-${roleInfo.nombre}`}
+                        className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          isSelected 
+                            ? `${roleInfo.bgColor} border-current ${roleInfo.color}` 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Icon className={`h-8 w-8 mb-2 ${isSelected ? roleInfo.color : 'text-gray-400'}`} />
+                        <span className={`font-semibold text-sm ${isSelected ? roleInfo.color : 'text-gray-700'}`}>
+                          {roleInfo.label}
+                        </span>
+                        <span className="text-xs text-gray-500 text-center mt-1">
+                          {roleInfo.description}
+                        </span>
+                      </Label>
+                    </div>
+                  );
+                })}
+              </RadioGroup>
+              {!formData.rol && (
+                <p className="text-sm text-red-500 mt-2">Selecciona un tipo de usuario</p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Datos Personales - SIEMPRE VISIBLE */}
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Datos personales</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -525,7 +743,8 @@ export function AdminUsuarios() {
                   <Input
                     id="nombre"
                     value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    onChange={(e) => handleNombreApellidoChange('nombre', e.target.value)}
+                    placeholder="Ej: Juan"
                   />
                 </div>
                 <div>
@@ -533,131 +752,178 @@ export function AdminUsuarios() {
                   <Input
                     id="apellido"
                     value={formData.apellido}
-                    onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+                    onChange={(e) => handleNombreApellidoChange('apellido', e.target.value)}
+                    placeholder="Ej: Pérez"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="email">Correo electrónico *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                    className={emailError ? 'border-red-500' : ''}
-                  />
-                  {emailError && (
-                    <p className="text-sm text-red-500 mt-1">{emailError}</p>
-                  )}
-                </div>
+                
+                {/* Email: Solo editable para PACIENTE, generado automáticamente para DOCTOR y ADMIN */}
+                {formData.rol === 'PACIENTE' ? (
+                  <div>
+                    <Label htmlFor="email">Correo electrónico *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      className={emailError ? 'border-red-500' : ''}
+                      placeholder="usuario@ejemplo.com"
+                    />
+                    {emailError && (
+                      <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                    )}
+                  </div>
+                ) : formData.rol === 'MEDICO' || formData.rol === 'ADMIN' ? (
+                  <div>
+                    <Label htmlFor="email">
+                      Correo electrónico * 
+                      <span className="text-xs text-gray-500 ml-2">(Generado automáticamente)</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      readOnly
+                      disabled
+                      className="bg-gray-50 cursor-not-allowed"
+                      placeholder={formData.rol === 'MEDICO' ? 'dr.nombre apellido@tucitaonline.org' : 'nombreapellido@tucitaonline.org'}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formData.rol === 'MEDICO' 
+                        ? 'El correo se genera automáticamente con el formato: dr.nombreapellido@tucitaonline.org'
+                        : 'El correo se genera automáticamente con el formato: nombreapellido@tucitaonline.org'}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <Label htmlFor="email">Correo electrónico *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value=""
+                      disabled
+                      className="bg-gray-50"
+                      placeholder="Selecciona primero un tipo de usuario"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Primero selecciona el tipo de usuario
+                    </p>
+                  </div>
+                )}
+                
                 <div>
                   <Label htmlFor="telefono">Teléfono</Label>
-                  <Input
+                  <PhoneInput
                     id="telefono"
                     value={formData.telefono}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, telefono: value })}
                   />
                 </div>
               </div>
             </div>
 
-            <Separator />
-
-            {/* System Roles */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Roles del sistema *</h3>
-              <div className="space-y-3">
-                {['PACIENTE', 'DOCTOR', 'RECEPCION', 'ADMIN'].map((role) => (
-                  <div key={role} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={role}
-                      checked={formData.roles.includes(role)}
-                      onCheckedChange={() => handleRoleToggle(role)}
-                    />
-                    <Label htmlFor={role} className="cursor-pointer">
-                      {role}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Doctor-specific fields */}
-            {formData.roles.includes('DOCTOR') && (
+            {/* Formulario específico para DOCTOR */}
+            {formData.rol === 'MEDICO' && (
               <>
                 <Separator />
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">información médica</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Información médica</h3>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="numeroLicencia">Número de licencia médica</Label>
-                      <Input
-                        id="numeroLicencia"
-                        value={formData.numeroLicencia}
-                        onChange={(e) => setFormData({ ...formData, numeroLicencia: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="biografia">Biografía</Label>
-                      <Input
-                        id="biografia"
-                        value={formData.biografia}
-                        onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
-                        placeholder="Breve descripción profesional"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="direccion">Dirección de consultorio</Label>
-                      <Input
-                        id="direccion"
-                        value={formData.direccion}
-                        onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Especialidades</Label>
-                      <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
-                        {especialidades.map((esp) => (
-                          <div key={esp.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`esp-${esp.id}`}
-                              checked={formData.especialidadesIds.includes(esp.id)}
-                              onCheckedChange={() => handleEspecialidadToggle(esp.id)}
-                            />
-                            <Label htmlFor={`esp-${esp.id}`} className="cursor-pointer">
-                              {esp.nombre}
-                            </Label>
-                          </div>
-                        ))}
+                      <Label htmlFor="numeroLicencia">Número de licencia médica *</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
+                          MED-
+                        </span>
+                        <Input
+                          id="numeroLicencia"
+                          value={formData.numeroLicencia}
+                          onChange={(e) => setFormData({ ...formData, numeroLicencia: e.target.value })}
+                          placeholder="12345"
+                          className="pl-[60px]"
+                        />
                       </div>
+                      <p className="text-xs text-gray-500 mt-1">El número de licencia siempre comienza con MED-</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="biografia">Biografía profesional</Label>
+                        <Input
+                          id="biografia"
+                          value={formData.biografia}
+                          onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
+                          placeholder="Ej: Especialista en cardiología..."
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="direccion">Dirección de consultorio</Label>
+                        <Input
+                          id="direccion"
+                          value={formData.direccion}
+                          onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                          placeholder="Ej: Av. Central, Edificio Médico"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label>Especialidades médicas *</Label>
+                      <div className="border rounded-lg p-4 mt-2 max-h-48 overflow-y-auto bg-gray-50">
+                        {especialidades.length === 0 ? (
+                          <p className="text-sm text-gray-500">No hay especialidades disponibles</p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-3">
+                            {especialidades.map((esp) => (
+                              <div key={esp.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`esp-${esp.id}`}
+                                  checked={formData.especialidadesIds.includes(esp.id)}
+                                  onCheckedChange={() => handleEspecialidadToggle(esp.id)}
+                                />
+                                <Label htmlFor={`esp-${esp.id}`} className="cursor-pointer text-sm">
+                                  {esp.nombre}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {formData.especialidadesIds.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">Selecciona al menos una especialidad</p>
+                      )}
                     </div>
                   </div>
                 </div>
               </>
             )}
 
-            {/* Paciente-specific fields */}
-            {formData.roles.includes('PACIENTE') && (
+            {/* Formulario específico para PACIENTE */}
+            {formData.rol === 'PACIENTE' && (
               <>
                 <Separator />
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">información del paciente</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Información del paciente</h3>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="identificacion">identificación (DNI/Pasaporte)</Label>
-                      <Input
-                        id="identificacion"
-                        value={formData.identificacion}
-                        onChange={(e) => setFormData({ ...formData, identificacion: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="fechaNacimiento">Fecha de nacimiento</Label>
-                      <Input
-                        id="fechaNacimiento"
-                        type="date"
-                        value={formData.fechaNacimiento}
-                        onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="identificacion">Identificación (DNI/Cédula) *</Label>
+                        <Input
+                          id="identificacion"
+                          value={formData.identificacion}
+                          onChange={(e) => setFormData({ ...formData, identificacion: e.target.value })}
+                          placeholder="Ej: 1-1234-5678"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fechaNacimiento">Fecha de nacimiento *</Label>
+                        <Input
+                          id="fechaNacimiento"
+                          type="date"
+                          value={formData.fechaNacimiento}
+                          onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="telefonoEmergencia">Teléfono de emergencia</Label>
@@ -665,18 +931,40 @@ export function AdminUsuarios() {
                         id="telefonoEmergencia"
                         value={formData.telefonoEmergencia}
                         onChange={(e) => setFormData({ ...formData, telefonoEmergencia: e.target.value })}
+                        placeholder="Contacto de emergencia"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Número de familiar o contacto de emergencia</p>
                     </div>
                   </div>
                 </div>
               </>
             )}
 
+            {/* Formulario específico para ADMIN */}
+            {formData.rol === 'ADMIN' && (
+              <>
+                <Separator />
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <UserCog className="h-5 w-5 text-purple-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-purple-900">Rol de Administrador</h4>
+                      <p className="text-sm text-purple-700 mt-1">
+                        Este usuario tendrá acceso completo al panel de administración y podrá gestionar 
+                        todos los aspectos del sistema, incluyendo usuarios, citas y configuraciones.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Estado (solo al editar) */}
             {editingUser && (
               <>
                 <Separator />
                 <div>
-                  <Label htmlFor="activo">Estado</Label>
+                  <Label htmlFor="activo">Estado del usuario</Label>
                   <Select 
                     value={formData.activo ? 'Activo' : 'Inactivo'} 
                     onValueChange={(val: string) => setFormData({ ...formData, activo: val === 'Activo' })}
@@ -689,6 +977,9 @@ export function AdminUsuarios() {
                       <SelectItem value="Inactivo">Inactivo</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Los usuarios inactivos no podrán iniciar sesión en el sistema
+                  </p>
                 </div>
               </>
             )}
@@ -701,7 +992,7 @@ export function AdminUsuarios() {
             <Button 
               onClick={handleSaveUser} 
               className="bg-teal-600 hover:bg-teal-700"
-              disabled={loading || !!emailError}
+              disabled={loading || !!emailError || !formData.rol}
             >
               {loading ? (
                 <>

@@ -143,7 +143,7 @@ export interface CreateDocumentoRequest {
 // Medical History Service
 // ==========================================
 
-const API_BASE = '/api/historial';
+const API_BASE = '/historial';
 
 class MedicalHistoryService {
   /**

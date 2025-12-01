@@ -129,17 +129,42 @@ public class TuCitaDbContext : DbContext
         // CONFIGURACIÓN DE ÍNDICES
         // ============================================================
 
-        // Índice único en email normalizado
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA USUARIOS
+        // ============================================================
+
+        // Índice único en email normalizado (idx_usuarios_email_normalizado en SQL)
         modelBuilder.Entity<Usuario>()
             .HasIndex(e => e.EmailNormalizado)
             .IsUnique()
-            .HasDatabaseName("UX_usuarios_email_norm");
+            .HasFilter("[email_normalizado] IS NOT NULL")
+            .HasDatabaseName("idx_usuarios_email_normalizado");
+
+        // Índice para búsqueda por nombre/apellido (AdminUsuarios)
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(e => new { e.Nombre, e.Apellido })
+            .IncludeProperties(e => new { e.Email, e.Activo, e.CreadoEn })
+            .HasDatabaseName("idx_usuarios_nombre_apellido");
+
+        // Índice para filtro por estado activo
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(e => new { e.Activo, e.CreadoEn })
+            .IsDescending(false, true)
+            .HasDatabaseName("idx_usuarios_activo_creado");
+
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA ROLES
+        // ============================================================
 
         // Índice único en nombre de rol
         modelBuilder.Entity<Rol>()
             .HasIndex(e => e.Nombre)
             .IsUnique()
             .HasDatabaseName("UQ_roles_nombre");
+
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA ESPECIALIDADES
+        // ============================================================
 
         // Índice único en nombre de especialidad
         modelBuilder.Entity<Especialidad>()
@@ -158,30 +183,84 @@ public class TuCitaDbContext : DbContext
             .HasIndex(e => e.Activo)
             .HasDatabaseName("IX_almacen_activo");
 
-        // Índices para roles_usuarios
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA ROLES_USUARIOS
+        // ============================================================
+
+        // Índice para filtros por rol
         modelBuilder.Entity<RolUsuario>()
-            .HasIndex(e => e.RolId)
-            .HasDatabaseName("IX_roles_usuarios_rol_id");
+            .HasIndex(e => new { e.RolId, e.UsuarioId })
+            .HasDatabaseName("idx_roles_usuarios_rol");
 
-        // Índices para medico_especialidad
+        // Índice para consultas por usuario
+        modelBuilder.Entity<RolUsuario>()
+            .HasIndex(e => new { e.UsuarioId, e.RolId })
+            .HasDatabaseName("idx_roles_usuarios_usuario");
+
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA MEDICO_ESPECIALIDAD
+        // ============================================================
+
+        // Índice para búsqueda de médicos por especialidad
         modelBuilder.Entity<MedicoEspecialidad>()
-            .HasIndex(e => e.EspecialidadId)
-            .HasDatabaseName("IX_medico_especialidad_especialidad_id");
+            .HasIndex(e => new { e.EspecialidadId, e.MedicoId })
+            .HasDatabaseName("idx_medico_especialidad_especialidad");
 
-        // Índices para agenda_turnos
-        modelBuilder.Entity<AgendaTurno>()
-            .HasIndex(e => e.MedicoId)
-            .HasDatabaseName("IX_agenda_turnos_medico_id");
+        // Índice para consultas por médico
+        modelBuilder.Entity<MedicoEspecialidad>()
+            .HasIndex(e => new { e.MedicoId, e.EspecialidadId })
+            .HasDatabaseName("idx_medico_especialidad_medico");
 
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA AGENDA_TURNOS
+        // ============================================================
+
+        // Índice para búsqueda de disponibilidad (crítico para calendario)
         modelBuilder.Entity<AgendaTurno>()
+            .HasIndex(e => new { e.MedicoId, e.Inicio, e.Estado })
+            .HasFilter("[estado] = N'DISPONIBLE'")
+            .IncludeProperties(e => e.Fin)
+            .HasDatabaseName("idx_agenda_turnos_medico_disponible");
+
+        // Índice para consultas por rango de fechas
+        modelBuilder.Entity<AgendaTurno>()
+            .HasIndex(e => new { e.Inicio, e.Fin })
+            .HasDatabaseName("idx_agenda_turnos_inicio_fin");
+
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA CITAS
+        // ============================================================
+
+        // Índice para filtros por estado y fecha (AdminCitas.loadCitas)
+        modelBuilder.Entity<Cita>()
+            .HasIndex(e => new { e.Estado, e.Inicio })
+            .IncludeProperties(e => new { e.MedicoId, e.PacienteId, e.Fin, e.Motivo })
+            .HasDatabaseName("idx_citas_estado_inicio");
+
+        // Índice para agenda del médico (DoctorDashboard.getTodayAppointments)
+        modelBuilder.Entity<Cita>()
             .HasIndex(e => new { e.MedicoId, e.Inicio })
-            .HasDatabaseName("IX_agenda_turnos_medico_inicio");
+            .IncludeProperties(e => new { e.Estado, e.PacienteId, e.Motivo, e.Fin })
+            .HasDatabaseName("idx_citas_medico_inicio");
 
-        // Índices para citas
+        // Índice para historial del paciente (AppointmentsService.getMyAppointments)
+        modelBuilder.Entity<Cita>()
+            .HasIndex(e => new { e.PacienteId, e.Inicio })
+            .IsDescending(false, true)
+            .IncludeProperties(e => new { e.Estado, e.MedicoId, e.Motivo })
+            .HasDatabaseName("idx_citas_paciente_inicio");
+
+        // Índice para relación con turnos
         modelBuilder.Entity<Cita>()
             .HasIndex(e => e.TurnoId)
-            .HasDatabaseName("IX_citas_turno_id");
+            .HasDatabaseName("idx_citas_turno_id");
 
+        // Índice para consultas por rango de fechas
+        modelBuilder.Entity<Cita>()
+            .HasIndex(e => new { e.Inicio, e.Fin })
+            .HasDatabaseName("idx_citas_inicio_fin");
+
+        // Índices adicionales de FK (para compatibilidad con EF)
         modelBuilder.Entity<Cita>()
             .HasIndex(e => e.MedicoId)
             .HasDatabaseName("IX_citas_medico_id");
@@ -194,50 +273,57 @@ public class TuCitaDbContext : DbContext
             .HasIndex(e => e.CreadoPor)
             .HasDatabaseName("IX_citas_creado_por");
 
-        modelBuilder.Entity<Cita>()
-            .HasIndex(e => new { e.MedicoId, e.Estado, e.Inicio })
-            .HasDatabaseName("IX_citas_medico_estado_inicio");
+        // ============================================================
+        // ÍNDICES CRÍTICOS - HISTORIAL MÉDICO
+        // ============================================================
 
-        modelBuilder.Entity<Cita>()
-            .HasIndex(e => new { e.PacienteId, e.Inicio })
-            .HasDatabaseName("IX_citas_paciente_inicio");
-
-        // Índices para notas_clinicas
+        // Notas clínicas por cita
         modelBuilder.Entity<NotaClinica>()
-            .HasIndex(e => e.CitaId)
-            .HasDatabaseName("IX_notas_clinicas_cita_id");
+            .HasIndex(e => new { e.CitaId, e.CreadoEn })
+            .IsDescending(false, true)
+            .HasDatabaseName("idx_notas_clinicas_cita");
 
-        // Índices para diagnosticos
+        // Diagnósticos por cita
         modelBuilder.Entity<Diagnostico>()
-            .HasIndex(e => e.CitaId)
-            .HasDatabaseName("IX_diagnosticos_cita_id");
+            .HasIndex(e => new { e.CitaId, e.CreadoEn })
+            .IsDescending(false, true)
+            .HasDatabaseName("idx_diagnosticos_cita");
 
-        // Índices para recetas
+        // Recetas por cita
         modelBuilder.Entity<Receta>()
-            .HasIndex(e => e.CitaId)
-            .HasDatabaseName("IX_recetas_cita_id");
+            .HasIndex(e => new { e.CitaId, e.CreadoEn })
+            .IsDescending(false, true)
+            .HasDatabaseName("idx_recetas_cita");
 
-        // Índices para receta_items
+        // Índice para receta_items
         modelBuilder.Entity<RecetaItem>()
             .HasIndex(e => e.RecetaId)
             .HasDatabaseName("IX_receta_items_receta_id");
 
-        // Índices para documentos_clinicos
+        // ============================================================
+        // ÍNDICES CRÍTICOS - DOCUMENTOS CLÍNICOS
+        // ============================================================
+
+        // Documentos clínicos por cita
         modelBuilder.Entity<DocumentoClinico>()
             .HasIndex(e => new { e.CitaId, e.CreadoEn })
-            .HasDatabaseName("IX_documentos_cita")
-            .IsDescending(false, true);
+            .IsDescending(false, true)
+            .HasDatabaseName("idx_documentos_cita");
 
+        // Documentos clínicos por paciente
         modelBuilder.Entity<DocumentoClinico>()
             .HasIndex(e => new { e.PacienteId, e.CreadoEn })
-            .HasDatabaseName("IX_documentos_paciente")
-            .IsDescending(false, true);
+            .IsDescending(false, true)
+            .IncludeProperties(e => new { e.Categoria, e.NombreArchivo })
+            .HasDatabaseName("idx_documentos_paciente");
 
+        // Índice para documentos por médico
         modelBuilder.Entity<DocumentoClinico>()
             .HasIndex(e => new { e.MedicoId, e.CreadoEn })
-            .HasDatabaseName("IX_documentos_medico")
-            .IsDescending(false, true);
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_documentos_medico");
 
+        // Índice para categoría
         modelBuilder.Entity<DocumentoClinico>()
             .HasIndex(e => e.Categoria)
             .HasDatabaseName("IX_documentos_categoria");
@@ -256,13 +342,13 @@ public class TuCitaDbContext : DbContext
         // Índices para documentos_descargas
         modelBuilder.Entity<DocumentoDescarga>()
             .HasIndex(e => new { e.DocumentoId, e.CreadoEn })
-            .HasDatabaseName("IX_descargas_doc_fecha")
-            .IsDescending(false, true);
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_descargas_doc_fecha");
 
         modelBuilder.Entity<DocumentoDescarga>()
             .HasIndex(e => new { e.UsuarioId, e.CreadoEn })
-            .HasDatabaseName("IX_descargas_usuario")
-            .IsDescending(false, true);
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_descargas_usuario");
 
         // ============================================================
         // CONFIGURACIÓN DE RELACIONES CON RESTRICCIONES DE ELIMINACIÓN

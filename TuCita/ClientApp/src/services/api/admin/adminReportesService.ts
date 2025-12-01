@@ -74,7 +74,7 @@ export interface FormatoInfo {
 // ==================== SERVICIO ====================
 
 class AdminReportesService {
-  private baseUrl = '/api/admin/reportes';
+  private baseUrl = '/admin/reportes';
 
   /**
    * Genera un reporte basado en los filtros proporcionados

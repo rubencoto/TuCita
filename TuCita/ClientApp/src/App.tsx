@@ -25,8 +25,9 @@ import { authService, AuthResponse } from './services/api/auth/authService';
 import doctorAuthService from './services/api/auth/doctorAuthService';
 import adminAuthService from './services/api/auth/adminAuthService';
 import appointmentsService from './services/api/patient/appointmentsService';
+import { DoctorScheduleConfigPage } from './components/pages/doctor/doctor-schedule-config-page';
 
-type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-profile' | 'admin-panel';
+type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-schedule-config' | 'doctor-profile' | 'admin-panel';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
@@ -468,6 +469,22 @@ export default function App() {
         }
         return (
           <DoctorAvailabilityPage
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      
+      case 'doctor-schedule-config':
+        if (!isLoggedIn || !isDoctor) {
+          return (
+            <DoctorAuthPage
+              onLogin={handleLogin}
+              onNavigate={handleNavigate}
+            />
+          );
+        }
+        return (
+          <DoctorScheduleConfigPage
             onNavigate={handleNavigate}
             onLogout={handleLogout}
           />

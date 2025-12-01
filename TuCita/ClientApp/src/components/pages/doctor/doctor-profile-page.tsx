@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { 
   User, 
   Mail, 
@@ -472,10 +473,10 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                       <Phone className="h-4 w-4 mr-2 text-gray-500" />
                       Teléfono
                     </Label>
-                    <Input
+                    <PhoneInput
                       id="telefono"
                       value={formData.telefono}
-                      onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                      onChange={(value) => setFormData({ ...formData, telefono: value })}
                       disabled={!isEditing}
                     />
                   </div>

@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Mail, Lock, User, Phone, Heart, Stethoscope } from 'lucide-react';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { Eye, EyeOff, Mail, Lock, User, Heart, Stethoscope } from 'lucide-react';
 import { authService, AuthResponse } from '@/services/api/auth/authService';
 import { toast } from 'sonner';
 
@@ -252,19 +253,12 @@ export function AuthPage({ mode, onLogin, onNavigate }: AuthPageProps) {
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Teléfono</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+506 1234 5678"
-                        value={registerForm.phone}
-                        onChange={(e) => setRegisterForm(prev => ({ ...prev, phone: e.target.value }))}
-                        className="pl-10"
-                        disabled={isLoading}
-                        autoComplete="tel"
-                      />
-                    </div>
+                    <PhoneInput
+                      id="phone"
+                      value={registerForm.phone}
+                      onChange={(value) => setRegisterForm(prev => ({ ...prev, phone: value }))}
+                      disabled={isLoading}
+                    />
                   </div>
 
                   <div className="space-y-2">

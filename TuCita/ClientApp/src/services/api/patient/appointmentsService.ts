@@ -41,7 +41,7 @@ const appointmentsService = {
    */
   async getMyAppointments(): Promise<Appointment[]> {
     try {
-      const response = await api.get('/api/appointments');
+      const response = await api.get('/appointments');
       return response.data;
     } catch (error) {
       console.error('Error al obtener citas:', error);
@@ -54,7 +54,7 @@ const appointmentsService = {
    */
   async getAppointmentById(id: number): Promise<Appointment | null> {
     try {
-      const response = await api.get(`/api/appointments/${id}`);
+      const response = await api.get(`/appointments/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error al obtener cita ${id}:`, error);
@@ -68,7 +68,7 @@ const appointmentsService = {
   async createAppointment(request: CreateAppointmentRequest): Promise<Appointment> {
     try {
       console.log('🔵 appointmentsService.createAppointment - Request:', request);
-      const response = await api.post('/api/appointments', request);
+      const response = await api.post('/appointments', request);
       console.log('🟢 appointmentsService.createAppointment - Response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -86,7 +86,7 @@ const appointmentsService = {
     request: UpdateAppointmentRequest
   ): Promise<Appointment> {
     try {
-      const response = await api.put(`/api/appointments/${id}`, request);
+      const response = await api.put(`/appointments/${id}`, request);
       return response.data;
     } catch (error) {
       console.error(`Error al actualizar cita ${id}:`, error);
@@ -99,7 +99,7 @@ const appointmentsService = {
    */
   async cancelAppointment(id: number): Promise<boolean> {
     try {
-      const response = await api.delete(`/api/appointments/${id}`);
+      const response = await api.delete(`/appointments/${id}`);
       return response.status === 200 || response.status === 204;
     } catch (error) {
       console.error(`Error al cancelar cita ${id}:`, error);
@@ -112,7 +112,7 @@ const appointmentsService = {
    */
   async rescheduleAppointment(id: number): Promise<Appointment | null> {
     try {
-      const response = await api.put(`/api/appointments/${id}`, {
+      const response = await api.put(`/appointments/${id}`, {
         estado: 'REPROGRAMADA'
       });
       return response.data;
@@ -131,7 +131,7 @@ const appointmentsService = {
   ): Promise<Appointment | null> {
     try {
       console.log('🔄 Reagendando cita:', { id, newTurnoId });
-      const response = await api.post(`/api/appointments/${id}/reschedule`, {
+      const response = await api.post(`/appointments/${id}/reschedule`, {
         NewTurnoId: newTurnoId
       });
       console.log('✅ Cita reagendada exitosamente:', response.data);

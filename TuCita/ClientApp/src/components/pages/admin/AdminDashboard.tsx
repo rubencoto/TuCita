@@ -117,11 +117,11 @@ export function AdminDashboard() {
     },
     {
       title: 'Doctores activos',
-      value: dashboardData.metricas.doctoresActivos.toString(),
+      value: dashboardData.metricas.doctoresConectados.toString(),
       icon: UserCheck,
       color: 'text-teal-600',
       bgColor: 'bg-teal-100',
-      trend: `${dashboardData.metricas.doctoresConectados} conectados ahora`
+      trend: `${dashboardData.metricas.doctoresActivos} activos en total`
     },
   ];
 

@@ -103,7 +103,7 @@ const adminCitasService = {
   searchPacientes: async (searchTerm: string): Promise<PacienteSearch[]> => {
     try {
       const response = await api.get<PacienteSearch[]>(
-        '/api/admin/citas/pacientes/search',
+        '/admin/citas/pacientes/search',
         {
           params: { q: searchTerm }
         }
@@ -123,7 +123,7 @@ const adminCitasService = {
   getDoctores: async (): Promise<DoctorConEspecialidad[]> => {
     try {
       const response = await api.get<DoctorConEspecialidad[]>(
-        '/api/admin/citas/doctores'
+        '/admin/citas/doctores'
       );
       return response.data;
     } catch (error: any) {
@@ -143,7 +143,7 @@ const adminCitasService = {
   ): Promise<DoctorConEspecialidad[]> => {
     try {
       const response = await api.get<DoctorConEspecialidad[]>(
-        `/api/admin/citas/doctores/especialidad/${especialidadId}`
+        `/admin/citas/doctores/especialidad/${especialidadId}`
       );
       return response.data;
     } catch (error: any) {
@@ -165,7 +165,7 @@ const adminCitasService = {
   ): Promise<SlotDisponible[]> => {
     try {
       const response = await api.get<SlotDisponible[]>(
-        `/api/admin/citas/doctores/${medicoId}/slots`,
+        `/admin/citas/doctores/${medicoId}/slots`,
         {
           params: { fecha }
         }
@@ -188,7 +188,7 @@ const adminCitasService = {
   ): Promise<CitaCreada> => {
     try {
       const response = await api.post<CitaCreada>(
-        '/api/admin/citas',
+        '/admin/citas',
         citaData
       );
       return response.data;
@@ -208,7 +208,7 @@ const adminCitasService = {
     filtros: CitasFilter = {}
   ): Promise<CitasPaginadas> => {
     try {
-      const response = await api.get<CitasPaginadas>('/api/admin/citas', {
+      const response = await api.get<CitasPaginadas>('/admin/citas', {
         params: filtros
       });
       return response.data;
@@ -227,7 +227,7 @@ const adminCitasService = {
   getCitaDetalle: async (citaId: number): Promise<AdminCitaList> => {
     try {
       const response = await api.get<AdminCitaList>(
-        `/api/admin/citas/${citaId}`
+        `/admin/citas/${citaId}`
       );
       return response.data;
     } catch (error: any) {
@@ -248,7 +248,7 @@ const adminCitasService = {
     updateData: UpdateEstadoCitaRequest
   ): Promise<void> => {
     try {
-      await api.patch(`/api/admin/citas/${citaId}/estado`, updateData);
+      await api.patch(`/admin/citas/${citaId}/estado`, updateData);
     } catch (error: any) {
       console.error('Error al actualizar estado de cita:', error);
       throw new Error(
@@ -263,7 +263,7 @@ const adminCitasService = {
    */
   deleteCita: async (citaId: number): Promise<void> => {
     try {
-      await api.delete(`/api/admin/citas/${citaId}`);
+      await api.delete(`/admin/citas/${citaId}`);
     } catch (error: any) {
       console.error('Error al cancelar cita:', error);
       throw new Error(

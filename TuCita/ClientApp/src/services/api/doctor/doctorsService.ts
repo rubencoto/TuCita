@@ -54,7 +54,7 @@ const doctorsService = {
         params.append('location', filters.ciudad || filters.location || '');
       }
 
-      const response = await api.get(`/api/doctors?${params.toString()}`);
+      const response = await api.get(`/doctors?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Error al obtener doctores:', error);
@@ -67,7 +67,7 @@ const doctorsService = {
    */
   async getDoctorById(id: number): Promise<Doctor | null> {
     try {
-      const response = await api.get(`/api/doctors/${id}`);
+      const response = await api.get(`/doctors/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error al obtener doctor ${id}:`, error);
@@ -80,7 +80,7 @@ const doctorsService = {
    */
   async getSpecialties(): Promise<string[]> {
     try {
-      const response = await api.get('/api/doctors/specialties');
+      const response = await api.get('/doctors/specialties');
       return response.data;
     } catch (error) {
       console.error('Error al obtener especialidades:', error);
@@ -98,7 +98,7 @@ const doctorsService = {
     try {
       const fechaStr = fecha.toISOString().split('T')[0];
       const response = await api.get(
-        `/api/doctors/${doctorId}/slots?fecha=${fechaStr}`
+        `/doctors/${doctorId}/slots?fecha=${fechaStr}`
       );
       return response.data;
     } catch (error) {

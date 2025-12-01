@@ -70,7 +70,7 @@ export interface AdminDashboard {
  * Servicio para consumir la API del dashboard de administración
  */
 class AdminDashboardService {
-  private baseUrl = '/api/admin/dashboard';
+  private baseUrl = '/admin/dashboard';
 
   /**
    * Obtiene todos los datos del dashboard

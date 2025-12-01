@@ -3,6 +3,8 @@ using TuCita.Data;
 using TuCita.DTOs.Admin;
 using TuCita.Models;
 using BCrypt.Net;
+using System.Text;
+using System.Globalization;
 
 namespace TuCita.Services;
 
@@ -66,6 +68,58 @@ public class AdminUsuariosService : IAdminUsuariosService
     {
         _context = context;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Genera un email automático basado en nombre, apellido y rol
+    /// </summary>
+    /// <param name="nombre">Nombre del usuario</param>
+    /// <param name="apellido">Apellido del usuario</param>
+    /// <param name="rol">Rol del usuario (MEDICO, ADMIN, etc.)</param>
+    /// <returns>Email generado automáticamente</returns>
+    private static string GenerarEmailAutomatico(string nombre, string apellido, string rol)
+    {
+        // Función helper para limpiar y normalizar texto
+        static string LimpiarTexto(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return string.Empty;
+
+            // Normalizar y quitar acentos
+            var normalizado = texto.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder();
+
+            foreach (var c in normalizado)
+            {
+                var category = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (category != UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString()
+                .Normalize(NormalizationForm.FormC)
+                .ToLower()
+                .Trim()
+                .Replace(" ", ""); // Quitar espacios
+        }
+
+        var nombreLimpio = LimpiarTexto(nombre);
+        var apellidoLimpio = LimpiarTexto(apellido);
+
+        if (string.IsNullOrWhiteSpace(nombreLimpio) || string.IsNullOrWhiteSpace(apellidoLimpio))
+        {
+            throw new InvalidOperationException("El nombre y apellido son requeridos para generar el email");
+        }
+
+        // Generar email según el rol
+        return rol switch
+        {
+            "MEDICO" => $"dr.{nombreLimpio}{apellidoLimpio}@tucitaonline.org",
+            "ADMIN" => $"{nombreLimpio}{apellidoLimpio}@tucitaonline.org",
+            _ => string.Empty // Para otros roles, el email debe proporcionarse manualmente
+        };
     }
 
     /// <summary>
@@ -202,8 +256,37 @@ public class AdminUsuariosService : IAdminUsuariosService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
+            // Validar que existan los roles
+            if (dto.Roles == null || !dto.Roles.Any())
+            {
+                throw new InvalidOperationException("Debe asignar al menos un rol al usuario");
+            }
+
+            var rolPrincipal = dto.Roles.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(rolPrincipal))
+            {
+                throw new InvalidOperationException("El rol principal es requerido");
+            }
+
+            // Generar email automático para MEDICO y ADMIN
+            string emailFinal;
+            if (rolPrincipal == "MEDICO" || rolPrincipal == "ADMIN")
+            {
+                emailFinal = GenerarEmailAutomatico(dto.Nombre, dto.Apellido, rolPrincipal);
+                _logger.LogInformation("Email generado automáticamente para {Rol}: {Email}", rolPrincipal, emailFinal);
+            }
+            else
+            {
+                // Para PACIENTE y otros roles, usar el email proporcionado
+                if (string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    throw new InvalidOperationException("El email es requerido para este tipo de usuario");
+                }
+                emailFinal = dto.Email.Trim().ToLower();
+            }
+
             // Validar que no exista email duplicado
-            if (await ExisteEmailAsync(dto.Email))
+            if (await ExisteEmailAsync(emailFinal))
             {
                 throw new InvalidOperationException("Ya existe un usuario con ese email");
             }
@@ -219,8 +302,8 @@ public class AdminUsuariosService : IAdminUsuariosService
             {
                 Nombre = dto.Nombre.Trim(),
                 Apellido = dto.Apellido.Trim(),
-                Email = dto.Email.Trim().ToLower(),
-                EmailNormalizado = dto.Email.Trim().ToUpper(),
+                Email = emailFinal,
+                EmailNormalizado = emailFinal.ToUpper(),
                 Telefono = dto.Telefono?.Trim(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("TuCita2024!"), // Password temporal
                 Activo = true,
@@ -249,9 +332,16 @@ public class AdminUsuariosService : IAdminUsuariosService
 
             await _context.SaveChangesAsync();
 
-            // Crear perfil de médico si tiene rol DOCTOR
-            if (dto.Roles.Contains("DOCTOR"))
+            _logger.LogInformation("? Roles asignados exitosamente para usuario {UsuarioId}", usuario.Id);
+
+            // Crear perfil de médico si tiene rol MEDICO
+            _logger.LogInformation("?? Verificando si usuario {UsuarioId} tiene rol MEDICO. Roles: [{Roles}]", 
+                usuario.Id, string.Join(", ", dto.Roles));
+            
+            if (dto.Roles.Contains("MEDICO"))
             {
+                _logger.LogInformation("? Usuario {UsuarioId} tiene rol MEDICO. Creando perfil médico...", usuario.Id);
+                
                 var perfilMedico = new PerfilMedico
                 {
                     UsuarioId = usuario.Id,
@@ -264,10 +354,16 @@ public class AdminUsuariosService : IAdminUsuariosService
 
                 _context.PerfilesMedicos.Add(perfilMedico);
                 await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("? Perfil médico creado para usuario {UsuarioId} con licencia {Licencia}", 
+                    usuario.Id, dto.NumeroLicencia);
 
                 // Asignar especialidades
                 if (dto.EspecialidadesIds != null && dto.EspecialidadesIds.Any())
                 {
+                    _logger.LogInformation("?? Asignando {Count} especialidades al médico {UsuarioId}", 
+                        dto.EspecialidadesIds.Count, usuario.Id);
+                    
                     foreach (var especialidadId in dto.EspecialidadesIds)
                     {
                         _context.MedicosEspecialidades.Add(new MedicoEspecialidad
@@ -277,7 +373,13 @@ public class AdminUsuariosService : IAdminUsuariosService
                         });
                     }
                     await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("? Especialidades asignadas exitosamente");
                 }
+            }
+            else
+            {
+                _logger.LogWarning("?? Usuario {UsuarioId} NO tiene rol MEDICO. No se creará perfil médico.", usuario.Id);
             }
 
             // Crear perfil de paciente si tiene rol PACIENTE
@@ -332,8 +434,32 @@ public class AdminUsuariosService : IAdminUsuariosService
                 throw new InvalidOperationException("Usuario no encontrado");
             }
 
+            // Determinar el rol principal
+            var rolPrincipal = dto.Roles.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(rolPrincipal))
+            {
+                throw new InvalidOperationException("Debe asignar al menos un rol");
+            }
+
+            // Generar email automático para MEDICO y ADMIN, o usar el proporcionado para PACIENTE
+            string emailFinal;
+            if (rolPrincipal == "MEDICO" || rolPrincipal == "ADMIN")
+            {
+                emailFinal = GenerarEmailAutomatico(dto.Nombre, dto.Apellido, rolPrincipal);
+                _logger.LogInformation("Email regenerado automáticamente para {Rol}: {Email}", rolPrincipal, emailFinal);
+            }
+            else
+            {
+                // Para PACIENTE, usar el email proporcionado
+                if (string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    throw new InvalidOperationException("El email es requerido");
+                }
+                emailFinal = dto.Email.Trim().ToLower();
+            }
+
             // Validar email duplicado
-            if (await ExisteEmailAsync(dto.Email, id))
+            if (await ExisteEmailAsync(emailFinal, id))
             {
                 throw new InvalidOperationException("Ya existe otro usuario con ese email");
             }
@@ -341,8 +467,8 @@ public class AdminUsuariosService : IAdminUsuariosService
             // Actualizar datos básicos
             usuario.Nombre = dto.Nombre.Trim();
             usuario.Apellido = dto.Apellido.Trim();
-            usuario.Email = dto.Email.Trim().ToLower();
-            usuario.EmailNormalizado = dto.Email.Trim().ToUpper();
+            usuario.Email = emailFinal;
+            usuario.EmailNormalizado = emailFinal.ToUpper();
             usuario.Telefono = dto.Telefono?.Trim();
             usuario.Activo = dto.Activo;
             usuario.ActualizadoEn = DateTime.UtcNow;
@@ -369,7 +495,7 @@ public class AdminUsuariosService : IAdminUsuariosService
             await _context.SaveChangesAsync();
 
             // Gestionar perfil de médico
-            if (dto.Roles.Contains("DOCTOR"))
+            if (dto.Roles.Contains("MEDICO"))
             {
                 if (usuario.PerfilMedico == null)
                 {

@@ -142,7 +142,7 @@ export interface DashboardStats {
 // Doctor Appointments Service
 // ==========================================
 
-const API_BASE = '/api/doctor/appointments';
+const API_BASE = '/doctor/appointments';
 
 class DoctorAppointmentsService {
   /**

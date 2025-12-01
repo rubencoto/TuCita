@@ -45,7 +45,7 @@ export interface Especialidad {
 // Doctor Profile Service
 // ==========================================
 
-const API_BASE = '/api/doctor/profile';
+const API_BASE = '/doctor/profile';
 
 class DoctorProfileService {
   /**
@@ -121,7 +121,7 @@ class DoctorProfileService {
    */
   async changePassword(data: ChangeDoctorPasswordRequest): Promise<void> {
     try {
-      await api.post('/api/profile/change-password', data);
+      await api.post('/profile/change-password', data);
     } catch (error: any) {
       console.error('Error al cambiar contraseña:', error);
       throw new Error(
@@ -136,7 +136,7 @@ class DoctorProfileService {
    */
   async getEspecialidades(): Promise<Especialidad[]> {
     try {
-      const response = await api.get<Especialidad[]>('/api/especialidades');
+      const response = await api.get<Especialidad[]>('/especialidades');
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener especialidades:', error);
@@ -162,7 +162,7 @@ class DoctorProfileService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await api.post<{ url: string }>('/api/doctor/profile/avatar', formData, {
+      const response = await api.post<{ url: string }>('/doctor/profile/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

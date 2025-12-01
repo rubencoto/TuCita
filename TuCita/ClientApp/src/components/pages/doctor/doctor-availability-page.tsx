@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Plus, 
   Edit, 
@@ -16,12 +18,15 @@ import {
   MapPin,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  CalendarRange,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
+import { WeeklyScheduleBuilder } from '@/components/doctor/weekly-schedule-builder';
 import * as availabilityService from '@/services/api/doctor/doctorAvailabilityService';
-import type { DoctorSlot, SlotTipo, SlotEstado } from '@/services/api/doctor/doctorAvailabilityService';
+import type { DoctorSlot, SlotTipo, SlotEstado, WeeklyTimeSlot } from '@/services/api/doctor/doctorAvailabilityService';
 
 interface DoctorAvailabilityPageProps {
   onNavigate: (page: string) => void;
@@ -215,112 +220,123 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
                 Configura tus horarios disponibles para citas
               </p>
             </div>
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#2E8BC0]">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Disponibilidad
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Crear nuevo horario</DialogTitle>
-                  <DialogDescription>
-                    Define un nuevo slot de disponibilidad
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label htmlFor="fecha">Fecha</Label>
-                    <Input
-                      id="fecha"
-                      type="date"
-                      value={newSlot.fecha}
-                      onChange={(e: any) => setNewSlot({ ...newSlot, fecha: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="border-[#2E8BC0] text-[#2E8BC0]"
+                onClick={() => onNavigate('doctor-schedule-config')}
+              >
+                <CalendarRange className="h-4 w-4 mr-2" />
+                Horario Mensual
+              </Button>
+
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-[#2E8BC0]">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Horario Individual
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Crear nuevo horario</DialogTitle>
+                    <DialogDescription>
+                      Define un nuevo slot de disponibilidad
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
                     <div>
-                      <Label htmlFor="hora_inicio">Hora inicio</Label>
+                      <Label htmlFor="fecha">Fecha</Label>
+                      <Input
+                        id="fecha"
+                        type="date"
+                        value={newSlot.fecha}
+                        onChange={(e: any) => setNewSlot({ ...newSlot, fecha: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="hora_inicio">Hora inicio</Label>
+                        <Select
+                          value={newSlot.horaInicio}
+                          onValueChange={(value: string) => setNewSlot({ ...newSlot, horaInicio: value })}
+                        >
+                          <SelectTrigger id="hora_inicio">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeOptions.map(time => (
+                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="hora_fin">Hora fin</Label>
+                        <Select
+                          value={newSlot.horaFin}
+                          onValueChange={(value: string) => setNewSlot({ ...newSlot, horaFin: value })}
+                        >
+                          <SelectTrigger id="hora_fin">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeOptions.map(time => (
+                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="tipo">Tipo de consulta</Label>
                       <Select
-                        value={newSlot.horaInicio}
-                        onValueChange={(value: string) => setNewSlot({ ...newSlot, horaInicio: value })}
+                        value={newSlot.tipo}
+                        onValueChange={(value: SlotTipo) => setNewSlot({ ...newSlot, tipo: value })}
                       >
-                        <SelectTrigger id="hora_inicio">
+                        <SelectTrigger id="tipo">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {timeOptions.map(time => (
-                            <SelectItem key={time} value={time}>{time}</SelectItem>
-                          ))}
+                          <SelectItem value="PRESENCIAL">Presencial</SelectItem>
+                          <SelectItem value="TELECONSULTA">Teleconsulta</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="hora_fin">Hora fin</Label>
+                      <Label htmlFor="estado">Estado</Label>
                       <Select
-                        value={newSlot.horaFin}
-                        onValueChange={(value: string) => setNewSlot({ ...newSlot, horaFin: value })}
+                        value={newSlot.estado}
+                        onValueChange={(value: SlotEstado) => setNewSlot({ ...newSlot, estado: value })}
                       >
-                        <SelectTrigger id="hora_fin">
+                        <SelectTrigger id="estado">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {timeOptions.map(time => (
-                            <SelectItem key={time} value={time}>{time}</SelectItem>
-                          ))}
+                          <SelectItem value="DISPONIBLE">Disponible</SelectItem>
+                          <SelectItem value="BLOQUEADO">Bloqueado</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="tipo">Tipo de consulta</Label>
-                    <Select
-                      value={newSlot.tipo}
-                      onValueChange={(value: SlotTipo) => setNewSlot({ ...newSlot, tipo: value })}
-                    >
-                      <SelectTrigger id="tipo">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PRESENCIAL">Presencial</SelectItem>
-                        <SelectItem value="TELECONSULTA">Teleconsulta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="estado">Estado</Label>
-                    <Select
-                      value={newSlot.estado}
-                      onValueChange={(value: SlotEstado) => setNewSlot({ ...newSlot, estado: value })}
-                    >
-                      <SelectTrigger id="estado">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DISPONIBLE">Disponible</SelectItem>
-                        <SelectItem value="BLOQUEADO">Bloqueado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={submitting}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleCreateSlot} className="bg-[#2E8BC0]" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creando...
-                      </>
-                    ) : (
-                      'Crear horario'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={submitting}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleCreateSlot} className="bg-[#2E8BC0]" disabled={submitting}>
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creando...
+                        </>
+                      ) : (
+                        'Crear horario'
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
 
@@ -405,6 +421,13 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
                   {daySlots.map((slot) => {
                     const estadoInfo = estadoConfig[slot.estado];
                     const tipoInfo = tipoConfig[slot.tipo];
+                    
+                    // Safety check: skip slot if config is missing
+                    if (!estadoInfo || !tipoInfo) {
+                      console.warn('Missing config for slot:', slot);
+                      return null;
+                    }
+                    
                     const TipoIcon = tipoInfo.icon;
                     const EstadoIcon = estadoInfo.icon;
 
@@ -525,7 +548,7 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
                                           {submitting ? (
                                             <>
                                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                              Guardando...
+                                              Actualizando...
                                             </>
                                           ) : (
                                             'Guardar cambios'

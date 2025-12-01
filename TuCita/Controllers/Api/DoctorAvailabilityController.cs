@@ -172,6 +172,150 @@ public class DoctorAvailabilityController : ControllerBase
     }
 
     /// <summary>
+    /// Definición de un slot en un horario semanal
+    /// </summary>
+    public class WeeklyTimeSlot
+    {
+        public string HoraInicio { get; set; } = string.Empty;
+        public string HoraFin { get; set; } = string.Empty;
+        public SlotTipo Tipo { get; set; }
+    }
+
+    /// <summary>
+    /// Solicitud para crear slots en lote basados en un horario semanal
+    /// </summary>
+    public class BulkCreateSlotsRequest
+    {
+        public string DoctorId { get; set; } = string.Empty;
+        public string FechaInicio { get; set; } = string.Empty;
+        public string FechaFin { get; set; } = string.Empty;
+        
+        // Horarios por día de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
+        public Dictionary<int, List<WeeklyTimeSlot>> HorarioSemanal { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Crea slots en lote para un rango de fechas basado en un patrón semanal
+    /// POST /api/doctor/availability/bulk
+    /// </summary>
+    [HttpPost("bulk")]
+    public ActionResult<BulkCreateResult> BulkCreateSlots([FromBody] BulkCreateSlotsRequest request)
+    {
+        try
+        {
+            // Validaciones
+            if (string.IsNullOrWhiteSpace(request.DoctorId))
+                return BadRequest(new { message = "El ID del doctor es requerido" });
+
+            if (!IsValidDateFormat(request.FechaInicio))
+                return BadRequest(new { message = "Formato de fecha de inicio inválido (debe ser YYYY-MM-DD)" });
+
+            if (!IsValidDateFormat(request.FechaFin))
+                return BadRequest(new { message = "Formato de fecha de fin inválido (debe ser YYYY-MM-DD)" });
+
+            var fechaInicio = DateOnly.ParseExact(request.FechaInicio, "yyyy-MM-dd");
+            var fechaFin = DateOnly.ParseExact(request.FechaFin, "yyyy-MM-dd");
+
+            if (fechaFin < fechaInicio)
+                return BadRequest(new { message = "La fecha de fin debe ser posterior a la fecha de inicio" });
+
+            if (fechaInicio < DateOnly.FromDateTime(DateTime.Now))
+                return BadRequest(new { message = "No se pueden crear slots en fechas pasadas" });
+
+            var diasDiferencia = fechaFin.DayNumber - fechaInicio.DayNumber;
+            if (diasDiferencia > 90)
+                return BadRequest(new { message = "El rango de fechas no puede exceder 90 días" });
+
+            var creados = new List<DoctorSlotDto>();
+            var errores = new List<string>();
+
+            // Iterar sobre cada día en el rango
+            for (var fecha = fechaInicio; fecha <= fechaFin; fecha = fecha.AddDays(1))
+            {
+                var diaSemana = (int)fecha.DayOfWeek;
+
+                // Verificar si hay horarios configurados para este día
+                if (!request.HorarioSemanal.ContainsKey(diaSemana) || 
+                    request.HorarioSemanal[diaSemana].Count == 0)
+                    continue;
+
+                var fechaStr = fecha.ToString("yyyy-MM-dd");
+
+                // Crear cada slot para este día
+                foreach (var timeSlot in request.HorarioSemanal[diaSemana])
+                {
+                    // Validar formato de horas
+                    if (!IsValidTimeFormat(timeSlot.HoraInicio) || !IsValidTimeFormat(timeSlot.HoraFin))
+                    {
+                        errores.Add($"{fechaStr}: Formato de hora inválido ({timeSlot.HoraInicio}-{timeSlot.HoraFin})");
+                        continue;
+                    }
+
+                    if (string.Compare(timeSlot.HoraInicio, timeSlot.HoraFin) >= 0)
+                    {
+                        errores.Add($"{fechaStr}: La hora de inicio debe ser anterior a la hora de fin");
+                        continue;
+                    }
+
+                    // Verificar solapamiento
+                    var overlaps = _slots.Values.Any(s =>
+                        s.DoctorId == request.DoctorId &&
+                        s.Fecha == fechaStr &&
+                        TimesOverlap(timeSlot.HoraInicio, timeSlot.HoraFin, s.HoraInicio, s.HoraFin));
+
+                    if (overlaps)
+                    {
+                        errores.Add($"{fechaStr} {timeSlot.HoraInicio}-{timeSlot.HoraFin}: Se solapa con slot existente");
+                        continue;
+                    }
+
+                    // Crear el slot
+                    var newId = Interlocked.Increment(ref _idSequence);
+                    var slot = new DoctorSlotDto
+                    {
+                        IdSlot = newId,
+                        DoctorId = request.DoctorId,
+                        Fecha = fechaStr,
+                        HoraInicio = timeSlot.HoraInicio,
+                        HoraFin = timeSlot.HoraFin,
+                        Tipo = timeSlot.Tipo,
+                        Estado = SlotEstado.DISPONIBLE
+                    };
+
+                    _slots[newId] = slot;
+                    creados.Add(slot);
+                }
+            }
+
+            _logger.LogInformation(
+                "Creación masiva de slots completada. Doctor={DoctorId}, Creados={Creados}, Errores={Errores}",
+                request.DoctorId, creados.Count, errores.Count);
+
+            return Ok(new BulkCreateResult
+            {
+                SlotsCreados = creados.Count,
+                Slots = creados,
+                Errores = errores
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en creación masiva de slots");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Resultado de creación masiva de slots
+    /// </summary>
+    public class BulkCreateResult
+    {
+        public int SlotsCreados { get; set; }
+        public List<DoctorSlotDto> Slots { get; set; } = new();
+        public List<string> Errores { get; set; } = new();
+    }
+
+    /// <summary>
     /// Crea un nuevo slot de disponibilidad
     /// POST /api/doctor/availability
     /// </summary>
