@@ -23,7 +23,10 @@ public class TuCitaDbContext : DbContext
     public DbSet<Diagnostico> Diagnosticos { get; set; }
     public DbSet<Receta> Recetas { get; set; }
     public DbSet<RecetaItem> RecetaItems { get; set; }
-    public DbSet<AzureAlmacenConfig> AzureAlmacenConfigs { get; set; }
+    
+    // AWS S3 Storage configuration
+    public DbSet<S3AlmacenConfig> S3AlmacenConfigs { get; set; }
+    
     public DbSet<DocumentoClinico> DocumentosClinicos { get; set; }
     public DbSet<DocumentoEtiqueta> DocumentoEtiquetas { get; set; }
     public DbSet<DocumentoDescarga> DocumentoDescargas { get; set; }
@@ -172,16 +175,20 @@ public class TuCitaDbContext : DbContext
             .IsUnique()
             .HasDatabaseName("UQ_especialidades_nombre");
 
-        // Índice único en nombre de almacen
-        modelBuilder.Entity<AzureAlmacenConfig>()
+        // ============================================================
+        // ÍNDICES CRÍTICOS - TABLA S3_ALMACEN_CONFIG (AWS)
+        // ============================================================
+
+        // Índice único en nombre de almacen S3
+        modelBuilder.Entity<S3AlmacenConfig>()
             .HasIndex(e => e.Nombre)
             .IsUnique()
-            .HasDatabaseName("UQ_almacen_nombre");
+            .HasDatabaseName("UQ_s3_almacen_nombre");
 
-        // Índice de activo en almacen
-        modelBuilder.Entity<AzureAlmacenConfig>()
+        // Índice de activo en almacen S3
+        modelBuilder.Entity<S3AlmacenConfig>()
             .HasIndex(e => e.Activo)
-            .HasDatabaseName("IX_almacen_activo");
+            .HasDatabaseName("IX_s3_almacen_activo");
 
         // ============================================================
         // ÍNDICES CRÍTICOS - TABLA ROLES_USUARIOS
@@ -328,11 +335,11 @@ public class TuCitaDbContext : DbContext
             .HasIndex(e => e.Categoria)
             .HasDatabaseName("IX_documentos_categoria");
 
-        // Índice único de ubicación para documentos
+        // Índice único de ubicación para documentos (AWS S3)
         modelBuilder.Entity<DocumentoClinico>()
-            .HasIndex(e => new { e.StorageId, e.BlobContainer, e.BlobCarpeta, e.BlobNombre, e.BlobVersionId })
+            .HasIndex(e => new { e.StorageId, e.S3ObjectKey, e.S3VersionId })
             .IsUnique()
-            .HasDatabaseName("UX_doc_storage_ruta");
+            .HasDatabaseName("UX_doc_s3_location");
 
         // Índices para documento_etiquetas
         modelBuilder.Entity<DocumentoEtiqueta>()

@@ -40,7 +40,7 @@ public class MedicalHistoryController : ControllerBase
     /// - Pacientes solo pueden ver su propio historial médico
     /// </remarks>
     [HttpGet("paciente/{idPaciente}")]
-    [Authorize(Roles = "DOCTOR,ADMIN,PACIENTE")]
+    [Authorize(Roles = "MEDICO,ADMIN,PACIENTE")]
     public async Task<IActionResult> GetPatientMedicalHistory(long idPaciente)
     {
         try
@@ -53,7 +53,7 @@ public class MedicalHistoryController : ControllerBase
                 return Unauthorized(new { message = "Usuario no autenticado" });
             }
 
-            var isDoctorOrAdmin = userRoles.Contains("DOCTOR") || userRoles.Contains("ADMIN");
+            var isDoctorOrAdmin = userRoles.Contains("MEDICO") || userRoles.Contains("ADMIN");
             
             // Si no es doctor/admin, solo puede ver su propio historial
             if (!isDoctorOrAdmin && userId != idPaciente)
@@ -84,7 +84,7 @@ public class MedicalHistoryController : ControllerBase
     /// Solo incluye citas con estado ATENDIDA.
     /// </remarks>
     [HttpGet("doctor/paciente/{idPaciente}")]
-    [Authorize(Roles = "DOCTOR,ADMIN")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
     public async Task<IActionResult> GetDoctorPatientHistory(long idPaciente)
     {
         try
@@ -118,7 +118,7 @@ public class MedicalHistoryController : ControllerBase
     /// y sus historiales médicos.
     /// </remarks>
     [HttpGet("doctor/todos-pacientes")]
-    [Authorize(Roles = "DOCTOR,ADMIN")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
     public async Task<IActionResult> GetDoctorAllPatientsHistory()
     {
         try
@@ -154,7 +154,7 @@ public class MedicalHistoryController : ControllerBase
     /// - Pacientes solo pueden ver detalles de sus propias citas
     /// </remarks>
     [HttpGet("cita/{idCita}")]
-    [Authorize(Roles = "DOCTOR,ADMIN,PACIENTE")]
+    [Authorize(Roles = "MEDICO,ADMIN,PACIENTE")]
     public async Task<IActionResult> GetAppointmentDetail(long idCita)
     {
         try
@@ -167,7 +167,7 @@ public class MedicalHistoryController : ControllerBase
                 return Unauthorized(new { message = "Usuario no autenticado" });
             }
 
-            var isDoctorOrAdmin = userRoles.Contains("DOCTOR") || userRoles.Contains("ADMIN");
+            var isDoctorOrAdmin = userRoles.Contains("MEDICO") || userRoles.Contains("ADMIN");
             
             var citaDetalle = await _medicalHistoryService.GetAppointmentDetailAsync(idCita, userId, isDoctorOrAdmin);
 
@@ -194,7 +194,7 @@ public class MedicalHistoryController : ControllerBase
     /// <response code="401">Usuario no autenticado</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPost("nota")]
-    [Authorize(Roles = "DOCTOR,ADMIN")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
     public async Task<IActionResult> CreateNotaClinica([FromBody] CreateNotaClinicaRequest request)
     {
         try
@@ -236,7 +236,7 @@ public class MedicalHistoryController : ControllerBase
     /// <response code="401">Usuario no autenticado</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPost("diagnostico")]
-    [Authorize(Roles = "DOCTOR,ADMIN")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
     public async Task<IActionResult> CreateDiagnostico([FromBody] CreateDiagnosticoRequest request)
     {
         try
@@ -278,7 +278,7 @@ public class MedicalHistoryController : ControllerBase
     /// <response code="401">Usuario no autenticado</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPost("receta")]
-    [Authorize(Roles = "DOCTOR,ADMIN")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
     public async Task<IActionResult> CreateReceta([FromBody] CreateRecetaRequest request)
     {
         try
@@ -324,7 +324,7 @@ public class MedicalHistoryController : ControllerBase
     /// El documento debe estar previamente subido a Azure Blob Storage.
     /// </remarks>
     [HttpPost("documento")]
-    [Authorize(Roles = "DOCTOR,ADMIN")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
     public async Task<IActionResult> CreateDocumento([FromBody] CreateDocumentoRequest request)
     {
         try
@@ -372,7 +372,7 @@ public class MedicalHistoryController : ControllerBase
     /// - Administradores pueden eliminar cualquier documento
     /// </remarks>
     [HttpDelete("documento/{id}")]
-    [Authorize(Roles = "DOCTOR,ADMIN,PACIENTE")]
+    [Authorize(Roles = "MEDICO,ADMIN,PACIENTE")]
     public async Task<IActionResult> DeleteDocumento(long id)
     {
         try
@@ -385,7 +385,7 @@ public class MedicalHistoryController : ControllerBase
                 return Unauthorized(new { message = "Usuario no autenticado" });
             }
 
-            var isDoctorOrAdmin = userRoles.Contains("DOCTOR") || userRoles.Contains("ADMIN");
+            var isDoctorOrAdmin = userRoles.Contains("MEDICO") || userRoles.Contains("ADMIN");
             
             var success = await _medicalHistoryService.DeleteDocumentoAsync(id, userId, isDoctorOrAdmin);
 
@@ -399,6 +399,137 @@ public class MedicalHistoryController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene una URL temporal de descarga para un documento clínico
+    /// </summary>
+    /// <param name="id">ID del documento</param>
+    /// <returns>URL temporal firmada para descargar el documento desde S3</returns>
+    /// <response code="200">URL de descarga generada exitosamente</response>
+    /// <response code="401">Usuario no autenticado</response>
+    /// <response code="404">Documento no encontrado o sin permisos para acceder</response>
+    /// <response code="500">Error interno del servidor</response>
+    /// <remarks>
+    /// - La URL es temporal y expira después de un tiempo determinado
+    /// - Doctores pueden descargar documentos de citas que les pertenecen
+    /// - Pacientes pueden descargar sus propios documentos
+    /// - Administradores pueden descargar cualquier documento
+    /// </remarks>
+    [HttpGet("documento/{id}/download")]
+    [Authorize(Roles = "MEDICO,ADMIN,PACIENTE")]
+    public async Task<IActionResult> GetDocumentDownloadUrl(long id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+            
+            Console.WriteLine($"[DEBUG] GetDocumentDownloadUrl - DocumentoId: {id}");
+            Console.WriteLine($"[DEBUG] UserIdClaim: {userIdClaim}");
+            Console.WriteLine($"[DEBUG] UserRoles: {string.Join(", ", userRoles)}");
+            
+            if (!long.TryParse(userIdClaim, out var userId))
+            {
+                Console.WriteLine($"[ERROR] No se pudo parsear userId: {userIdClaim}");
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            var isDoctorOrAdmin = userRoles.Contains("MEDICO") || userRoles.Contains("ADMIN");
+            Console.WriteLine($"[DEBUG] isDoctorOrAdmin: {isDoctorOrAdmin}");
+            
+            var downloadUrl = await _medicalHistoryService.GetDocumentDownloadUrlAsync(id, userId, isDoctorOrAdmin);
+
+            if (string.IsNullOrEmpty(downloadUrl))
+            {
+                Console.WriteLine($"[ERROR] GetDocumentDownloadUrlAsync retornó null o vacío");
+                return NotFound(new { message = "Documento no encontrado o no tiene permisos para acceder" });
+            }
+
+            Console.WriteLine($"[SUCCESS] URL generada exitosamente para documento {id}");
+            return Ok(new { url = downloadUrl });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EXCEPTION] Error en GetDocumentDownloadUrl: {ex.Message}");
+            Console.WriteLine($"[EXCEPTION] StackTrace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "Error al generar URL de descarga", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Sube un archivo a S3 y crea el registro en la base de datos
+    /// </summary>
+    /// <param name="citaId">ID de la cita</param>
+    /// <param name="file">Archivo a subir</param>
+    /// <param name="categoria">Categoría del documento</param>
+    /// <param name="notas">Notas opcionales</param>
+    /// <param name="etiquetas">Etiquetas opcionales separadas por comas</param>
+    /// <returns>Documento creado con su información de almacenamiento</returns>
+    [HttpPost("cita/{citaId}/documento/upload")]
+    [Authorize(Roles = "MEDICO,ADMIN")]
+    [RequestSizeLimit(52428800)] // 50MB
+    public async Task<IActionResult> UploadDocument(
+        long citaId,
+        [FromForm] IFormFile file,
+        [FromForm] string categoria,
+        [FromForm] string? notas = null,
+        [FromForm] string? etiquetas = null)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No se proporcionó ningún archivo" });
+            }
+
+            // Validar tamaño (50MB máximo)
+            if (file.Length > 50 * 1024 * 1024)
+            {
+                return BadRequest(new { message = "El archivo no puede superar los 50MB" });
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (!long.TryParse(userIdClaim, out var medicoId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            // Validar categoría
+            var categoriasValidas = new[] { "LAB", "IMAGEN", "REFERENCIA", "CONSTANCIA", "OTRO" };
+            if (string.IsNullOrWhiteSpace(categoria) || !categoriasValidas.Contains(categoria.ToUpperInvariant()))
+            {
+                return BadRequest(new { message = "Categoría de documento inválida. Debe ser: LAB, IMAGEN, REFERENCIA, CONSTANCIA, u OTRO" });
+            }
+
+            // Parsear etiquetas
+            var etiquetasList = string.IsNullOrWhiteSpace(etiquetas)
+                ? new List<string>()
+                : etiquetas.Split(',').Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList();
+
+            // Subir archivo y crear registro
+            var documento = await _medicalHistoryService.UploadDocumentToS3Async(
+                citaId,
+                medicoId,
+                file,
+                categoria.ToUpperInvariant(), // Usar string directamente
+                notas,
+                etiquetasList);
+
+            if (documento == null)
+            {
+                return BadRequest(new { message = "No se pudo subir el documento. Verifique que la cita existe y le pertenece." });
+            }
+
+            return Ok(documento);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EXCEPTION] Error en UploadDocument: {ex.Message}");
+            Console.WriteLine($"[EXCEPTION] StackTrace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "Error al subir documento", error = ex.Message });
         }
     }
 }

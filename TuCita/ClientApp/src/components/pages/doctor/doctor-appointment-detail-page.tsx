@@ -537,36 +537,30 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
     try {
       setSaving(true);
       
-      // TODO: Implementar upload real a storage
-      // Por ahora, simulamos que el archivo se subiá
-      const mockStorageData = {
-        storageId: 1,
-        blobNombre: `doc_${Date.now()}_${documentForm.selectedFile.name}`,
-        blobCarpeta: `citas/${appointmentId}`,
-        blobContainer: 'medical-documents'
-      };
-
-      await doctorAppointmentsService.uploadDocument(appointmentId, {
-        categoria: documentForm.categoria,
-        nombreArchivo: documentForm.selectedFile.name,
-        mimeType: documentForm.selectedFile.type,
-        tamanoBytes: documentForm.selectedFile.size,
-        storageId: mockStorageData.storageId,
-        blobNombre: mockStorageData.blobNombre,
-        blobCarpeta: mockStorageData.blobCarpeta,
-        blobContainer: mockStorageData.blobContainer,
-        notas: documentForm.notas || undefined,
-        etiquetas: documentForm.etiquetas ? documentForm.etiquetas.split(',').map(t => t.trim()) : undefined
+      console.log('📤 Subiendo archivo real a S3:', {
+        archivo: documentForm.selectedFile.name,
+        tamaño: documentForm.selectedFile.size,
+        tipo: documentForm.selectedFile.type,
+        categoría: documentForm.categoria
       });
 
-      toast.success('Documento subido correctamente');
+      // ✅ USAR EL NUEVO MÉTODO QUE SUBE ARCHIVOS REALES
+      await doctorAppointmentsService.uploadDocumentFile(
+        appointmentId,
+        documentForm.selectedFile,
+        documentForm.categoria,
+        documentForm.notas || undefined,
+        documentForm.etiquetas || undefined
+      );
+
+      toast.success('Documento subido correctamente a S3');
       setShowDocumentForm(false);
       setDocumentForm({ categoria: 'LAB', notas: '', etiquetas: '', selectedFile: null });
       
       // Recargar los datos de la cita
       await loadAppointmentDetail();
     } catch (err: any) {
-      console.error('Error al subir documento:', err);
+      console.error('❌ Error al subir documento:', err);
       toast.error(err.message || 'Error al subir el documento');
     } finally {
       setSaving(false);
@@ -661,7 +655,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                 Completar Cita
               </DialogTitle>
               <DialogDescription>
-                Agrega la información médica relevante antes de marcar la cita como atendida. Puedes seleccionar quá información deseas registrar.
+                Agrega la información médica relevante antes de marcar la cita como atendida. Puedes seleccionar quê información deseas registrar.
               </DialogDescription>
             </DialogHeader>
 
@@ -1865,11 +1859,32 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                             Subido el {new Date(doc.fechaSubida).toLocaleDateString('es-ES')}
                                           </p>
                                           <div className="flex gap-2">
-                                            <Button size="sm" variant="ghost">
+                                            <Button 
+                                              size="sm" 
+                                              variant="ghost"
+                                              onClick={async () => {
+                                                try {
+                                                  await doctorAppointmentsService.viewDocument(doc.id);
+                                                } catch (error) {
+                                                  toast.error('Error al abrir el documento');
+                                                }
+                                              }}
+                                            >
                                               <Eye className="h-4 w-4 mr-1" />
                                               Ver
                                             </Button>
-                                            <Button size="sm" variant="ghost">
+                                            <Button 
+                                              size="sm" 
+                                              variant="ghost"
+                                              onClick={async () => {
+                                                try {
+                                                  await doctorAppointmentsService.downloadDocument(doc.id, doc.nombreArchivo);
+                                                  toast.success('Descargando documento...');
+                                                } catch (error) {
+                                                  toast.error('Error al descargar el documento');
+                                                }
+                                              }}
+                                            >
                                               <Download className="h-4 w-4 mr-1" />
                                               Descargar
                                             </Button>
@@ -1916,7 +1931,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     <div className="flex items-start space-x-3">
                       <Mail className="h-4 w-4 text-gray-500 mt-1" />
                       <div className="flex-1">
-                        <p className="text-xs text-gray-600">Correo</p>
+                        <p className="text-xs text-gray-600 mb-1">Correo</p>
                         <p className="text-sm font-medium break-all">{appointmentDetail.paciente.correo}</p>
                       </div>
                     </div>
@@ -1926,7 +1941,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     <div className="flex items-start space-x-3">
                       <Phone className="h-4 w-4 text-gray-500 mt-1" />
                       <div className="flex-1">
-                        <p className="text-xs text-gray-600">Teláfono</p>
+                        <p className="text-xs text-gray-600 mb-1">Teláfono</p>
                         <p className="text-sm font-medium">{appointmentDetail.paciente.telefono}</p>
                       </div>
                     </div>
@@ -1936,7 +1951,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                     <div className="flex items-start space-x-3">
                       <Calendar className="h-4 w-4 text-gray-500 mt-1" />
                       <div className="flex-1">
-                        <p className="text-xs text-gray-600">Fecha de nacimiento</p>
+                        <p className="text-xs text-gray-600 mb-1">Fecha de nacimiento</p>
                         <p className="text-sm font-medium">
                           {new Date(appointmentDetail.paciente.fechaNacimiento).toLocaleDateString('es-ES')}
                         </p>

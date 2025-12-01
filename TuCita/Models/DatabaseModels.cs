@@ -405,39 +405,39 @@ public class RecetaItem
     public virtual Receta Receta { get; set; } = null!;
 }
 
-// === Azure Blob Storage ===
-[Table("azure_almacen_config")]
+// === AWS S3 Storage Configuration ===
+[Table("s3_almacen_config")]
 [Index(nameof(Nombre), IsUnique = true)]
-public class AzureAlmacenConfig
+public class S3AlmacenConfig
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
 
     [Required]
-    [StringLength(60)]
+    [StringLength(120)]
     [Column("nombre")]
     public string Nombre { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100)]
-    [Column("storage_account")]
-    public string StorageAccount { get; set; } = string.Empty;
+    [StringLength(200)]
+    [Column("bucket_name")]
+    public string BucketName { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100)]
-    [Column("container")]
-    public string Container { get; set; } = string.Empty;
+    [StringLength(60)]
+    [Column("region")]
+    public string Region { get; set; } = string.Empty; // e.g., us-east-2
 
-    [StringLength(200)]
-    [Column("ruta_base")]
-    public string? RutaBase { get; set; }
+    [StringLength(400)]
+    [Column("base_prefix")]
+    public string? BasePrefix { get; set; }
 
-    [Column("sas_ttl_min")]
-    public int SasTtlMin { get; set; } = 5;
+    [Column("presigned_ttl_min")]
+    public int PresignedTtlMin { get; set; } = 5;
 
-    [Column("versionado")]
-    public bool Versionado { get; set; } = false;
+    [Column("versioning_enabled")]
+    public bool VersioningEnabled { get; set; } = false;
 
     [Column("activo")]
     public bool Activo { get; set; } = true;
@@ -486,30 +486,22 @@ public class DocumentoClinico
     [Column("hash_sha256")]
     public byte[]? HashSha256 { get; set; }
 
+    // AWS S3 Storage Configuration
     [Column("storage_id")]
     public int StorageId { get; set; }
 
     [Required]
-    [StringLength(100)]
-    [Column("blob_container")]
-    public string BlobContainer { get; set; } = string.Empty;
+    [StringLength(1024)]
+    [Column("s3_object_key")]
+    public string S3ObjectKey { get; set; } = string.Empty; // Full S3 object key (includes prefix)
 
-    [StringLength(300)]
-    [Column("blob_carpeta")]
-    public string? BlobCarpeta { get; set; }
+    [StringLength(256)]
+    [Column("s3_version_id")]
+    public string? S3VersionId { get; set; } // S3 version ID if versioning is enabled
 
-    [Required]
-    [StringLength(300)]
-    [Column("blob_nombre")]
-    public string BlobNombre { get; set; } = string.Empty;
-
-    [StringLength(128)]
-    [Column("blob_version_id")]
-    public string? BlobVersionId { get; set; }
-
-    [StringLength(128)]
-    [Column("blob_etag")]
-    public string? BlobETag { get; set; }
+    [StringLength(256)]
+    [Column("s3_etag")]
+    public string? S3ETag { get; set; } // S3 ETag for integrity verification
 
     [StringLength(300)]
     [Column("notas")]
@@ -535,7 +527,7 @@ public class DocumentoClinico
     public virtual Usuario Creador { get; set; } = null!;
 
     [ForeignKey("StorageId")]
-    public virtual AzureAlmacenConfig Storage { get; set; } = null!;
+    public virtual S3AlmacenConfig Storage { get; set; } = null!;
 
     public virtual ICollection<DocumentoEtiqueta> Etiquetas { get; set; } = new List<DocumentoEtiqueta>();
     public virtual ICollection<DocumentoDescarga> Descargas { get; set; } = new List<DocumentoDescarga>();

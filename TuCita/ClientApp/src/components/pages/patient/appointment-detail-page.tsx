@@ -19,6 +19,7 @@ import {
   Stethoscope,
   AlertCircle,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import {
   Breadcrumb,
@@ -466,19 +467,64 @@ export function AppointmentDetailPage({ appointment, onNavigate }: AppointmentDe
                 {citaDetalle.documentos.length > 0 ? (
                   <div className="space-y-3">
                     {citaDetalle.documentos.map((documento: any) => (
-                      <Card key={documento.id}>
+                      <Card key={documento.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
-                                {documento.tipo && (
-                                  <Badge variant="outline">{documento.tipo}</Badge>
-                                )}
+                                <File className="h-5 w-5 text-primary flex-shrink-0" />
+                                <Badge variant="outline">{documento.categoria}</Badge>
                               </div>
-                              <p className="font-medium text-foreground">{documento.nombre}</p>
+                              <p className="font-medium text-foreground truncate">{documento.nombreArchivo}</p>
                               <p className="text-sm text-muted-foreground mt-1">
-                                Adjuntado: {medicalHistoryService.formatDateTime(documento.fechaAdjunto)}
+                                {medicalHistoryService.formatFileSize(documento.tamanoBytes)}
                               </p>
+                              {documento.notas && (
+                                <p className="text-sm text-muted-foreground mt-1">{documento.notas}</p>
+                              )}
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Subido el {medicalHistoryService.formatDate(documento.fechaSubida)}
+                              </p>
+                              {documento.etiquetas && documento.etiquetas.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {documento.etiquetas.map((etiqueta: string, idx: number) => (
+                                    <Badge key={idx} variant="secondary" className="text-xs">
+                                      {etiqueta}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await medicalHistoryService.viewDocument(documento.id);
+                                  } catch (error) {
+                                    toast.error('Error al abrir el documento');
+                                  }
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await medicalHistoryService.downloadDocument(documento.id, documento.nombreArchivo);
+                                    toast.success('Descargando documento...');
+                                  } catch (error) {
+                                    toast.error('Error al descargar el documento');
+                                  }
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Descargar
+                              </Button>
                             </div>
                           </div>
                         </CardContent>

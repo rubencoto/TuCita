@@ -132,9 +132,10 @@ export interface CreateDocumentoRequest {
   mimeType: string;
   tamanoBytes: number;
   storageId: number;
-  blobNombre: string;
-  blobCarpeta?: string;
-  blobContainer: string;
+  // AWS S3 fields (replacing Azure Blob fields)
+  s3ObjectKey: string;
+  s3VersionId?: string;
+  s3ETag?: string;
   notas?: string;
   etiquetas?: string[];
 }
@@ -325,6 +326,62 @@ class MedicalHistoryService {
     }
   }
 
+  /**
+   * Obtener URL de descarga de un documento
+   * @param documentId ID del documento
+   * @returns URL de descarga temporal
+   */
+  async getDocumentDownloadUrl(documentId: number): Promise<string> {
+    try {
+      const response = await api.get<{ url: string }>(
+        `${API_BASE}/documento/${documentId}/download`
+      );
+      return response.data.url;
+    } catch (error: any) {
+      console.error('Error al obtener URL de descarga:', error);
+      throw new Error(
+        error.response?.data?.message || 'Error al obtener URL de descarga'
+      );
+    }
+  }
+
+  /**
+   * Descargar un documento
+   * @param documentId ID del documento
+   * @param nombreArchivo Nombre del archivo para descarga
+   */
+  async downloadDocument(documentId: number, nombreArchivo: string): Promise<void> {
+    try {
+      const url = await this.getDocumentDownloadUrl(documentId);
+      
+      // Crear un link temporal y hacer click en él para descargar
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      console.error('Error al descargar documento:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ver un documento en una nueva pestaña
+   * @param documentId ID del documento
+   */
+  async viewDocument(documentId: number): Promise<void> {
+    try {
+      const url = await this.getDocumentDownloadUrl(documentId);
+      window.open(url, '_blank');
+    } catch (error: any) {
+      console.error('Error al ver documento:', error);
+      throw error;
+    }
+  }
+
   // ==========================================
   // Helper Methods
   // ==========================================
@@ -395,9 +452,9 @@ class MedicalHistoryService {
   }
 
   /**
-   * Formatear el tamaño del archivo
-   * @param bytes Tamaño en bytes
-   * @returns Tamaño formateado (KB, MB)
+   * Format the file size
+   * @param bytes Size in bytes
+   * @returns Formatted size (KB, MB)
    */
   formatFileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -406,8 +463,8 @@ class MedicalHistoryService {
   }
 
   /**
-   * Validar si el usuario puede editar información médica
-   * Verificar si tiene rol de DOCTOR o ADMIN
+   * Validate if the user can edit medical information
+   * Verify if they have DOCTOR or ADMIN role
    */
   canEditMedicalInfo(): boolean {
     try {

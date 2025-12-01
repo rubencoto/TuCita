@@ -5,8 +5,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TuCita.Data;
 using TuCita.Services;
+using TuCita.Middleware;
 using DotNetEnv;
 using System.Diagnostics;
+using Amazon.S3;
+using Amazon.Runtime;
 
 // Cargar variables de entorno desde el archivo .env
 Env.Load();
@@ -65,6 +68,36 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+    
+    // Add events for debugging JWT authentication
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"?? JWT Authentication Failed: {context.Exception.Message}");
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            var claims = context.Principal?.Claims.Select(c => $"{c.Type}={c.Value}");
+            Console.WriteLine($"? JWT Token Validated. Claims: {string.Join(", ", claims ?? new string[0])}");
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Headers["Authorization"].FirstOrDefault();
+            if (token != null)
+            {
+                Console.WriteLine($"?? JWT Token Received: {token.Substring(0, Math.Min(20, token.Length))}...");
+            }
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            Console.WriteLine($"?? JWT Challenge: {context.Error}, {context.ErrorDescription}");
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Add Authorization
@@ -84,6 +117,43 @@ builder.Services.AddScoped<IAdminEspecialidadesService, AdminEspecialidadesServi
 builder.Services.AddScoped<IAdminUsuariosService, AdminUsuariosService>();
 builder.Services.AddScoped<IAdminCitasService, AdminCitasService>();
 builder.Services.AddScoped<IAdminReportesService, AdminReportesService>();
+
+// Add AWS S3 Client
+var awsAccessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
+var awsSecretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
+var awsRegion = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1";
+
+if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
+{
+    var credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    
+    // ? Configuración explícita para forzar AWS Signature Version 4
+    var config = new AmazonS3Config
+    {
+        RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion),
+        // ? CRÍTICO: Estas propiedades fuerzan Signature Version 4
+        SignatureVersion = "4",
+        SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA256,
+        UseHttp = false,
+        // ? IMPORTANTE: NO usar ForcePathStyle para Signature V4
+        // Virtual-hosted-style es requerido para Signature V4 en regiones nuevas
+        ForcePathStyle = false
+    };
+    
+    builder.Services.AddSingleton<IAmazonS3>(sp => new AmazonS3Client(credentials, config));
+    builder.Services.AddScoped<IS3StorageService, S3StorageService>();
+    
+    Console.WriteLine($"? AWS S3 configurado:");
+    Console.WriteLine($"   Región: {awsRegion}");
+    Console.WriteLine($"   Signature Version: 4 (AWS4-HMAC-SHA256)");
+    Console.WriteLine($"   Signature Method: HmacSHA256");
+    Console.WriteLine($"   Use HTTPS: True");
+    Console.WriteLine($"   Force Path Style: False (Virtual-hosted-style)");
+}
+else
+{
+    Console.WriteLine("?? AWS S3 no configurado - Faltan credenciales AWS_ACCESS_KEY_ID o AWS_SECRET_ACCESS_KEY");
+}
 
 // EmailService es suficiente - sin tablas de notificaciones en BD
 
@@ -214,6 +284,10 @@ app.UseRouting();
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
+
+// Add JWT Logging Middleware (AFTER Authentication so user is authenticated)
+app.UseJwtLogging();
+
 app.UseAuthorization();
 
 // Configure API routes

@@ -124,9 +124,10 @@ export interface CreateDocumentoRequest {
   mimeType: string;
   tamanoBytes: number;
   storageId: number;
-  blobNombre: string;
-  blobCarpeta?: string;
-  blobContainer: string;
+  // AWS S3 fields (replacing Azure Blob fields)
+  s3ObjectKey: string;
+  s3VersionId?: string;
+  s3ETag?: string;
   notas?: string;
   etiquetas?: string[];
 }
@@ -361,7 +362,74 @@ class DoctorAppointmentsService {
   }
 
   /**
-   * Sube un documento médico para una cita
+   * Sube un documento médico para una cita (CON archivo real)
+   * @param citaId ID de la cita
+   * @param file Archivo a subir
+   * @param categoria Categoría del documento
+   * @param notas Notas opcionales
+   * @param etiquetas Etiquetas opcionales (separadas por comas)
+   */
+  async uploadDocumentFile(
+    citaId: number,
+    file: File,
+    categoria: 'LAB' | 'IMAGEN' | 'REFERENCIA' | 'CONSTANCIA' | 'OTRO',
+    notas?: string,
+    etiquetas?: string
+  ): Promise<DocumentoDto> {
+    try {
+      console.log(`?? Subiendo archivo real para cita ${citaId}:`, {
+        nombre: file.name,
+        tamano: file.size,
+        tipo: file.type,
+        categoria: categoria
+      });
+
+      // Crear FormData para enviar el archivo
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('categoria', categoria);
+      
+      if (notas) {
+        formData.append('notas', notas);
+      }
+      
+      if (etiquetas) {
+        formData.append('etiquetas', etiquetas);
+      }
+
+      // Usar el nuevo endpoint que sube a S3
+      const response = await api.post<DocumentoDto>(
+        `/historial/cita/${citaId}/documento/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          // Opcional: agregar callback de progreso
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              console.log(`?? Progreso de subida: ${percentCompleted}%`);
+            }
+          },
+        }
+      );
+
+      console.log('? Archivo subido exitosamente:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('? Error al subir archivo:', error);
+      throw new Error(
+        error.response?.data?.message || 'Error al subir archivo'
+      );
+    }
+  }
+
+  /**
+   * Sube un documento médico para una cita (DEPRECADO - usa uploadDocumentFile)
+   * @deprecated Usar uploadDocumentFile en su lugar
    * @param citaId ID de la cita
    * @param request Datos del documento
    */
@@ -370,6 +438,7 @@ class DoctorAppointmentsService {
     request: Omit<CreateDocumentoRequest, 'citaId'>
   ): Promise<DocumentoDto> {
     try {
+      console.log(`?? uploadDocument está deprecado. Usar uploadDocumentFile para subir archivos reales.`);
       console.log(`?? Subiendo documento para cita ${citaId}:`, request);
       const response = await api.post<DocumentoDto>(
         `${API_BASE}/${citaId}/documento`,
@@ -382,6 +451,62 @@ class DoctorAppointmentsService {
       throw new Error(
         error.response?.data?.message || 'Error al subir documento'
       );
+    }
+  }
+
+  /**
+   * Obtener URL de descarga de un documento
+   * @param documentId ID del documento
+   * @returns URL de descarga temporal
+   */
+  async getDocumentDownloadUrl(documentId: number): Promise<string> {
+    try {
+      const response = await api.get<{ url: string }>(
+        `/historial/documento/${documentId}/download`
+      );
+      return response.data.url;
+    } catch (error: any) {
+      console.error('Error al obtener URL de descarga:', error);
+      throw new Error(
+        error.response?.data?.message || 'Error al obtener URL de descarga'
+      );
+    }
+  }
+
+  /**
+   * Descargar un documento
+   * @param documentId ID del documento
+   * @param nombreArchivo Nombre del archivo para descarga
+   */
+  async downloadDocument(documentId: number, nombreArchivo: string): Promise<void> {
+    try {
+      const url = await this.getDocumentDownloadUrl(documentId);
+      
+      // Crear un link temporal y hacer click en él para descargar
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      console.error('Error al descargar documento:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ver un documento en una nueva pestaña
+   * @param documentId ID del documento
+   */
+  async viewDocument(documentId: number): Promise<void> {
+    try {
+      const url = await this.getDocumentDownloadUrl(documentId);
+      window.open(url, '_blank');
+    } catch (error: any) {
+      console.error('Error al ver documento:', error);
+      throw error;
     }
   }
 

@@ -40,15 +40,16 @@ public class CreateDocumentoRequest
     [Required(ErrorMessage = "El ID de storage es requerido")]
     public int StorageId { get; set; }
 
-    [Required(ErrorMessage = "El nombre del blob es requerido")]
-    [StringLength(300, ErrorMessage = "El nombre del blob no puede exceder 300 caracteres")]
-    public string BlobNombre { get; set; } = string.Empty;
+    // AWS S3 fields (replacing Azure Blob fields)
+    [Required(ErrorMessage = "La clave del objeto S3 es requerida")]
+    [StringLength(1024, ErrorMessage = "La clave del objeto S3 no puede exceder 1024 caracteres")]
+    public string S3ObjectKey { get; set; } = string.Empty; // Full S3 object key (includes prefix/folder structure)
 
-    [StringLength(300, ErrorMessage = "La carpeta del blob no puede exceder 300 caracteres")]
-    public string? BlobCarpeta { get; set; }
+    [StringLength(256, ErrorMessage = "El version ID de S3 no puede exceder 256 caracteres")]
+    public string? S3VersionId { get; set; } // S3 version ID if versioning is enabled
 
-    [StringLength(100, ErrorMessage = "El contenedor del blob no puede exceder 100 caracteres")]
-    public string BlobContainer { get; set; } = string.Empty;
+    [StringLength(256, ErrorMessage = "El ETag de S3 no puede exceder 256 caracteres")]
+    public string? S3ETag { get; set; } // S3 ETag for integrity verification
 
     [StringLength(300, ErrorMessage = "Las notas no pueden exceder 300 caracteres")]
     public string? Notas { get; set; }

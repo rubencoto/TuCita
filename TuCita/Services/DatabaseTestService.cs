@@ -98,7 +98,7 @@ public class DatabaseTestService : IDatabaseTestService
                 ["diagnosticos"] = async () => await _context.Diagnosticos.AnyAsync() || true,
                 ["recetas"] = async () => await _context.Recetas.AnyAsync() || true,
                 ["receta_items"] = async () => await _context.RecetaItems.AnyAsync() || true,
-                ["azure_almacen_config"] = async () => await _context.AzureAlmacenConfigs.AnyAsync() || true,
+                ["s3_almacen_config"] = async () => await _context.S3AlmacenConfigs.AnyAsync() || true,
                 ["documentos_clinicos"] = async () => await _context.DocumentosClinicos.AnyAsync() || true,
                 ["documento_etiquetas"] = async () => await _context.DocumentoEtiquetas.AnyAsync() || true,
                 ["documentos_descargas"] = async () => await _context.DocumentoDescargas.AnyAsync() || true

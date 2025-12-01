@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TuCita.Data;
 using TuCita.Models;
 using TuCita.DTOs.MedicalHistory;
+using Microsoft.AspNetCore.Http;
 
 namespace TuCita.Services;
 
@@ -15,16 +16,20 @@ public interface IMedicalHistoryService
     Task<DiagnosticoDto?> CreateDiagnosticoAsync(CreateDiagnosticoRequest request, long medicoId);
     Task<RecetaDto?> CreateRecetaAsync(CreateRecetaRequest request, long medicoId);
     Task<DocumentoDto?> CreateDocumentoAsync(CreateDocumentoRequest request, long medicoId);
+    Task<DocumentoDto?> UploadDocumentToS3Async(long citaId, long medicoId, IFormFile file, string categoria, string? notas, List<string> etiquetas);
     Task<bool> DeleteDocumentoAsync(long documentoId, long usuarioId, bool isDoctorOrAdmin);
+    Task<string?> GetDocumentDownloadUrlAsync(long documentoId, long usuarioId, bool isDoctorOrAdmin);
 }
 
 public class MedicalHistoryService : IMedicalHistoryService
 {
     private readonly TuCitaDbContext _context;
+    private readonly IS3StorageService _s3StorageService;
 
-    public MedicalHistoryService(TuCitaDbContext context)
+    public MedicalHistoryService(TuCitaDbContext context, IS3StorageService s3StorageService)
     {
         _context = context;
+        _s3StorageService = s3StorageService;
     }
 
     public async Task<IEnumerable<HistorialMedicoDto>> GetPatientMedicalHistoryAsync(long pacienteId)
@@ -332,9 +337,10 @@ public class MedicalHistoryService : IMedicalHistoryService
                 MimeType = request.MimeType,
                 TamanoBytes = request.TamanoBytes,
                 StorageId = request.StorageId,
-                BlobContainer = request.BlobContainer,
-                BlobCarpeta = request.BlobCarpeta,
-                BlobNombre = request.BlobNombre,
+                // AWS S3 fields (replacing Azure Blob fields)
+                S3ObjectKey = request.S3ObjectKey,
+                S3VersionId = request.S3VersionId,
+                S3ETag = request.S3ETag,
                 Notas = request.Notas,
                 CreadoPor = medicoId,
                 CreadoEn = DateTime.UtcNow
@@ -387,6 +393,152 @@ public class MedicalHistoryService : IMedicalHistoryService
         }
     }
 
+    public async Task<DocumentoDto?> UploadDocumentToS3Async(
+        long citaId, 
+        long medicoId, 
+        IFormFile file, 
+        string categoria, 
+        string? notas, 
+        List<string> etiquetas)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
+        try
+        {
+            // Verificar que la cita existe y pertenece al médico
+            var cita = await _context.Citas
+                .FirstOrDefaultAsync(c => c.Id == citaId && c.MedicoId == medicoId);
+
+            if (cita == null)
+            {
+                Console.WriteLine($"[ERROR] Cita {citaId} no encontrada o no pertenece al médico {medicoId}");
+                return null;
+            }
+
+            var pacienteId = cita.PacienteId;
+
+            // Obtener configuración de S3
+            var bucketName = Environment.GetEnvironmentVariable("AWS_S3_BUCKET_NAME");
+            if (string.IsNullOrEmpty(bucketName))
+            {
+                Console.WriteLine("[ERROR] AWS_S3_BUCKET_NAME no configurado");
+                throw new InvalidOperationException("AWS S3 no está configurado correctamente");
+            }
+
+            // Obtener o crear configuración de almacenamiento en la base de datos
+            var storageConfig = await _context.S3AlmacenConfigs
+                .FirstOrDefaultAsync(s => s.BucketName == bucketName);
+
+            if (storageConfig == null)
+            {
+                // Crear configuración de S3 si no existe
+                storageConfig = new S3AlmacenConfig
+                {
+                    Nombre = "DefaultS3Storage",
+                    BucketName = bucketName,
+                    Region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1",
+                    Activo = true,
+                    CreadoEn = DateTime.UtcNow
+                };
+                _context.S3AlmacenConfigs.Add(storageConfig);
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"[INFO] Configuración de S3 creada: ID={storageConfig.Id}, Bucket={bucketName}");
+            }
+
+            // Generar clave única para S3
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var fileName = file.FileName;
+            var sanitizedFileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
+            var s3ObjectKey = $"citas/{citaId}/doc_{timestamp}_{sanitizedFileName}";
+
+            Console.WriteLine($"[INFO] Subiendo archivo a S3:");
+            Console.WriteLine($"  Bucket: {bucketName}");
+            Console.WriteLine($"  Key: {s3ObjectKey}");
+            Console.WriteLine($"  Size: {file.Length} bytes");
+            Console.WriteLine($"  ContentType: {file.ContentType}");
+
+            // Subir archivo a S3
+            using (var stream = file.OpenReadStream())
+            {
+                var uploadResponse = await _s3StorageService.UploadFileAsync(
+                    bucketName,
+                    s3ObjectKey,
+                    stream,
+                    file.ContentType
+                );
+
+                Console.WriteLine($"[SUCCESS] Archivo subido a S3: ETag={uploadResponse.ETag}");
+
+                // Crear registro en la base de datos
+                var documento = new DocumentoClinico
+                {
+                    CitaId = citaId,
+                    MedicoId = medicoId,
+                    PacienteId = pacienteId,
+                    Categoria = categoria,
+                    NombreArchivo = fileName,
+                    MimeType = file.ContentType,
+                    TamanoBytes = file.Length,
+                    StorageId = storageConfig.Id,
+                    S3ObjectKey = s3ObjectKey,
+                    S3VersionId = uploadResponse.VersionId,
+                    S3ETag = uploadResponse.ETag,
+                    Notas = notas,
+                    CreadoPor = medicoId,
+                    CreadoEn = DateTime.UtcNow
+                };
+
+                _context.DocumentosClinicos.Add(documento);
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"[SUCCESS] Documento registrado en BD: ID={documento.Id}");
+
+                // Agregar etiquetas si existen
+                if (etiquetas != null && etiquetas.Any())
+                {
+                    foreach (var etiqueta in etiquetas)
+                    {
+                        var docEtiqueta = new DocumentoEtiqueta
+                        {
+                            DocumentoId = documento.Id,
+                            Etiqueta = etiqueta
+                        };
+                        _context.DocumentoEtiquetas.Add(docEtiqueta);
+                    }
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"[SUCCESS] {etiquetas.Count} etiquetas agregadas");
+                }
+
+                await transaction.CommitAsync();
+
+                // Recargar el documento con etiquetas
+                var documentoCreado = await _context.DocumentosClinicos
+                    .Include(d => d.Etiquetas)
+                    .FirstAsync(d => d.Id == documento.Id);
+
+                return new DocumentoDto
+                {
+                    Id = documentoCreado.Id,
+                    CitaId = documentoCreado.CitaId,
+                    Categoria = documentoCreado.Categoria,
+                    NombreArchivo = documentoCreado.NombreArchivo,
+                    MimeType = documentoCreado.MimeType,
+                    TamanoBytes = documentoCreado.TamanoBytes,
+                    Notas = documentoCreado.Notas,
+                    FechaSubida = documentoCreado.CreadoEn,
+                    Etiquetas = documentoCreado.Etiquetas.Select(e => e.Etiqueta).ToList()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            Console.WriteLine($"[EXCEPTION] Error en UploadDocumentToS3Async: {ex.Message}");
+            Console.WriteLine($"[EXCEPTION] StackTrace: {ex.StackTrace}");
+            return null;
+        }
+    }
+
     public async Task<bool> DeleteDocumentoAsync(long documentoId, long usuarioId, bool isDoctorOrAdmin)
     {
         try
@@ -412,6 +564,58 @@ public class MedicalHistoryService : IMedicalHistoryService
             Console.WriteLine($"Error en DeleteDocumentoAsync: {ex.Message}");
             Console.WriteLine($"StackTrace: {ex.StackTrace}");
             return false;
+        }
+    }
+
+    public async Task<string?> GetDocumentDownloadUrlAsync(long documentoId, long usuarioId, bool isDoctorOrAdmin)
+    {
+        try
+        {
+            var documento = await _context.DocumentosClinicos
+                .Include(d => d.Cita)
+                .FirstOrDefaultAsync(d => d.Id == documentoId);
+
+            if (documento == null)
+                return null;
+
+            // Verificar permisos:
+            // - Administradores tienen acceso completo
+            // - Doctores pueden ver documentos de sus citas (MedicoId de la cita)
+            // - Pacientes solo pueden ver documentos de sus propias citas
+            bool tienePermiso = isDoctorOrAdmin || 
+                               documento.Cita.PacienteId == usuarioId ||  // Es el paciente de la cita
+                               documento.Cita.MedicoId == usuarioId;       // Es el doctor de la cita
+            
+            if (!tienePermiso)
+            {
+                Console.WriteLine($"PERMISO DENEGADO: usuarioId={usuarioId}, pacienteId={documento.Cita.PacienteId}, medicoId={documento.Cita.MedicoId}, isDoctorOrAdmin={isDoctorOrAdmin}");
+                return null;
+            }
+
+            // Obtener configuración de S3 desde variables de entorno
+            var bucketName = Environment.GetEnvironmentVariable("AWS_S3_BUCKET_NAME");
+            
+            if (string.IsNullOrEmpty(bucketName))
+            {
+                Console.WriteLine("ERROR: AWS_S3_BUCKET_NAME no está configurado en variables de entorno");
+                return null;
+            }
+
+            // Generar URL temporal firmada de S3
+            var downloadUrl = await _s3StorageService.GeneratePresignedDownloadUrlAsync(
+                bucketName,
+                documento.S3ObjectKey,
+                documento.NombreArchivo,
+                expirationMinutes: 60 // URL válida por 60 minutos
+            );
+
+            return downloadUrl;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en GetDocumentDownloadUrlAsync: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            return null;
         }
     }
 
