@@ -1,18 +1,7 @@
-import axios from 'axios';
+import axiosInstance from './axiosConfig';
 
-// Configuración centralizada de la API
+// Keep a small constant for other modules if needed
 export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-
-/**
- * Instancia de Axios configurada para las peticiones API
- * El interceptor de autenticación está configurado en axiosConfig.ts
- */
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
 
 export const API_ENDPOINTS = {
   // Auth
@@ -42,4 +31,5 @@ export const API_ENDPOINTS = {
   SPECIALTIES: '/especialidades',
 } as const;
 
-export default api;
+// Export the configured axios instance (with auth/interceptors)
+export default axiosInstance;

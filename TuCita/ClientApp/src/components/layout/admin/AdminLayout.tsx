@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut } from 'lucide-react';
 
-type AdminPage = 'dashboard' | 'usuarios' | 'especialidades' | 'citas' | 'configuracion' | 'reportes';
+type AdminPage = 'dashboard' | 'usuarios' | 'especialidades' | 'citas' | 'reportes';
 
 interface AdminLayoutProps {
   children: ReactNode;

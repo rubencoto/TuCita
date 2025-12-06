@@ -3,13 +3,12 @@ import {
   Users, 
   Stethoscope, 
   Calendar,
-  Settings,
   BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
-type AdminPage = 'dashboard' | 'usuarios' | 'especialidades' | 'citas' | 'configuracion' | 'reportes';
+type AdminPage = 'dashboard' | 'usuarios' | 'especialidades' | 'citas' | 'reportes';
 
 interface AdminSidebarProps {
   currentPage: AdminPage;
@@ -21,7 +20,6 @@ const menuItems = [
   { id: 'usuarios' as AdminPage, label: 'Usuarios', icon: Users },
   { id: 'especialidades' as AdminPage, label: 'Especialidades', icon: Stethoscope },
   { id: 'citas' as AdminPage, label: 'Citas', icon: Calendar },
-  { id: 'configuracion' as AdminPage, label: 'Configuración', icon: Settings },
   { id: 'reportes' as AdminPage, label: 'Reportes', icon: BarChart3 },
 ];
 

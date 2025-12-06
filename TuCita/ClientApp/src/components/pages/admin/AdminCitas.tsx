@@ -32,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Eye, Loader2, MoreVertical, CheckCircle, XCircle, Clock, AlertCircle, Ban } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import adminCitasService, { AdminCitaList, CitasFilter, DoctorConEspecialidad } from '@/services/api/admin/adminCitasService';
+import adminAuthService from '@/services/api/auth/adminAuthService';
 import { toast } from 'sonner';
 import { AdminCitasNueva } from './AdminCitasNueva';
 import { AdminCitaDetalle } from './AdminCitaDetalle';
@@ -44,11 +45,6 @@ const statusColors: Record<string, string> = {
   NO_SHOW: 'bg-red-100 text-red-800',
   RECHAZADA: 'bg-red-100 text-red-800',
   REPROGRAMADA: 'bg-purple-100 text-purple-800',
-};
-
-const origenColors: Record<string, string> = {
-  PACIENTE: 'bg-teal-100 text-teal-800',
-  ADMIN: 'bg-purple-100 text-purple-800',
 };
 
 // configuración de acciones por estado
@@ -95,8 +91,11 @@ interface DeleteDialog {
   citaNombre: string;
 }
 
+// Extensión local para incluir quién agendó la cita
+type AdminCitaListExtended = AdminCitaList & { agendadoPor?: string };
+
 export function AdminCitas({ onCreateNew }: AdminCitasProps) {
-  const [citas, setCitas] = useState<AdminCitaList[]>([]);
+  const [citas, setCitas] = useState<AdminCitaListExtended[]>([]);
   const [doctores, setDoctores] = useState<DoctorConEspecialidad[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,6 +103,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   const [filterDoctor, setFilterDoctor] = useState('Todos');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedDay, setSelectedDay] = useState(''); // yyyy-MM-dd
   
   // paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -143,6 +143,18 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     loadDoctores();
   }, []);
 
+  // Si se selecciona un día, sincronizar fechaDesde/fechaHasta para filtrar ese día
+  useEffect(() => {
+    if (selectedDay) {
+      setFechaDesde(selectedDay);
+      setFechaHasta(selectedDay);
+      setCurrentPage(1);
+    } else {
+      setFechaDesde('');
+      setFechaHasta('');
+    }
+  }, [selectedDay]);
+
   // Cargar citas cuando cambien los filtros
   useEffect(() => {
     loadCitas();
@@ -150,6 +162,13 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
 
   const loadDoctores = async () => {
     try {
+      // Verificar autenticación de admin antes de llamar al API
+      if (!adminAuthService.isAuthenticated() || !adminAuthService.isAdminRole()) {
+        console.warn('Acceso no autorizado a getDoctores: admin no autenticado');
+        toast.error('Sesión de administrador no iniciada. Por favor inicia sesión.');
+        return;
+      }
+
       const data = await adminCitasService.getDoctores();
       setDoctores(data);
     } catch (error) {
@@ -161,6 +180,15 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   const loadCitas = async () => {
     setLoading(true);
     try {
+      // Verificar autenticación de admin antes de llamar al API
+      if (!adminAuthService.isAuthenticated() || !adminAuthService.isAdminRole()) {
+        console.warn('Acceso no autorizado a getCitasPaginadas: admin no autenticado');
+        toast.error('Sesión de administrador no iniciada. Por favor inicia sesión.');
+        setCitas([]);
+        setLoading(false);
+        return;
+      }
+
       const filtros: CitasFilter = {
         pagina: currentPage,
         tamanoPagina: pageSize,
@@ -187,7 +215,23 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
       }
 
       const response = await adminCitasService.getCitasPaginadas(filtros);
-      setCitas(response.citas);
+
+      // Enriquecer con quien agendó la cita (si el endpoint de detalle lo provee)
+      const enriched: AdminCitaListExtended[] = await Promise.all(
+        response.citas.map(async (c) => {
+          try {
+            const detalle = await adminCitasService.getCitaDetalle(c.id);
+            const detalleAny = detalle as any;
+            const agendadoPor = detalleAny?.agendadoPor || detalleAny?.usuarioAgendo || (c.origen === 'ADMIN' ? 'Administrador' : c.paciente);
+            return { ...c, agendadoPor } as AdminCitaListExtended;
+          } catch (err) {
+            const agendadoPor = c.origen === 'ADMIN' ? 'Administrador' : c.paciente;
+            return { ...c, agendadoPor } as AdminCitaListExtended;
+          }
+        })
+      );
+
+      setCitas(enriched);
       setTotalPages(response.totalPaginas);
       setTotalRegistros(response.totalRegistros);
     } catch (error: any) {
@@ -200,6 +244,8 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   };
 
   const handleViewDetails = (citaId: number) => {
+    // debug log to confirm click
+    console.debug('handleViewDetails called for citaId=', citaId);
     setDetalleModal({
       isOpen: true,
       citaId,
@@ -207,6 +253,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   };
 
   const handleDetalleClose = () => {
+    console.debug('handleDetalleClose called');
     setDetalleModal({
       isOpen: false,
       citaId: null,
@@ -223,6 +270,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     setFilterDoctor('Todos');
     setFechaDesde('');
     setFechaHasta('');
+    setSelectedDay('');
     setCurrentPage(1);
   };
 
@@ -312,13 +360,20 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     return statusActions[estado as keyof typeof statusActions] || [];
   };
 
+  // Quick status counts for summary
+  const counts = citas.reduce((acc, c) => {
+    acc.total++;
+    acc[c.estado] = (acc[c.estado] || 0) + 1;
+    return acc;
+  }, { total: 0 } as any);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de citas</h2>
-          <p className="text-sm text-gray-500 mt-1">Administra y crea citas en nombre de pacientes</p>
+          <h2 className="text-2xl font-bold text-gray-900">Citas</h2>
+          <p className="text-sm text-gray-500 mt-1">Selecciona un día para ver y administrar todas las citas.</p>
         </div>
         <Button
           onClick={handleOpenNuevaCita}
@@ -329,65 +384,36 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Summary badges (compact) */}
+      <div className="flex flex-wrap gap-2">
+        <Badge className="bg-gray-100 text-gray-800">Total: {counts.total}</Badge>
+        <Badge className="bg-blue-50 text-blue-800">Programadas: {counts.PROGRAMADA || 0}</Badge>
+        <Badge className="bg-blue-50 text-blue-800">Confirmadas: {counts.CONFIRMADA || 0}</Badge>
+        <Badge className="bg-green-50 text-green-800">Atendidas: {counts.ATENDIDA || 0}</Badge>
+        <Badge className="bg-yellow-50 text-yellow-800">Canceladas: {counts.CANCELADA || 0}</Badge>
+        <Badge className="bg-red-50 text-red-800">No show: {counts.NO_SHOW || 0}</Badge>
+      </div>
+
+      {/* Filters - compact and clear (agregado selector de día) */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div className="md:col-span-2">
-              <Label>Buscar paciente</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Nombre del paciente..."
+                  placeholder="Buscar por paciente, ID o motivo..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            
-            <div>
-              <Label>Fecha desde</Label>
-              <Input 
-                type="date" 
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-              />
-            </div>
 
-            <div>
-              <Label>Fecha hasta</Label>
-              <Input 
-                type="date" 
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <Label>Doctor</Label>
-              <Select value={filterDoctor} onValueChange={setFilterDoctor}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos">Todos</SelectItem>
-                  {doctores.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      {doctor.nombreCompleto}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <Label>Estado</Label>
+            <div className="flex items-center gap-2">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todos</SelectItem>
@@ -399,16 +425,27 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                   <SelectItem value="RECHAZADA">Rechazada</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={filterDoctor} onValueChange={setFilterDoctor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  {doctores.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      {doctor.nombreCompleto}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={handleResetFilters}
-                className="w-full"
-              >
-                Limpiar filtros
-              </Button>
+            <div className="flex items-center gap-2 md:col-span-4 mt-2">
+              <Input type="date" value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} title="Seleccionar día" />
+              <Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+              <Input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+              <Button variant="outline" onClick={handleResetFilters}>Limpiar</Button>
             </div>
           </div>
         </CardContent>
@@ -416,13 +453,10 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
 
       {/* Results Summary */}
       <div className="text-sm text-gray-600">
-        Mostrando {citas.length} de {totalRegistros} citas
-        {(searchQuery || filterStatus !== 'Todos' || filterDoctor !== 'Todos' || fechaDesde || fechaHasta) && 
-          ' (filtradas)'
-        }
+        Mostrando {citas.length} de {totalRegistros} citas{ (searchQuery || filterStatus !== 'Todos' || filterDoctor !== 'Todos' || fechaDesde || fechaHasta) ? ' (filtradas)' : '' }
       </div>
 
-      {/* Table */}
+      {/* Table - ahora incluye columna 'Agendó' y es totalmente manipulable via detalle/acciones */}
       <Card>
         <CardContent className="pt-6">
           <div className="overflow-x-auto">
@@ -438,12 +472,11 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Fecha</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Hora</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">ID</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Paciente</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Doctor</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Especialidad</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Origen</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Agendó</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Fecha</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Estado</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Acciones</th>
                   </tr>
@@ -451,21 +484,16 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                 <tbody>
                   {citas.map((cita) => {
                     const availableActions = getAvailableActions(cita.estado);
-                    
+
                     return (
                       <tr key={cita.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4 text-sm text-gray-900">{cita.fechaStr}</td>
-                        <td className="py-4 px-4 text-sm text-gray-900">{cita.hora}</td>
+                        <td className="py-4 px-4 text-sm text-gray-700">#{cita.id}</td>
                         <td className="py-4 px-4 text-sm font-medium text-gray-900">{cita.paciente}</td>
                         <td className="py-4 px-4 text-sm text-gray-700">{cita.doctor}</td>
-                        <td className="py-4 px-4 text-sm text-gray-600">{cita.especialidad}</td>
+                        <td className="py-4 px-4 text-sm text-gray-700">{cita.agendadoPor || (cita.origen === 'ADMIN' ? 'Administrador' : cita.paciente)}</td>
+                        <td className="py-4 px-4 text-sm text-gray-900">{cita.fechaStr} • {cita.hora}</td>
                         <td className="py-4 px-4">
-                          <Badge className={origenColors[cita.origen]}>
-                            {cita.origen}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4">
-                          <Badge className={statusColors[cita.estado]}>
+                          <Badge className={statusColors[cita.estado] || 'bg-gray-100 text-gray-800'}>
                             {cita.estado}
                           </Badge>
                         </td>
@@ -475,11 +503,28 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                               variant="ghost" 
                               size="sm"
                               onClick={() => handleViewDetails(cita.id)}
-                              title="Ver detalles"
+                              title="Ver / Editar"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
 
+                            {/* Only the primary quick action shown */}
+                            {availableActions.slice(0, 1).map((action) => {
+                              const Icon = action.icon;
+                              return (
+                                <Button
+                                  key={action.estado}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openStatusUpdateDialog(cita, action.estado)}
+                                  title={action.label}
+                                >
+                                  <Icon className={`h-4 w-4 ${action.color}`} />
+                                </Button>
+                              );
+                            })}
+
+                            {/* Dropdown for remaining actions */}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
@@ -489,7 +534,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                               <DropdownMenuContent align="end" className="w-56">
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                
+
                                 {availableActions.length > 0 ? (
                                   <>
                                     {availableActions.map((action) => {
@@ -512,7 +557,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                                     Sin acciones disponibles
                                   </DropdownMenuItem>
                                 )}
-                                
+
                                 <DropdownMenuItem
                                   variant="destructive"
                                   onClick={() => openDeleteDialog(cita)}
@@ -648,7 +693,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
               onClick={handleDeleteCita}
               disabled={updating}
               className="bg-red-600 hover:bg-red-700"
-            >
+            >             
               {updating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -676,6 +721,14 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
         citaId={detalleModal.citaId}
         onUpdateSuccess={handleDetalleUpdateSuccess}
       />
+
+      {/* Debug: show current detalleModal state when open (temporary, remove when fixed) */}
+      {detalleModal.isOpen && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-md bg-black/70 text-white px-3 py-2 text-sm">
+          Detalle abierta: {detalleModal.citaId}
+        </div>
+      )}
+
     </div>
   );
 }

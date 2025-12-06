@@ -34,6 +34,8 @@ export function AdminEspecialidades() {
     try {
       setLoading(true);
       const data = await adminEspecialidadesService.getAllEspecialidades();
+      // Ordenar por ID de forma ascendente para que la UI muestre los IDs en orden
+      data.sort((a: EspecialidadDto, b: EspecialidadDto) => a.id - b.id);
       setEspecialidades(data);
     } catch (error) {
       console.error('Error al cargar especialidades:', error);

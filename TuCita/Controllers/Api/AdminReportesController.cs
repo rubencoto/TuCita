@@ -273,4 +273,132 @@ public class AdminReportesController : ControllerBase
 
         return Ok(formatos);
     }
+
+    // ENDPOINTS LIVIANOS USADOS POR adminReportesService EN EL FRONTEND
+
+    /// <summary>
+    /// Obtiene un resumen de reportes para un rango de fechas
+    /// </summary>
+    /// <param name="desde">Fecha de inicio</param>
+    /// <param name="hasta">Fecha de fin</param>
+    /// <returns>Resumen de reportes</returns>
+    /// <response code="200">Resumen obtenido exitosamente</response>
+    /// <response code="400">Parámetros de consulta inválidos</response>
+    /// <response code="401">Usuario no autenticado o sin rol ADMIN</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpGet("summary")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetSummary([FromQuery] string? desde, [FromQuery] string? hasta, [FromQuery] int? medicoId = null, [FromQuery] int? especialidadId = null, [FromQuery] string? estado = null)
+    {
+        try
+        {
+            var result = await _reportesService.GetSummaryAsync(desde, hasta, medicoId, especialidadId, estado);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Argumentos inválidos en GetSummary");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en GetSummary");
+            return StatusCode(500, new { message = "Error interno al obtener resumen", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene datos de series temporales para gráficas
+    /// </summary>
+    /// <param name="desde">Fecha de inicio</param>
+    /// <param name="hasta">Fecha de fin</param>
+    /// <param name="granularidad">Granularidad de los datos (día, semana, mes)</param>
+    /// <returns>Datos de series temporales</returns>
+    /// <response code="200">Datos obtenidos exitosamente</response>
+    /// <response code="400">Parámetros de consulta inválidos</response>
+    /// <response code="401">Usuario no autenticado o sin rol ADMIN</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpGet("series")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSeries([FromQuery] string? desde, [FromQuery] string? hasta, [FromQuery] string granularidad = "day", [FromQuery] int? medicoId = null, [FromQuery] int? especialidadId = null, [FromQuery] string? estado = null)
+    {
+        try
+        {
+            var list = await _reportesService.GetSeriesAsync(desde, hasta, granularidad, medicoId, especialidadId, estado);
+            return Ok(list);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en GetSeries");
+            return StatusCode(500, new { message = "Error interno al obtener series", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene una lista detallada de reportes con paginación
+    /// </summary>
+    /// <param name="desde">Fecha de inicio</param>
+    /// <param name="hasta">Fecha de fin</param>
+    /// <param name="estado">Estado del reporte</param>
+    /// <param name="medicoId">ID del médico</param>
+    /// <param name="pagina">Número de página para paginación</param>
+    /// <param name="tamanoPagina">Tamaño de página para paginación</param>
+    /// <param name="q">Consulta de búsqueda</param>
+    /// <returns>Lista de reportes</returns>
+    /// <response code="200">Lista obtenida exitosamente</response>
+    /// <response code="400">Parámetros de consulta inválidos</response>
+    /// <response code="401">Usuario no autenticado o sin rol ADMIN</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpGet("list")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] string? desde, [FromQuery] string? hasta, [FromQuery] string? estado, [FromQuery] int? medicoId, [FromQuery] int pagina = 1, [FromQuery] int tamanoPagina = 20, [FromQuery] string? q = null)
+    {
+        try
+        {
+            var result = await _reportesService.GetListAsync(desde, hasta, estado, medicoId, pagina, tamanoPagina, q);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en GetList");
+            return StatusCode(500, new { message = "Error interno al obtener lista", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Exporta un reporte a CSV y lo prepara para descarga
+    /// </summary>
+    /// <param name="desde">Fecha de inicio</param>
+    /// <param name="hasta">Fecha de fin</param>
+    /// <param name="estado">Estado del reporte</param>
+    /// <param name="medicoId">ID del médico</param>
+    /// <param name="q">Consulta de búsqueda</param>
+    /// <returns>Archivo CSV para descarga</returns>
+    /// <response code="200">Archivo CSV generado exitosamente</response>
+    /// <response code="400">Parámetros de consulta inválidos</response>
+    /// <response code="401">Usuario no autenticado o sin rol ADMIN</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpGet("export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportCsv([FromQuery] string? desde, [FromQuery] string? hasta, [FromQuery] string? estado, [FromQuery] int? medicoId, [FromQuery] string? q = null)
+    {
+        try
+        {
+            _logger.LogInformation("Export CSV requested desde={Desde} hasta={Hasta}", desde, hasta);
+            var bytes = await _reportesService.ExportCsvAsync(desde, hasta, estado, medicoId, q);
+            var fileName = $"reportes_{(desde ?? "all")}_{(hasta ?? "all")}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Argumentos inválidos en ExportCsv");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en ExportCsv");
+            return StatusCode(500, new { message = "Error interno al exportar CSV", error = ex.Message });
+        }
+    }
 }

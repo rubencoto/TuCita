@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Dialog,
   DialogContent,
@@ -84,6 +85,14 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
     }
   }, [isOpen, citaId]);
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
   const loadCitaDetalle = async () => {
     if (!citaId) return;
 
@@ -144,211 +153,198 @@ export function AdminCitaDetalle({ isOpen, onClose, citaId, onUpdateSuccess }: A
 
   const StatusIcon = cita ? statusIcons[cita.estado] : Clock;
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-teal-600" />
-            Detalle de Cita
-          </DialogTitle>
-          <DialogDescription>
-            Información completa de la cita médica
-          </DialogDescription>
-        </DialogHeader>
+  if (!isOpen) return null;
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-          </div>
-        ) : cita ? (
-          <ScrollArea className="max-h-[calc(90vh-180px)] pr-4">
-            <div className="space-y-6">
-              {/* Estado y Origen */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg border',
-                    statusColors[cita.estado]
-                  )}>
-                    <StatusIcon className="h-4 w-4" />
-                    <span className="font-medium">{cita.estado}</span>
-                  </div>
-                  <Badge className={cn('border', origenColors[cita.origen])}>
-                    {cita.origen === 'PACIENTE' ? 'Agendada por Paciente' : 'Agendada por Admin'}
-                  </Badge>
-                </div>
-                <div className="text-sm text-gray-500">
-                  ID: #{cita.id}
-                </div>
-              </div>
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
 
-              <Separator />
-
-              {/* Información del Paciente */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <User className="h-4 w-4 text-teal-600" />
-                  Información del Paciente
+      <div className="relative z-50 max-w-3xl w-full sm:max-w-[700px] max-h-[90vh] overflow-hidden bg-background rounded-lg border p-6 shadow-lg">
+        <div className="flex flex-col gap-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                  <FileText className="h-5 w-5 text-teal-600" />
+                  Detalle de Cita
                 </h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Nombre completo</p>
-                      <p className="text-sm font-medium text-gray-900">{cita.paciente}</p>
-                    </div>
-                    {cita.pacienteEmail && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          Email
-                        </p>
-                        <p className="text-sm text-gray-900">{cita.pacienteEmail}</p>
-                      </div>
-                    )}
-                    {cita.pacienteTelefono && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          Teléfono
-                        </p>
-                        <p className="text-sm text-gray-900">{cita.pacienteTelefono}</p>
-                      </div>
-                    )}
-                    {cita.pacienteIdentificacion && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <CreditCard className="h-3 w-3" />
-                          Identificación
-                        </p>
-                        <p className="text-sm text-gray-900">{cita.pacienteIdentificacion}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Información completa de la cita médica
+                </p>
               </div>
-
-              <Separator />
-
-              {/* Información del Doctor */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-teal-600" />
-                  Información del Doctor
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Nombre completo</p>
-                      <p className="text-sm font-medium text-gray-900">{cita.doctor}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Especialidad</p>
-                      <Badge variant="outline" className="text-xs">
-                        {cita.especialidad}
-                      </Badge>
-                    </div>
-                    {cita.doctorEmail && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          Email
-                        </p>
-                        <p className="text-sm text-gray-900">{cita.doctorEmail}</p>
-                      </div>
-                    )}
-                    {cita.doctorTelefono && (
-                      <div>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          Teléfono
-                        </p>
-                        <p className="text-sm text-gray-900">{cita.doctorTelefono}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="text-sm text-gray-500">
+                {loading ? null : cita ? `ID: #${cita.id}` : ''}
               </div>
-
-              <Separator />
-
-              {/* Información de la Cita */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-teal-600" />
-                  Detalles de la Cita
-                </h3>
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-teal-700">Fecha</p>
-                      <p className="text-sm font-medium text-teal-900">
-                        {formatearFecha(cita.fecha)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-teal-700 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Hora
-                      </p>
-                      <p className="text-sm font-medium text-teal-900">{cita.hora}</p>
-                    </div>
-                  </div>
-                  {cita.motivo && (
-                    <div className="pt-2 border-t border-teal-200">
-                      <p className="text-xs text-teal-700 mb-1">Motivo de consulta</p>
-                      <p className="text-sm text-teal-900">{cita.motivo}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Acciones rápidas */}
-              {(cita.estado === 'PROGRAMADA' || cita.estado === 'CONFIRMADA') && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900">Acciones rápidas</h3>
-                    <div className="flex gap-2">
-                      {cita.estado === 'CONFIRMADA' && (
-                        <Button
-                          onClick={handleMarcarAtendida}
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          size="sm"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Marcar como Atendida
-                        </Button>
-                      )}
-                      <Button
-                        onClick={handleCancelar}
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Cancelar Cita
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
-          </ScrollArea>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-            <p>No se pudo cargar la Información de la cita</p>
           </div>
-        )}
 
-        <div className="flex justify-end pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            <X className="h-4 w-4 mr-2" />
-            Cerrar
-          </Button>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+            </div>
+          ) : cita ? (
+            <ScrollArea className="max-h-[calc(90vh-180px)] pr-4">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border', statusColors[cita.estado])}>
+                      {StatusIcon ? <StatusIcon className="h-4 w-4" /> : null}
+                      <span className="font-medium">{cita.estado}</span>
+                    </div>
+                    <Badge className={cn('border', origenColors[cita.origen])}>
+                      {cita.origen === 'PACIENTE' ? 'Agendada por Paciente' : 'Agendada por Admin'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <User className="h-4 w-4 text-teal-600" />
+                    Información del Paciente
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Nombre completo</p>
+                        <p className="text-sm font-medium text-gray-900">{cita.paciente}</p>
+                      </div>
+                      {cita.pacienteEmail && (
+                        <div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            Email
+                          </p>
+                          <p className="text-sm text-gray-900">{cita.pacienteEmail}</p>
+                        </div>
+                      )}
+                      {cita.pacienteTelefono && (
+                        <div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            Teléfono
+                          </p>
+                          <p className="text-sm text-gray-900">{cita.pacienteTelefono}</p>
+                        </div>
+                      )}
+                      {cita.pacienteIdentificacion && (
+                        <div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <CreditCard className="h-3 w-3" />
+                            Identificación
+                          </p>
+                          <p className="text-sm text-gray-900">{cita.pacienteIdentificacion}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4 text-teal-600" />
+                    Información del Doctor
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Nombre completo</p>
+                        <p className="text-sm font-medium text-gray-900">{cita.doctor}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Especialidad</p>
+                        <Badge variant="outline" className="text-xs">{cita.especialidad}</Badge>
+                      </div>
+                      {cita.doctorEmail && (
+                        <div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            Email
+                          </p>
+                          <p className="text-sm text-gray-900">{cita.doctorEmail}</p>
+                        </div>
+                      )}
+                      {cita.doctorTelefono && (
+                        <div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            Teléfono
+                          </p>
+                          <p className="text-sm text-gray-900">{cita.doctorTelefono}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-teal-600" />
+                    Detalles de la Cita
+                  </h3>
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-teal-700">Fecha</p>
+                        <p className="text-sm font-medium text-teal-900">{formatearFecha(cita.fecha)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-teal-700 flex items-center gap-1"><Clock className="h-3 w-3" />Hora</p>
+                        <p className="text-sm font-medium text-teal-900">{cita.hora}</p>
+                      </div>
+                    </div>
+                    {cita.motivo && (
+                      <div className="pt-2 border-t border-teal-200">
+                        <p className="text-xs text-teal-700 mb-1">Motivo de consulta</p>
+                        <p className="text-sm text-teal-900">{cita.motivo}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {(cita.estado === 'PROGRAMADA' || cita.estado === 'CONFIRMADA') && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-900">Acciones rápidas</h3>
+                      <div className="flex gap-2">
+                        {cita.estado === 'CONFIRMADA' && (
+                          <Button onClick={handleMarcarAtendida} className="flex-1 bg-green-600 hover:bg-green-700" size="sm">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Marcar como Atendida
+                          </Button>
+                        )}
+                        <Button onClick={handleCancelar} variant="destructive" size="sm" className="flex-1">
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Cancelar Cita
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+              <p>No se pudo cargar la Información de la cita</p>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              <X className="h-4 w-4 mr-2" />
+              Cerrar
+            </Button>
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>,
+    document.body,
   );
 }

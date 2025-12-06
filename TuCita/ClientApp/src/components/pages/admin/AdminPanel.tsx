@@ -5,10 +5,9 @@ import { AdminUsuarios } from './AdminUsuarios';
 import { AdminEspecialidades } from './AdminEspecialidades';
 import { AdminCitas } from './AdminCitas';
 import { AdminCitasNueva } from './AdminCitasNueva';
-import { AdminConfiguracion } from './AdminConfiguracion';
 import { AdminReportes } from './AdminReportes';
 
-type AdminPage = 'dashboard' | 'usuarios' | 'especialidades' | 'citas' | 'citas-nueva' | 'configuracion' | 'reportes';
+type AdminPage = 'dashboard' | 'usuarios' | 'especialidades' | 'citas' | 'citas-nueva' | 'reportes';
 
 interface AdminPanelProps {
   onNavigate?: (page: string) => void;
@@ -35,8 +34,6 @@ export function AdminPanel({ onNavigate: externalNavigate, onLogout }: AdminPane
         return <AdminCitas onCreateNew={() => setCurrentPage('citas-nueva')} />;
       case 'citas-nueva':
         return <AdminCitasNueva onBack={() => setCurrentPage('citas')} />;
-      case 'configuracion':
-        return <AdminConfiguracion />;
       case 'reportes':
         return <AdminReportes />;
       default:
