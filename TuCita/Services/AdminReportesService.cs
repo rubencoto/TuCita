@@ -2,585 +2,465 @@ using Microsoft.EntityFrameworkCore;
 using TuCita.Data;
 using TuCita.DTOs.Admin;
 using TuCita.Models;
-using System.Text;
 
-namespace TuCita.Services;
-
-/// <summary>
-/// Interface para el servicio de reportes de administración
-/// </summary>
-public interface IAdminReportesService
+namespace TuCita.Services
 {
-    /// <summary>
-    /// Genera un reporte basado en los filtros proporcionados
-    /// </summary>
-    Task<ReporteGeneradoDto> GenerarReporteAsync(ReporteFilterDto filtros);
-
-    /// <summary>
-    /// Exporta un reporte a un archivo en el formato especificado
-    /// </summary>
-    Task<ReporteExportadoDto> ExportarReporteAsync(ReporteFilterDto filtros);
-}
-
-/// <summary>
-/// Servicio para generación y exportación de reportes administrativos
-/// </summary>
-public class AdminReportesService : IAdminReportesService
-{
-    private readonly TuCitaDbContext _context;
-    private readonly ILogger<AdminReportesService> _logger;
-
-    public AdminReportesService(
-        TuCitaDbContext context,
-        ILogger<AdminReportesService> logger)
+    public class AdminReportesService : IAdminReportesService
     {
-        _context = context;
-        _logger = logger;
-    }
+        private readonly TuCitaDbContext _context;
+        private readonly ILogger<AdminReportesService> _logger;
 
-    /// <summary>
-    /// Genera un reporte completo basado en el tipo y filtros especificados
-    /// </summary>
-    public async Task<ReporteGeneradoDto> GenerarReporteAsync(ReporteFilterDto filtros)
-    {
-        try
+        public AdminReportesService(TuCitaDbContext context, ILogger<AdminReportesService> logger)
         {
-            _logger.LogInformation("Generando reporte tipo {TipoReporte} desde {FechaInicio} hasta {FechaFin}",
-                filtros.TipoReporte, filtros.FechaInicio, filtros.FechaFin);
+            _context = context;
+            _logger = logger;
+        }
 
-            var reporte = filtros.TipoReporte switch
+        public Task<ReporteGeneradoDto> GenerarReporteAsync(ReporteFilterDto filtros)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<ReporteExportadoDto> ExportarReporteAsync(ReporteFilterDto filtros)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public async Task<SummaryReportDto> GetSummaryAsync(string? desde, string? hasta, int? medicoId = null, int? especialidadId = null, string? estado = null)
+        {
+            // Manejar entradas vacías y parseo de fechas
+            DateTime inicio;
+            DateTime fin;
+
+            if (string.IsNullOrWhiteSpace(desde))
             {
-                TipoReporte.CitasPorPeriodo => await GenerarReporteCitasPorPeriodoAsync(filtros),
-                TipoReporte.CitasPorDoctor => await GenerarReporteCitasPorDoctorAsync(filtros),
-                TipoReporte.CitasPorEspecialidad => await GenerarReporteCitasPorEspecialidadAsync(filtros),
-                TipoReporte.PacientesFrecuentes => await GenerarReportePacientesFrecuentesAsync(filtros),
-                TipoReporte.DoctoresRendimiento => await GenerarReporteDoctoresRendimientoAsync(filtros),
-                TipoReporte.NoShowAnalisis => await GenerarReporteNoShowAnalisisAsync(filtros),
-                _ => throw new ArgumentException($"Tipo de reporte no soportado: {filtros.TipoReporte}")
+                // Por defecto tomar los últimos 7 días
+                inicio = DateTime.UtcNow.Date.AddDays(-7);
+            }
+            else if (!DateTime.TryParse(desde, out inicio))
+            {
+                throw new ArgumentException("Parametro 'desde' invalido");
+            }
+
+            if (string.IsNullOrWhiteSpace(hasta))
+            {
+                // Por defecto hasta el final del día actual
+                fin = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            }
+            else if (!DateTime.TryParse(hasta, out fin))
+            {
+                throw new ArgumentException("Parametro 'hasta' invalido");
+            }
+
+            if (inicio > fin)
+            {
+                throw new ArgumentException("La fecha 'desde' no puede ser mayor a 'hasta'");
+            }
+
+            // Construir query base aplicando filtros
+            var query = _context.Citas.AsQueryable();
+
+            query = query.Where(c => c.Inicio >= inicio && c.Inicio <= fin);
+
+            if (medicoId.HasValue)
+            {
+                query = query.Where(c => c.MedicoId == medicoId.Value);
+            }
+
+            if (especialidadId.HasValue)
+            {
+                // Filtrar por especialidad usando la tabla many-to-many medico_especialidad
+                query = query.Where(c => _context.MedicosEspecialidades.Any(me => me.MedicoId == c.MedicoId && me.EspecialidadId == especialidadId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(estado))
+            {
+                if (Enum.TryParse<EstadoCita>(estado, true, out var estadoEnum))
+                {
+                    query = query.Where(c => c.Estado == estadoEnum);
+                }
+                else
+                {
+                    throw new ArgumentException("Estado invalido");
+                }
+            }
+
+            // Ejecutar consultas agregadas
+            var total = await query.CountAsync();
+            var atendidas = await query.CountAsync(c => c.Estado == EstadoCita.ATENDIDA);
+            var canceladas = await query.CountAsync(c => c.Estado == EstadoCita.CANCELADA);
+            var noShow = await query.CountAsync(c => c.Estado == EstadoCita.NO_ATENDIDA);
+
+            // Ingresos no disponibles en el modelo de Cita actualmente
+            return new SummaryReportDto
+            {
+                Total = total,
+                Atendidas = atendidas,
+                Canceladas = canceladas,
+                NoShow = noShow,
+                Ingresos = null
             };
-
-            return reporte;
         }
-        catch (Exception ex)
+
+        public async Task<List<SeriesPointDto>> GetSeriesAsync(string? desde, string? hasta, string granularidad = "day", int? medicoId = null, int? especialidadId = null, string? estado = null)
         {
-            _logger.LogError(ex, "Error al generar reporte tipo {TipoReporte}", filtros.TipoReporte);
-            throw;
-        }
-    }
+            // Parsear fechas con la misma lógica que en GetSummaryAsync
+            DateTime inicio;
+            DateTime fin;
 
-    /// <summary>
-    /// Exporta un reporte a archivo (CSV, Excel o PDF)
-    /// </summary>
-    public async Task<ReporteExportadoDto> ExportarReporteAsync(ReporteFilterDto filtros)
-    {
-        try
-        {
-            // Generar el reporte primero
-            var reporte = await GenerarReporteAsync(filtros);
-
-            // Exportar según el formato solicitado
-            var formato = filtros.Formato ?? FormatoExportacion.CSV;
-
-            return formato switch
+            if (string.IsNullOrWhiteSpace(desde))
             {
-                FormatoExportacion.CSV => ExportarCSV(reporte, filtros),
-                FormatoExportacion.Excel => ExportarExcel(reporte, filtros),
-                FormatoExportacion.PDF => ExportarPDF(reporte, filtros),
-                _ => throw new ArgumentException($"Formato de exportación no soportado: {formato}")
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al exportar reporte");
-            throw;
-        }
-    }
-
-    #region Generadores de Reportes
-
-    /// <summary>
-    /// Genera reporte de citas agrupadas por periodo
-    /// </summary>
-    private async Task<ReporteGeneradoDto> GenerarReporteCitasPorPeriodoAsync(ReporteFilterDto filtros)
-    {
-        var query = _context.Citas
-            .Where(c => c.Inicio >= filtros.FechaInicio && c.Inicio <= filtros.FechaFin);
-
-        if (filtros.MedicoId.HasValue)
-            query = query.Where(c => c.MedicoId == filtros.MedicoId.Value);
-
-        if (!string.IsNullOrEmpty(filtros.Estado))
-            query = query.Where(c => c.Estado.ToString() == filtros.Estado);
-
-        var citas = await query.ToListAsync();
-
-        // Agrupar por día
-        var citasPorDia = citas
-            .GroupBy(c => c.Inicio.Date)
-            .Select(g => new CitasPorPeriodoDto
+                inicio = DateTime.UtcNow.Date.AddDays(-7);
+            }
+            else if (!DateTime.TryParse(desde, out inicio))
             {
-                Periodo = g.Key.ToString("dd/MM/yyyy"),
-                Fecha = g.Key,
-                Total = g.Count(),
-                Programadas = g.Count(c => c.Estado == EstadoCita.PENDIENTE || c.Estado == EstadoCita.CONFIRMADA),
-                Atendidas = g.Count(c => c.Estado == EstadoCita.ATENDIDA),
-                Canceladas = g.Count(c => c.Estado == EstadoCita.CANCELADA || c.Estado == EstadoCita.RECHAZADA),
-                NoShow = g.Count(c => c.Estado == EstadoCita.NO_ATENDIDA)
-            })
-            .OrderBy(x => x.Fecha)
-            .ToList();
+                throw new ArgumentException("Parametro 'desde' invalido");
+            }
 
-        var resumen = GenerarResumenEjecutivo(citas);
-
-        return new ReporteGeneradoDto
-        {
-            TipoReporte = "Citas por Periodo",
-            Titulo = $"Reporte de Citas por Periodo - {filtros.FechaInicio:dd/MM/yyyy} a {filtros.FechaFin:dd/MM/yyyy}",
-            FechaInicio = filtros.FechaInicio,
-            FechaFin = filtros.FechaFin,
-            Resumen = resumen,
-            Datos = citasPorDia.Cast<object>().ToList(),
-            DatosGraficas = citasPorDia.Cast<object>().ToList(),
-            FiltrosAplicados = GenerarDiccionarioFiltros(filtros)
-        };
-    }
-
-    /// <summary>
-    /// Genera reporte de citas agrupadas por doctor
-    /// </summary>
-    private async Task<ReporteGeneradoDto> GenerarReporteCitasPorDoctorAsync(ReporteFilterDto filtros)
-    {
-        var query = _context.Citas
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.Usuario)
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.EspecialidadesMedico)
-                    .ThenInclude(me => me.Especialidad)
-            .Where(c => c.Inicio >= filtros.FechaInicio && c.Inicio <= filtros.FechaFin);
-
-        if (filtros.MedicoId.HasValue)
-            query = query.Where(c => c.MedicoId == filtros.MedicoId.Value);
-
-        if (filtros.EspecialidadId.HasValue)
-            query = query.Where(c => c.Medico.EspecialidadesMedico.Any(me => me.EspecialidadId == filtros.EspecialidadId.Value));
-
-        var citas = await query.ToListAsync();
-
-        var citasPorDoctor = citas
-            .GroupBy(c => new
+            if (string.IsNullOrWhiteSpace(hasta))
             {
-                c.MedicoId,
-                NombreDoctor = c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido,
-                Especialidad = c.Medico.EspecialidadesMedico.FirstOrDefault()?.Especialidad.Nombre ?? "Sin especialidad"
-            })
-            .Select(g =>
+                fin = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            }
+            else if (!DateTime.TryParse(hasta, out fin))
             {
-                var total = g.Count();
-                var atendidas = g.Count(c => c.Estado == EstadoCita.ATENDIDA);
-                return new CitasPorDoctorDto
+                throw new ArgumentException("Parametro 'hasta' invalido");
+            }
+
+            if (inicio > fin)
+            {
+                throw new ArgumentException("La fecha 'desde' no puede ser mayor a 'hasta'");
+            }
+
+            // Construir query base aplicando filtros
+            var query = _context.Citas.AsQueryable();
+            query = query.Where(c => c.Inicio >= inicio && c.Inicio <= fin);
+
+            if (medicoId.HasValue)
+            {
+                query = query.Where(c => c.MedicoId == medicoId.Value);
+            }
+
+            if (especialidadId.HasValue)
+            {
+                query = query.Where(c => _context.MedicosEspecialidades.Any(me => me.MedicoId == c.MedicoId && me.EspecialidadId == especialidadId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(estado))
+            {
+                if (Enum.TryParse<EstadoCita>(estado, true, out var estadoEnum))
                 {
-                    DoctorId = g.Key.MedicoId,
-                    NombreDoctor = g.Key.NombreDoctor,
-                    Especialidad = g.Key.Especialidad,
-                    TotalCitas = total,
-                    CitasAtendidas = atendidas,
-                    CitasCanceladas = g.Count(c => c.Estado == EstadoCita.CANCELADA || c.Estado == EstadoCita.RECHAZADA),
-                    CitasNoShow = g.Count(c => c.Estado == EstadoCita.NO_ATENDIDA),
-                    TasaAsistencia = total > 0 ? Math.Round((decimal)atendidas / total * 100, 2) : 0,
-                    PromedioCalificacion = 0 // Implementar si existe sistema de calificaciones
-                };
-            })
-            .OrderByDescending(x => x.TotalCitas)
-            .ToList();
-
-        var resumen = GenerarResumenEjecutivo(citas);
-
-        return new ReporteGeneradoDto
-        {
-            TipoReporte = "Citas por Doctor",
-            Titulo = $"Reporte de Citas por Doctor - {filtros.FechaInicio:dd/MM/yyyy} a {filtros.FechaFin:dd/MM/yyyy}",
-            FechaInicio = filtros.FechaInicio,
-            FechaFin = filtros.FechaFin,
-            Resumen = resumen,
-            Datos = citasPorDoctor.Cast<object>().ToList(),
-            DatosGraficas = citasPorDoctor.Cast<object>().ToList(),
-            FiltrosAplicados = GenerarDiccionarioFiltros(filtros)
-        };
-    }
-
-    /// <summary>
-    /// Genera reporte de citas agrupadas por especialidad
-    /// </summary>
-    private async Task<ReporteGeneradoDto> GenerarReporteCitasPorEspecialidadAsync(ReporteFilterDto filtros)
-    {
-        var query = _context.Citas
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.EspecialidadesMedico)
-                    .ThenInclude(me => me.Especialidad)
-            .Where(c => c.Inicio >= filtros.FechaInicio && c.Inicio <= filtros.FechaFin);
-
-        if (filtros.EspecialidadId.HasValue)
-            query = query.Where(c => c.Medico.EspecialidadesMedico.Any(me => me.EspecialidadId == filtros.EspecialidadId.Value));
-
-        var citas = await query.ToListAsync();
-
-        var citasPorEspecialidad = citas
-            .Where(c => c.Medico.EspecialidadesMedico.Any())
-            .GroupBy(c => new
-            {
-                EspecialidadId = c.Medico.EspecialidadesMedico.First().EspecialidadId,
-                NombreEspecialidad = c.Medico.EspecialidadesMedico.First().Especialidad.Nombre
-            })
-            .Select(g =>
-            {
-                var total = g.Count();
-                var atendidas = g.Count(c => c.Estado == EstadoCita.ATENDIDA);
-                var doctoresUnicos = g.Select(c => c.MedicoId).Distinct().Count();
-                return new CitasPorEspecialidadDto
+                    query = query.Where(c => c.Estado == estadoEnum);
+                }
+                else
                 {
-                    EspecialidadId = g.Key.EspecialidadId,
-                    NombreEspecialidad = g.Key.NombreEspecialidad,
-                    TotalCitas = total,
-                    NumDoctores = doctoresUnicos,
-                    PromedioCtasPorDoctor = doctoresUnicos > 0 ? Math.Round((decimal)total / doctoresUnicos, 2) : 0,
-                    TasaAsistencia = total > 0 ? Math.Round((decimal)atendidas / total * 100, 2) : 0
-                };
-            })
-            .OrderByDescending(x => x.TotalCitas)
-            .ToList();
+                    throw new ArgumentException("Estado invalido");
+                }
+            }
 
-        var resumen = GenerarResumenEjecutivo(citas);
+            // Traer datos al cliente para agrupar en memoria (simplifica agrupaciones por semana)
+            var citas = await query.Select(c => new { c.Inicio, c.Estado }).ToListAsync();
 
-        return new ReporteGeneradoDto
-        {
-            TipoReporte = "Citas por Especialidad",
-            Titulo = $"Reporte de Citas por Especialidad - {filtros.FechaInicio:dd/MM/yyyy} a {filtros.FechaFin:dd/MM/yyyy}",
-            FechaInicio = filtros.FechaInicio,
-            FechaFin = filtros.FechaFin,
-            Resumen = resumen,
-            Datos = citasPorEspecialidad.Cast<object>().ToList(),
-            DatosGraficas = citasPorEspecialidad.Cast<object>().ToList(),
-            FiltrosAplicados = GenerarDiccionarioFiltros(filtros)
-        };
-    }
-
-    /// <summary>
-    /// Genera reporte de pacientes más frecuentes
-    /// </summary>
-    private async Task<ReporteGeneradoDto> GenerarReportePacientesFrecuentesAsync(ReporteFilterDto filtros)
-    {
-        var query = _context.Citas
-            .Include(c => c.Paciente)
-                .ThenInclude(p => p.Usuario)
-            .Where(c => c.Inicio >= filtros.FechaInicio && c.Inicio <= filtros.FechaFin);
-
-        var citas = await query.ToListAsync();
-
-        var pacientesFrecuentes = citas
-            .GroupBy(c => new
+            // Función auxiliar para inicio de semana (lunes)
+            static DateTime StartOfWeek(DateTime dt)
             {
-                c.PacienteId,
-                NombrePaciente = c.Paciente.Usuario.Nombre + " " + c.Paciente.Usuario.Apellido,
-                Email = c.Paciente.Usuario.Email,
-                Telefono = c.Paciente.Usuario.Telefono ?? ""
-            })
-            .Select(g => new PacienteFrecuenteDto
+                var diff = (7 + (dt.DayOfWeek - DayOfWeek.Monday)) % 7;
+                return dt.Date.AddDays(-diff);
+            }
+
+            var result = new List<SeriesPointDto>();
+
+            if (granularidad?.ToLower() == "week")
             {
-                PacienteId = g.Key.PacienteId,
-                NombrePaciente = g.Key.NombrePaciente,
-                Email = g.Key.Email,
-                Telefono = g.Key.Telefono,
-                TotalCitas = g.Count(),
-                CitasAtendidas = g.Count(c => c.Estado == EstadoCita.ATENDIDA),
-                CitasCanceladas = g.Count(c => c.Estado == EstadoCita.CANCELADA || c.Estado == EstadoCita.RECHAZADA),
-                CitasNoShow = g.Count(c => c.Estado == EstadoCita.NO_ATENDIDA),
-                UltimaCita = g.Max(c => c.Inicio)
-            })
-            .OrderByDescending(x => x.TotalCitas)
-            .Take(50) // Top 50 pacientes más frecuentes
-            .ToList();
+                var firstWeek = StartOfWeek(inicio.Date);
+                var lastWeek = StartOfWeek(fin.Date);
 
-        var resumen = GenerarResumenEjecutivo(citas);
-
-        return new ReporteGeneradoDto
-        {
-            TipoReporte = "Pacientes Frecuentes",
-            Titulo = $"Reporte de Pacientes Frecuentes - {filtros.FechaInicio:dd/MM/yyyy} a {filtros.FechaFin:dd/MM/yyyy}",
-            FechaInicio = filtros.FechaInicio,
-            FechaFin = filtros.FechaFin,
-            Resumen = resumen,
-            Datos = pacientesFrecuentes.Cast<object>().ToList(),
-            FiltrosAplicados = GenerarDiccionarioFiltros(filtros)
-        };
-    }
-
-    /// <summary>
-    /// Genera reporte de rendimiento de doctores
-    /// </summary>
-    private async Task<ReporteGeneradoDto> GenerarReporteDoctoresRendimientoAsync(ReporteFilterDto filtros)
-    {
-        var query = _context.Citas
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.Usuario)
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.EspecialidadesMedico)
-                    .ThenInclude(me => me.Especialidad)
-            .Where(c => c.Inicio >= filtros.FechaInicio && c.Inicio <= filtros.FechaFin);
-
-        if (filtros.MedicoId.HasValue)
-            query = query.Where(c => c.MedicoId == filtros.MedicoId.Value);
-
-        var citas = await query.ToListAsync();
-
-        // Obtener turnos en el periodo
-        var turnos = await _context.AgendaTurnos
-            .Where(t => t.Inicio >= filtros.FechaInicio && t.Inicio <= filtros.FechaFin)
-            .ToListAsync();
-
-        var rendimiento = citas
-            .GroupBy(c => new
-            {
-                c.MedicoId,
-                NombreDoctor = c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido,
-                Especialidad = c.Medico.EspecialidadesMedico.FirstOrDefault()?.Especialidad.Nombre ?? "Sin especialidad"
-            })
-            .Select(g =>
-            {
-                var total = g.Count();
-                var atendidas = g.Count(c => c.Estado == EstadoCita.ATENDIDA);
-                var turnosDoctor = turnos.Where(t => t.MedicoId == g.Key.MedicoId).ToList();
-                var slotsDisponibles = turnosDoctor.Count;
-                var slotsOcupados = g.Count();
-
-                return new DoctorRendimientoDto
+                for (var current = firstWeek; current <= lastWeek; current = current.AddDays(7))
                 {
-                    DoctorId = g.Key.MedicoId,
-                    NombreDoctor = g.Key.NombreDoctor,
-                    Especialidad = g.Key.Especialidad,
-                    TotalCitas = total,
-                    CitasAtendidas = atendidas,
-                    TasaAsistencia = total > 0 ? Math.Round((decimal)atendidas / total * 100, 2) : 0,
-                    TiempoPromedioAtencion = 30, // Placeholder - calcular si hay datos de duración
-                    PacientesUnicos = g.Select(c => c.PacienteId).Distinct().Count(),
-                    CalificacionPromedio = 0, // Implementar si existe sistema de calificaciones
-                    SlotsDisponibles = slotsDisponibles,
-                    SlotsOcupados = slotsOcupados,
-                    TasaOcupacion = slotsDisponibles > 0 ? Math.Round((decimal)slotsOcupados / slotsDisponibles * 100, 2) : 0
+                    var group = citas.Where(c => StartOfWeek(c.Inicio) == current);
+
+                    var total = group.Count();
+                    var confirmada = group.Count(c => c.Estado == EstadoCita.CONFIRMADA);
+                    var atendida = group.Count(c => c.Estado == EstadoCita.ATENDIDA);
+                    var cancelada = group.Count(c => c.Estado == EstadoCita.CANCELADA);
+                    var noshow = group.Count(c => c.Estado == EstadoCita.NO_ATENDIDA);
+
+                    result.Add(new SeriesPointDto
+                    {
+                        Fecha = current.ToString("yyyy-MM-dd"),
+                        Programada = total,
+                        Confirmada = confirmada,
+                        Atendida = atendida,
+                        Cancelada = cancelada,
+                        NoShow = noshow
+                    });
+                }
+            }
+            else
+            {
+                // daily
+                var start = inicio.Date;
+                var end = fin.Date;
+
+                for (var day = start; day <= end; day = day.AddDays(1))
+                {
+                    var group = citas.Where(c => c.Inicio.Date == day);
+
+                    var total = group.Count();
+                    var confirmada = group.Count(c => c.Estado == EstadoCita.CONFIRMADA);
+                    var atendida = group.Count(c => c.Estado == EstadoCita.ATENDIDA);
+                    var cancelada = group.Count(c => c.Estado == EstadoCita.CANCELADA);
+                    var noshow = group.Count(c => c.Estado == EstadoCita.NO_ATENDIDA);
+
+                    result.Add(new SeriesPointDto
+                    {
+                        Fecha = day.ToString("yyyy-MM-dd"),
+                        Programada = total,
+                        Confirmada = confirmada,
+                        Atendida = atendida,
+                        Cancelada = cancelada,
+                        NoShow = noshow
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<PagedResultDto<ReportItemDto>> GetListAsync(string?desde, string?hasta, string?estado, int?medicoId, int pagina = 1, int tamanoPagina = 20, string?q = null)
+        {
+            try
+            {
+                // Parsear fechas
+                DateTime inicio;
+                DateTime fin;
+
+                if (string.IsNullOrWhiteSpace(desde))
+                {
+                    inicio = DateTime.UtcNow.Date.AddDays(-7);
+                }
+                else if (!DateTime.TryParse(desde, out inicio))
+                {
+                    throw new ArgumentException("Parametro 'desde' invalido");
+                }
+
+                if (string.IsNullOrWhiteSpace(hasta))
+                {
+                    fin = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+                }
+                else if (!DateTime.TryParse(hasta, out fin))
+                {
+                    throw new ArgumentException("Parametro 'hasta' invalido");
+                }
+
+                if (inicio > fin)
+                {
+                    throw new ArgumentException("La fecha 'desde' no puede ser mayor a 'hasta'");
+                }
+
+                var baseQuery = _context.Citas.AsQueryable();
+                baseQuery = baseQuery.Where(c => c.Inicio >= inicio && c.Inicio <= fin);
+
+                if (medicoId.HasValue)
+                {
+                    baseQuery = baseQuery.Where(c => c.MedicoId == medicoId.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(estado))
+                {
+                    if (Enum.TryParse<EstadoCita>(estado, true, out var est))
+                    {
+                        baseQuery = baseQuery.Where(c => c.Estado == est);
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Estado invalido");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    var qTrim = q.Trim().ToLower();
+                    // Filter only on Motivo to avoid complex navigation translation issues
+                    baseQuery = baseQuery.Where(c => c.Motivo != null && c.Motivo.ToLower().Contains(qTrim));
+                }
+
+                var totalRegistros = await baseQuery.CountAsync();
+
+                // Load page with includes to safely access navigation properties
+                var pageCitas = await baseQuery
+                    .OrderByDescending(c => c.Inicio)
+                    .Skip((pagina - 1) * tamanoPagina)
+                    .Take(tamanoPagina)
+                    .Include(c => c.Paciente).ThenInclude(p => p.Usuario)
+                    .Include(c => c.Medico).ThenInclude(m => m.Usuario)
+                    .ToListAsync();
+
+                var medicoIds = pageCitas.Select(c => c.MedicoId).Distinct().ToList();
+
+                var especialidadesMap = new Dictionary<long, string?>();
+
+                if (medicoIds.Count > 0)
+                {
+                    especialidadesMap = await _context.MedicosEspecialidades
+                        .Where(me => medicoIds.Contains(me.MedicoId))
+                        .Include(me => me.Especialidad)
+                        .GroupBy(me => me.MedicoId)
+                        .Select(g => new { MedicoId = g.Key, Nombre = g.Select(x => x.Especialidad.Nombre).FirstOrDefault() })
+                        .ToDictionaryAsync(x => (long)x.MedicoId, x => x.Nombre);
+                }
+
+                var items = pageCitas.Select(c => new ReportItemDto
+                {
+                    Id = c.Id,
+                    Fecha = c.Inicio.ToString("yyyy-MM-dd"),
+                    Hora = c.Inicio.ToString("HH:mm"),
+                    Paciente = c.Paciente?.Usuario != null ? (c.Paciente.Usuario.Nombre + " " + c.Paciente.Usuario.Apellido) : string.Empty,
+                    Doctor = c.Medico?.Usuario != null ? (c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido) : string.Empty,
+                    Especialidad = especialidadesMap.ContainsKey(c.MedicoId) ? especialidadesMap[c.MedicoId] : null,
+                    Estado = c.Estado.ToString(),
+                    Origen = c.Origen,
+                    AgendadoPor = c.UsuarioAgendo
+                }).ToList();
+
+                var totalPaginas = (int)Math.Ceiling(totalRegistros / (double)tamanoPagina);
+
+                return new PagedResultDto<ReportItemDto>
+                {
+                    Items = items,
+                    TotalRegistros = totalRegistros,
+                    TotalPaginas = totalPaginas
                 };
-            })
-            .OrderByDescending(x => x.TotalCitas)
-            .ToList();
-
-        var resumen = GenerarResumenEjecutivo(citas);
-
-        return new ReporteGeneradoDto
-        {
-            TipoReporte = "Rendimiento de Doctores",
-            Titulo = $"Reporte de Rendimiento de Doctores - {filtros.FechaInicio:dd/MM/yyyy} a {filtros.FechaFin:dd/MM/yyyy}",
-            FechaInicio = filtros.FechaInicio,
-            FechaFin = filtros.FechaFin,
-            Resumen = resumen,
-            Datos = rendimiento.Cast<object>().ToList(),
-            DatosGraficas = rendimiento.Cast<object>().ToList(),
-            FiltrosAplicados = GenerarDiccionarioFiltros(filtros)
-        };
-    }
-
-    /// <summary>
-    /// Genera análisis detallado de NO_SHOW
-    /// </summary>
-    private async Task<ReporteGeneradoDto> GenerarReporteNoShowAnalisisAsync(ReporteFilterDto filtros)
-    {
-        var query = _context.Citas
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.Usuario)
-            .Include(c => c.Medico)
-                .ThenInclude(m => m.EspecialidadesMedico)
-                    .ThenInclude(me => me.Especialidad)
-            .Where(c => c.Inicio >= filtros.FechaInicio && c.Inicio <= filtros.FechaFin);
-
-        var todasCitas = await query.ToListAsync();
-        var citasNoShow = todasCitas.Where(c => c.Estado == EstadoCita.NO_ATENDIDA).ToList();
-
-        var totalCitas = todasCitas.Count;
-        var totalNoShow = citasNoShow.Count;
-
-        var noShowPorDoctor = citasNoShow
-            .GroupBy(c => new
+            }
+            catch (Exception ex)
             {
-                c.MedicoId,
-                NombreDoctor = c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido
-            })
-            .Select(g => new NoShowPorDoctorDto
+                _logger.LogError(ex, "Error en GetListAsync");
+                // Return empty page instead of throwing to avoid 500 on UI; caller can detect empty result
+                return new PagedResultDto<ReportItemDto>
+                {
+                    Items = new List<ReportItemDto>(),
+                    TotalRegistros = 0,
+                    TotalPaginas = 0
+                };
+            }
+        }
+
+        public async Task<byte[]> ExportCsvAsync(string? desde, string? hasta, string? estado, int? medicoId, string? q = null)
+        {
+            try
             {
-                DoctorId = g.Key.MedicoId,
-                NombreDoctor = g.Key.NombreDoctor,
-                NoShowCount = g.Count(),
-                Porcentaje = totalNoShow > 0 ? Math.Round((decimal)g.Count() / totalNoShow * 100, 2) : 0
-            })
-            .OrderByDescending(x => x.NoShowCount)
-            .ToList();
+                // Reuse GetListAsync logic but fetch all matching records (no paging)
+                DateTime inicio;
+                DateTime fin;
 
-        var noShowPorEspecialidad = citasNoShow
-            .Where(c => c.Medico.EspecialidadesMedico.Any())
-            .GroupBy(c => c.Medico.EspecialidadesMedico.First().Especialidad.Nombre)
-            .Select(g => new NoShowPorEspecialidadDto
+                if (string.IsNullOrWhiteSpace(desde))
+                {
+                    inicio = DateTime.UtcNow.Date.AddDays(-7);
+                }
+                else if (!DateTime.TryParse(desde, out inicio))
+                {
+                    throw new ArgumentException("Parametro 'desde' invalido");
+                }
+
+                if (string.IsNullOrWhiteSpace(hasta))
+                {
+                    fin = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+                }
+                else if (!DateTime.TryParse(hasta, out fin))
+                {
+                    throw new ArgumentException("Parametro 'hasta' invalido");
+                }
+
+                if (inicio > fin)
+                {
+                    throw new ArgumentException("La fecha 'desde' no puede ser mayor a 'hasta'");
+                }
+
+                var query = _context.Citas
+                    .Where(c => c.Inicio >= inicio && c.Inicio <= fin);
+
+                if (medicoId.HasValue)
+                {
+                    query = query.Where(c => c.MedicoId == medicoId.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(estado) && Enum.TryParse<EstadoCita>(estado, true, out var est))
+                {
+                    query = query.Where(c => c.Estado == est);
+                }
+
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    var qTrim = q.Trim().ToLower();
+                    query = query.Where(c => c.Motivo != null && c.Motivo.ToLower().Contains(qTrim));
+                }
+
+                var list = await query
+                    .Include(c => c.Paciente).ThenInclude(p => p.Usuario)
+                    .Include(c => c.Medico).ThenInclude(m => m.Usuario)
+                    .OrderByDescending(c => c.Inicio)
+                    .ToListAsync();
+
+                var medicoIds = list.Select(c => c.MedicoId).Distinct().ToList();
+                var especialidadesMap = new Dictionary<long, string?>();
+                if (medicoIds.Count > 0)
+                {
+                    especialidadesMap = await _context.MedicosEspecialidades
+                        .Where(me => medicoIds.Contains(me.MedicoId))
+                        .Include(me => me.Especialidad)
+                        .GroupBy(me => me.MedicoId)
+                        .Select(g => new { MedicoId = g.Key, Nombre = g.Select(x => x.Especialidad.Nombre).FirstOrDefault() })
+                        .ToDictionaryAsync(x => (long)x.MedicoId, x => x.Nombre);
+                }
+
+                // Build CSV
+                var csvLines = new List<string>();
+                csvLines.Add("Fecha,Hora,Paciente,Doctor,Especialidad,Estado,Origen,AgendadoPor");
+
+                foreach (var c in list)
+                {
+                    var fecha = c.Inicio.ToString("yyyy-MM-dd");
+                    var hora = c.Inicio.ToString("HH:mm");
+                    var paciente = c.Paciente?.Usuario != null ? (c.Paciente.Usuario.Nombre + " " + c.Paciente.Usuario.Apellido) : string.Empty;
+                    var doctor = c.Medico?.Usuario != null ? (c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido) : string.Empty;
+                    var esp = especialidadesMap.ContainsKey(c.MedicoId) ? especialidadesMap[c.MedicoId] : string.Empty;
+                    var estadoStr = c.Estado.ToString();
+                    var origen = c.Origen ?? string.Empty;
+                    var agendadoPor = c.UsuarioAgendo ?? string.Empty;
+
+                    // Escape double quotes and commas
+                    string Escape(string s)
+                    {
+                        if (s == null) return string.Empty;
+                        var escaped = s.Replace("\"", "\"\"");
+                        if (escaped.Contains(",") || escaped.Contains("\"") || escaped.Contains('\n'))
+                            return $"\"{escaped}\"";
+                        return escaped;
+                    }
+
+                    csvLines.Add(string.Join(",", new[] { Escape(fecha), Escape(hora), Escape(paciente), Escape(doctor), Escape(esp), Escape(estadoStr), Escape(origen), Escape(agendadoPor) }));
+                }
+
+                var csv = string.Join("\n", csvLines);
+                // Return UTF8 bytes with BOM to improve compatibility with Excel
+                var preamble = System.Text.Encoding.UTF8.GetPreamble();
+                var body = System.Text.Encoding.UTF8.GetBytes(csv);
+                var result = new byte[preamble.Length + body.Length];
+                Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length);
+                Buffer.BlockCopy(body, 0, result, preamble.Length, body.Length);
+
+                return result;
+            }
+            catch (Exception ex)
             {
-                Especialidad = g.Key,
-                NoShowCount = g.Count(),
-                Porcentaje = totalNoShow > 0 ? Math.Round((decimal)g.Count() / totalNoShow * 100, 2) : 0
-            })
-            .OrderByDescending(x => x.NoShowCount)
-            .ToList();
-
-        var analisis = new NoShowAnalisisDto
-        {
-            Periodo = $"{filtros.FechaInicio:dd/MM/yyyy} - {filtros.FechaFin:dd/MM/yyyy}",
-            TotalNoShow = totalNoShow,
-            TotalCitas = totalCitas,
-            Porcentaje = totalCitas > 0 ? Math.Round((decimal)totalNoShow / totalCitas * 100, 2) : 0,
-            PorDoctor = noShowPorDoctor,
-            PorEspecialidad = noShowPorEspecialidad
-        };
-
-        var resumen = GenerarResumenEjecutivo(todasCitas);
-
-        return new ReporteGeneradoDto
-        {
-            TipoReporte = "Análisis de NO_SHOW",
-            Titulo = $"Análisis de NO_SHOW - {filtros.FechaInicio:dd/MM/yyyy} a {filtros.FechaFin:dd/MM/yyyy}",
-            FechaInicio = filtros.FechaInicio,
-            FechaFin = filtros.FechaFin,
-            Resumen = resumen,
-            Datos = new List<object> { analisis },
-            DatosGraficas = noShowPorDoctor.Cast<object>().ToList(),
-            FiltrosAplicados = GenerarDiccionarioFiltros(filtros)
-        };
+                _logger.LogError(ex, "Error en ExportCsvAsync");
+                // Return empty CSV
+                var preamble = System.Text.Encoding.UTF8.GetPreamble();
+                var body = System.Text.Encoding.UTF8.GetBytes("Fecha,Hora,Paciente,Doctor,Especialidad,Estado,Origen,AgendadoPor\n");
+                var result = new byte[preamble.Length + body.Length];
+                Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length);
+                Buffer.BlockCopy(body, 0, result, preamble.Length, body.Length);
+                return result;
+            }
+        }
     }
-
-    #endregion
-
-    #region Métodos Auxiliares
-
-    /// <summary>
-    /// Genera el resumen ejecutivo a partir de una lista de citas
-    /// </summary>
-    private ResumenEjecutivoDto GenerarResumenEjecutivo(List<Cita> citas)
-    {
-        var total = citas.Count;
-        var atendidas = citas.Count(c => c.Estado == EstadoCita.ATENDIDA);
-        var canceladas = citas.Count(c => c.Estado == EstadoCita.CANCELADA || c.Estado == EstadoCita.RECHAZADA);
-        var noShow = citas.Count(c => c.Estado == EstadoCita.NO_ATENDIDA);
-
-        return new ResumenEjecutivoDto
-        {
-            TotalCitas = total,
-            CitasAtendidas = atendidas,
-            CitasCanceladas = canceladas,
-            CitasNoShow = noShow,
-            TasaAsistencia = total > 0 ? Math.Round((decimal)atendidas / total * 100, 2) : 0,
-            TasaCancelacion = total > 0 ? Math.Round((decimal)canceladas / total * 100, 2) : 0,
-            TasaNoShow = total > 0 ? Math.Round((decimal)noShow / total * 100, 2) : 0,
-            TotalPacientes = citas.Select(c => c.PacienteId).Distinct().Count(),
-            TotalDoctores = citas.Select(c => c.MedicoId).Distinct().Count()
-        };
-    }
-
-    /// <summary>
-    /// Genera el diccionario de filtros aplicados
-    /// </summary>
-    private Dictionary<string, string> GenerarDiccionarioFiltros(ReporteFilterDto filtros)
-    {
-        var dict = new Dictionary<string, string>
-        {
-            { "FechaInicio", filtros.FechaInicio.ToString("dd/MM/yyyy") },
-            { "FechaFin", filtros.FechaFin.ToString("dd/MM/yyyy") }
-        };
-
-        if (filtros.MedicoId.HasValue)
-            dict["MedicoId"] = filtros.MedicoId.Value.ToString();
-
-        if (filtros.EspecialidadId.HasValue)
-            dict["EspecialidadId"] = filtros.EspecialidadId.Value.ToString();
-
-        if (!string.IsNullOrEmpty(filtros.Estado))
-            dict["Estado"] = filtros.Estado;
-
-        return dict;
-    }
-
-    #endregion
-
-    #region Exportadores
-
-    /// <summary>
-    /// Exporta el reporte a formato CSV
-    /// </summary>
-    private ReporteExportadoDto ExportarCSV(ReporteGeneradoDto reporte, ReporteFilterDto filtros)
-    {
-        var csv = new StringBuilder();
-        
-        // Encabezado
-        csv.AppendLine($"# {reporte.Titulo}");
-        csv.AppendLine($"# Generado: {reporte.FechaGeneracion:dd/MM/yyyy HH:mm}");
-        csv.AppendLine();
-        
-        // Resumen
-        csv.AppendLine("RESUMEN EJECUTIVO");
-        csv.AppendLine($"Total Citas,{reporte.Resumen.TotalCitas}");
-        csv.AppendLine($"Citas Atendidas,{reporte.Resumen.CitasAtendidas}");
-        csv.AppendLine($"Citas Canceladas,{reporte.Resumen.CitasCanceladas}");
-        csv.AppendLine($"Citas NO_SHOW,{reporte.Resumen.CitasNoShow}");
-        csv.AppendLine($"Tasa Asistencia,{reporte.Resumen.TasaAsistencia}%");
-        csv.AppendLine($"Tasa Cancelación,{reporte.Resumen.TasaCancelacion}%");
-        csv.AppendLine($"Tasa NO_SHOW,{reporte.Resumen.TasaNoShow}%");
-        csv.AppendLine();
-
-        // Datos detallados (simplificado - adaptar según tipo de reporte)
-        csv.AppendLine("DATOS DETALLADOS");
-        // Aquí se añadirían las columnas específicas según el tipo de reporte
-        // Por ahora, formato genérico
-        csv.AppendLine(System.Text.Json.JsonSerializer.Serialize(reporte.Datos));
-
-        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-        var base64 = Convert.ToBase64String(bytes);
-
-        return new ReporteExportadoDto
-        {
-            NombreArchivo = $"reporte_{filtros.TipoReporte}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
-            ContentType = "text/csv",
-            ArchivoBase64 = base64,
-            TamanoBytes = bytes.Length
-        };
-    }
-
-    /// <summary>
-    /// Exporta el reporte a formato Excel (simplificado - usar EPPlus o ClosedXML en producción)
-    /// </summary>
-    private ReporteExportadoDto ExportarExcel(ReporteGeneradoDto reporte, ReporteFilterDto filtros)
-    {
-        // Por ahora retorna CSV con extensión xlsx
-        // En producción, usar una librería como EPPlus o ClosedXML
-        var csvExport = ExportarCSV(reporte, filtros);
-        csvExport.NombreArchivo = csvExport.NombreArchivo.Replace(".csv", ".xlsx");
-        csvExport.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        
-        return csvExport;
-    }
-
-    /// <summary>
-    /// Exporta el reporte a formato PDF (simplificado - usar iTextSharp o QuestPDF en producción)
-    /// </summary>
-    private ReporteExportadoDto ExportarPDF(ReporteGeneradoDto reporte, ReporteFilterDto filtros)
-    {
-        // Por ahora retorna texto plano con extensión pdf
-        // En producción, usar una librería como QuestPDF o iTextSharp
-        var csvExport = ExportarCSV(reporte, filtros);
-        csvExport.NombreArchivo = csvExport.NombreArchivo.Replace(".csv", ".pdf");
-        csvExport.ContentType = "application/pdf";
-        
-        return csvExport;
-    }
-
-    #endregion
 }

@@ -59,7 +59,7 @@ export default function App() {
           return;
         }
         
-        // Si es un admin
+        // Si es un admin -> mantener en Home al iniciar la app (no navegar automáticamente)
         if (userRole === 'ADMIN') {
           const currentAdmin = adminAuthService.getCurrentAdmin();
           if (currentAdmin && adminAuthService.isAuthenticated()) {
@@ -68,12 +68,12 @@ export default function App() {
             setIsLoggedIn(true);
             setIsAdmin(true);
             setIsDoctor(false);
-            setCurrentPage('admin-panel');
+            // No cambiar la página automáticamente para iniciar en Home
             return;
           }
         }
         
-        // Si es un doctor
+        // Si es un doctor -> mantener en Home al iniciar la app (no navegar automáticamente)
         if (userRole === 'DOCTOR') {
           const currentDoctor = doctorAuthService.getCurrentDoctor();
           if (currentDoctor && doctorAuthService.isAuthenticated()) {
@@ -82,7 +82,7 @@ export default function App() {
             setIsLoggedIn(true);
             setIsDoctor(true);
             setIsAdmin(false);
-            setCurrentPage('doctor-dashboard');
+            // No cambiar la página automáticamente para iniciar en Home
             return;
           }
         }

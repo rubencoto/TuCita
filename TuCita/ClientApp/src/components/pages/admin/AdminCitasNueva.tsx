@@ -21,12 +21,16 @@ import adminCitasService, {
   DoctorConEspecialidad, 
   SlotDisponible 
 } from '@/services/api/admin/adminCitasService';
+import adminUsuariosService, { Usuario } from '@/services/api/admin/adminUsuariosService';
 
 interface AdminCitasNuevaProps {
   onBack?: () => void;
+  isOpen?: boolean; // compatible con modal usage
+  onClose?: () => void;
+  onSuccess?: () => void;
 }
 
-export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
+export function AdminCitasNueva({ onBack, onClose, onSuccess }: AdminCitasNuevaProps) {
   // Estados del wizard
   const [step, setStep] = useState(1);
   
@@ -40,6 +44,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
   const [pacientesEncontrados, setPacientesEncontrados] = useState<PacienteSearch[]>([]);
   const [doctores, setDoctores] = useState<DoctorConEspecialidad[]>([]);
   const [slots, setSlots] = useState<SlotDisponible[]>([]);
+  const [pacientesActivos, setPacientesActivos] = useState<PacienteSearch[]>([]);
   
   // Estados de formulario
   const [selectedDate, setSelectedDate] = useState('');
@@ -54,11 +59,38 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
   const [creatingAppointment, setCreatingAppointment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cargar lista de pacientes activos para que el admin pueda seleccionar
+  useEffect(() => {
+    const loadActivePatients = async () => {
+      try {
+        const response = await adminUsuariosService.getUsuarios({ rol: 'PACIENTE', activo: true, pagina: 1, tamanoPagina: 1000 });
+        const users = response.usuarios as Usuario[];
+        const mapped: PacienteSearch[] = users.map(u => ({
+          id: u.id,
+          nombre: u.nombre,
+          apellido: u.apellido,
+          nombreCompleto: u.nombreCompleto,
+          email: u.email,
+          telefono: u.telefono,
+          identificacion: u.identificacion,
+        }));
+        setPacientesActivos(mapped);
+        // Inicializar resultados con primeros pacientes activos
+        setPacientesEncontrados(mapped.slice(0, 50));
+      } catch (err) {
+        console.error('Error al cargar pacientes activos:', err);
+      }
+    };
+
+    loadActivePatients();
+  }, []);
+
   // Buscar pacientes cuando cambia el término de búsqueda
   useEffect(() => {
     const searchPacientes = async () => {
+      // Si el término es vacío, mostrar lista de pacientes activos (útil para admins)
       if (searchPatient.length < 2) {
-        setPacientesEncontrados([]);
+        setPacientesEncontrados(pacientesActivos.slice(0, 50));
         return;
       }
 
@@ -79,7 +111,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
 
     const timeoutId = setTimeout(searchPacientes, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchPatient]);
+  }, [searchPatient, pacientesActivos]);
 
   // Cargar doctores cuando se avanza al paso 2
   useEffect(() => {
@@ -176,13 +208,14 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
       });
 
       toast.success(
-        `óCita creada exitosamente!${citaCreada.emailEnviado ? ' Email enviado al paciente.' : ''}`,
+        `Cita creada exitosamente!${citaCreada.emailEnviado ? ' Email enviado al paciente.' : ''}`,
         {
           description: `Cita para ${citaCreada.nombrePaciente} con ${citaCreada.nombreMedico}`
         }
       );
 
-      // Volver a la vista anterior
+      onSuccess?.();
+      onClose?.();
       onBack?.();
     } catch (err: any) {
       console.error('Error al crear cita:', err);
@@ -213,7 +246,7 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={onBack} disabled={creatingAppointment}>
+        <Button variant="ghost" onClick={() => { onClose?.(); onBack?.(); }} disabled={creatingAppointment}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver
         </Button>
@@ -268,10 +301,6 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
       {/* Step 1: Select Patient */}
       {step === 1 && (
         <Card>
-          <CardHeader>
-            <CardTitle>1. Seleccionar paciente</CardTitle>
-            <CardDescription>Busca y selecciona el paciente para la cita</CardDescription>
-          </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -282,9 +311,6 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
                 className="pl-10"
                 disabled={searchingPatients}
               />
-              {searchingPatients && (
-                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
-              )}
             </div>
 
             {pacientesEncontrados.length > 0 && (
@@ -301,44 +327,12 @@ export function AdminCitasNueva({ onBack }: AdminCitasNuevaProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">{patient.nombreCompleto}</p>
-                        <p className="text-xs text-gray-500">
-                          {patient.email}
-                          {patient.telefono && ` ó ${patient.telefono}`}
-                          {patient.identificacion && ` ó ID: ${patient.identificacion}`}
-                        </p>
+                        <p className="text-xs text-gray-500">{patient.email}{patient.telefono ? ` • ${patient.telefono}` : ''}</p>
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
-            )}
-
-            {searchPatient.length >= 2 && pacientesEncontrados.length === 0 && !searchingPatients && (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">No se encontraron pacientes con "{searchPatient}"</p>
-              </div>
-            )}
-
-            {selectedPatient && (
-              <Card className="bg-teal-50 border-teal-200">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{selectedPatient.nombreCompleto}</p>
-                        <p className="text-sm text-gray-600">{selectedPatient.email}</p>
-                        {selectedPatient.telefono && (
-                          <p className="text-sm text-gray-600">{selectedPatient.telefono}</p>
-                        )}
-                      </div>
-                    </div>
-                    <Badge className="bg-teal-600 text-white">Seleccionado</Badge>
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
             <div className="flex justify-between pt-4">

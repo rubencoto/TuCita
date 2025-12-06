@@ -1,385 +1,249 @@
-﻿import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+﻿import { useEffect, useState } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  FileText, 
-  Download, 
-  Filter, 
-  BarChart3, 
-  Users, 
-  AlertCircle,
-  TrendingUp,
-  Calendar,
-  FileSpreadsheet,
-  FileJson
-} from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-import adminReportesService, {
-  TipoReporte,
-  FormatoExportacion,
-  ReporteGenerado,
-  TipoReporteInfo,
-  FormatoInfo
-} from '@/services/api/admin/adminReportesService';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import adminReportesService from '@/services/api/admin/adminReportesService';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
 export function AdminReportes() {
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [preset, setPreset] = useState('7d');
+  const [summary, setSummary] = useState<any>(null);
+  const [series, setSeries] = useState<any[]>([]);
+  const [pieData, setPieData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [generandoReporte, setGenerandoReporte] = useState(false);
-  const [exportando, setExportando] = useState(false);
-  
-  // Estados de filtros
-  const [tipoReporte, setTipoReporte] = useState<TipoReporte>(TipoReporte.CitasPorPeriodo);
-  const [fechaInicio, setFechaInicio] = useState<string>(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
-  );
-  const [fechaFin, setFechaFin] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
-  const [formatoExportacion, setFormatoExportacion] = useState<FormatoExportacion>(FormatoExportacion.PDF);
-
-  // Estados de datos
-  const [tiposDisponibles, setTiposDisponibles] = useState<TipoReporteInfo[]>([]);
-  const [formatosDisponibles, setFormatosDisponibles] = useState<FormatoInfo[]>([]);
-  const [reporteGenerado, setReporteGenerado] = useState<ReporteGenerado | null>(null);
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<any[]>([]);
+  const [totalRegistros, setTotalRegistros] = useState(0);
 
   useEffect(() => {
-    cargarDatosIniciales();
+    applyPreset(preset);
   }, []);
 
-  const cargarDatosIniciales = async () => {
+  useEffect(() => {
+    loadAll();
+  }, [desde, hasta]);
+
+  const applyPreset = (p: string) => {
+    setPreset(p);
+    const today = new Date();
+    const to = today.toISOString().split('T')[0];
+    let from = '';
+
+    if (p === 'today') {
+      from = to;
+    } else if (p === '7d') {
+      const d = new Date(); d.setDate(d.getDate() - 6); from = d.toISOString().split('T')[0];
+    } else if (p === '30d') {
+      const d = new Date(); d.setDate(d.getDate() - 29); from = d.toISOString().split('T')[0];
+    }
+
+    setDesde(from);
+    setHasta(to);
+  };
+
+  const loadAll = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const [tipos, formatos] = await Promise.all([
-        adminReportesService.getTiposReportes(),
-        adminReportesService.getFormatos()
-      ]);
-      setTiposDisponibles(tipos);
-      setFormatosDisponibles(formatos);
-    } catch (error: any) {
-      console.error('Error al cargar datos iniciales:', error);
-      toast.error('Error al cargar configuración', {
-        description: 'No se pudieron cargar los tipos de reportes'
-      });
+      const s = await adminReportesService.getSummary(desde, hasta);
+      setSummary(s);
+
+      const sr = await adminReportesService.getSeries(desde, hasta, 'day');
+      setSeries(sr.map((p:any) => ({ ...p, name: p.fecha })));
+
+      const pie = [
+        { name: 'Atendidas', value: s.atendidas || 0, color: '#10B981' },
+        { name: 'Canceladas', value: s.canceladas || 0, color: '#F59E0B' },
+        { name: 'No Show', value: s.noShow || 0, color: '#EF4444' },
+      ];
+      setPieData(pie);
+
+      const list = await adminReportesService.getList(desde, hasta, undefined, undefined, 1, 20);
+      setItems(list.items);
+      setTotalRegistros(list.totalRegistros);
+      setPage(1);
+    } catch (err:any) {
+      console.error('Error loading reports', err);
+      toast.error(err.message || 'Error al cargar reportes');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerarReporte = async () => {
+  const handleExport = async () => {
     try {
-      setGenerandoReporte(true);
-      setReporteGenerado(null);
-
-      const filtros = {
-        tipoReporte,
-        fechaInicio: new Date(fechaInicio).toISOString(),
-        fechaFin: new Date(fechaFin).toISOString()
-      };
-
-      const reporte = await adminReportesService.generarReporte(filtros);
-      setReporteGenerado(reporte);
-
-      toast.success('Reporte generado exitosamente', {
-        description: `Se generó el reporte: ${reporte.titulo}`
-      });
-    } catch (error: any) {
-      console.error('Error al generar reporte:', error);
-      toast.error('Error al generar reporte', {
-        description: error.response?.data?.message || 'Por favor intenta nuevamente'
-      });
-    } finally {
-      setGenerandoReporte(false);
+      const blob = await adminReportesService.exportCsv({ desde, hasta });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reportes_${desde || 'all'}_${hasta || 'all'}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Export iniciado');
+    } catch (err:any) {
+      console.error('Export error', err);
+      toast.error('Error al exportar CSV');
     }
   };
-
-  const handleExportarReporte = async () => {
-    try {
-      setExportando(true);
-
-      const filtros = {
-        tipoReporte,
-        fechaInicio: new Date(fechaInicio).toISOString(),
-        fechaFin: new Date(fechaFin).toISOString(),
-        formato: formatoExportacion
-      };
-
-      const archivoExportado = await adminReportesService.exportarReporte(filtros);
-      adminReportesService.descargarDesdeBase64(archivoExportado);
-
-      toast.success('Reporte exportado exitosamente', {
-        description: `Archivo: ${archivoExportado.nombreArchivo}`
-      });
-    } catch (error: any) {
-      console.error('Error al exportar reporte:', error);
-      toast.error('Error al exportar reporte', {
-        description: error.response?.data?.message || 'Por favor intenta nuevamente'
-      });
-    } finally {
-      setExportando(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando módulo de reportes...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Reportes</h2>
-          <p className="text-gray-600 mt-1">Genera y exporta reportes administrativos</p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Reportes</h2>
+        <p className="text-sm text-gray-500 mt-1">Resumen y exportación de datos. Filtra por rango de fechas.</p>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="flex gap-2">
-          <Button
-            onClick={handleGenerarReporte}
-            disabled={generandoReporte}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {generandoReporte ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Generando...
-              </>
-            ) : (
-              <>
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Generar Reporte
-              </>
-            )}
-          </Button>
-          {reporteGenerado && (
-            <Button
-              onClick={handleExportarReporte}
-              disabled={exportando}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              {exportando ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
-                  Exportando...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar
-                </>
-              )}
-            </Button>
-          )}
+          <Button variant={preset === 'today' ? 'default' : 'ghost'} onClick={() => applyPreset('today')}>Hoy</Button>
+          <Button variant={preset === '7d' ? 'default' : 'ghost'} onClick={() => applyPreset('7d')}>Últimos 7 días</Button>
+          <Button variant={preset === '30d' ? 'default' : 'ghost'} onClick={() => applyPreset('30d')}>Últimos 30 días</Button>
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+          <Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+          <Button onClick={loadAll} className="bg-teal-600 hover:bg-teal-700">Aplicar</Button>
+          <Button variant="outline" onClick={handleExport}>Exportar CSV</Button>
         </div>
       </div>
 
-      {/* Filtros */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Resumen</CardTitle>
+            <CardDescription>Indicadores clave</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {summary ? (
+              <div className="space-y-2">
+                <div>Total citas: <strong>{summary.total}</strong></div>
+                <div>Atendidas: <strong>{summary.atendidas}</strong></div>
+                <div>Canceladas: <strong>{summary.canceladas}</strong></div>
+                <div>No Show: <strong>{summary.noShow}</strong></div>
+                {summary.ingresos !== undefined && <div>Ingresos: <strong>{summary.ingresos}</strong></div>}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Sin datos</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Series de citas (por día)</CardTitle>
+            <CardDescription>Visualización temporal</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {series.length > 0 ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={series}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="programada" stroke="#3B82F6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="confirmada" stroke="#2563EB" strokeWidth={2} />
+                  <Line type="monotone" dataKey="atendida" stroke="#10B981" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-gray-500">Sin series</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribución</CardTitle>
+            <CardDescription>Por estado</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={80}>
+                    {pieData.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-gray-500">Sin datos</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros de Reporte
-          </CardTitle>
-          <CardDescription>Configura los parámetros del reporte a generar</CardDescription>
+          <CardTitle>Listado (muestra primera página)</CardTitle>
+          <CardDescription>Tabla resumida de citas</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Tipo de Reporte */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Tipo de Reporte</label>
-              <select
-                value={tipoReporte}
-                onChange={(e) => setTipoReporte(Number(e.target.value) as TipoReporte)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {tiposDisponibles.map((tipo) => (
-                  <option key={tipo.id} value={tipo.id}>
-                    {tipo.nombre}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500">
-                {tiposDisponibles.find(t => t.id === tipoReporte)?.descripcion}
-              </p>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 text-sm text-gray-600">Fecha</th>
+                  <th className="text-left py-2 px-3 text-sm text-gray-600">Hora</th>
+                  <th className="text-left py-2 px-3 text-sm text-gray-600">Paciente</th>
+                  <th className="text-left py-2 px-3 text-sm text-gray-600">Doctor</th>
+                  <th className="text-left py-2 px-3 text-sm text-gray-600">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-gray-500">No hay registros</td>
+                  </tr>
+                ) : (
+                  items.map((it:any) => (
+                    <tr key={it.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-2 px-3 text-sm">{it.fecha}</td>
+                      <td className="py-2 px-3 text-sm">{it.hora}</td>
+                      <td className="py-2 px-3 text-sm">{it.paciente}</td>
+                      <td className="py-2 px-3 text-sm">{it.doctor}</td>
+                      <td className="py-2 px-3 text-sm">{it.estado}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Fecha Inicio */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Fecha Inicio</label>
-              <input
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Fecha Fin */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Fecha Fin</label>
-              <input
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Formato de Exportación */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Formato de Exportación</label>
-              <select
-                value={formatoExportacion}
-                onChange={(e) => setFormatoExportacion(Number(e.target.value) as FormatoExportacion)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {formatosDisponibles.map((formato) => (
-                  <option key={formato.id} value={formato.id}>
-                    {formato.nombre} ({formato.extension})
-                  </option>
-                ))}
-              </select>
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-gray-600">Mostrando página {page} — {totalRegistros} registros</div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => changePage(Math.max(1, page - 1))} disabled={page === 1}>Anterior</Button>
+              <Button variant="outline" onClick={() => changePage(page + 1)}>Siguiente</Button>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Resumen Ejecutivo */}
-      {reporteGenerado && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{reporteGenerado.titulo}</CardTitle>
-              <CardDescription>
-                Generado el {new Date(reporteGenerado.fechaGeneracion).toLocaleString('es-ES')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-600 mb-1">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm font-medium">Total Citas</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">{reporteGenerado.resumen.totalCitas}</p>
-                </div>
-
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 text-green-600 mb-1">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-sm font-medium">Tasa Asistencia</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">{reporteGenerado.resumen.tasaAsistencia}%</p>
-                </div>
-
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 text-yellow-600 mb-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Tasa cancelación</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">{reporteGenerado.resumen.tasaCancelacion}%</p>
-                </div>
-
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 text-red-600 mb-1">
-                    <Users className="h-4 w-4" />
-                    <span className="text-sm font-medium">Tasa NO_SHOW</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900">{reporteGenerado.resumen.tasaNoShow}%</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-sm text-gray-600">Citas Atendidas:</span>
-                  <span className="ml-2 font-semibold text-green-600">{reporteGenerado.resumen.citasAtendidas}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-sm text-gray-600">Citas Canceladas:</span>
-                  <span className="ml-2 font-semibold text-yellow-600">{reporteGenerado.resumen.citasCanceladas}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-sm text-gray-600">Total Pacientes:</span>
-                  <span className="ml-2 font-semibold text-blue-600">{reporteGenerado.resumen.totalPacientes}</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-sm text-gray-600">Total Doctores:</span>
-                  <span className="ml-2 font-semibold text-purple-600">{reporteGenerado.resumen.totalDoctores}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Gráficas */}
-          {reporteGenerado.datosGraficas && reporteGenerado.datosGraficas.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Visualización de Datos</CardTitle>
-                <CardDescription>Gráficas del reporte generado</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={reporteGenerado.datosGraficas}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="periodo" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="total" fill="#3B82F6" name="Total" />
-                    <Bar dataKey="atendidas" fill="#10B981" name="Atendidas" />
-                    <Bar dataKey="canceladas" fill="#F59E0B" name="Canceladas" />
-                    <Bar dataKey="noShow" fill="#EF4444" name="NO_SHOW" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Tabla de Datos */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Datos Detallados</CardTitle>
-              <CardDescription>Información completa del reporte</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-auto max-h-96">
-                  {JSON.stringify(reporteGenerado.datos, null, 2)}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* Estado vacóo */}
-      {!reporteGenerado && !generandoReporte && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-16 w-16 text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay reporte generado</h3>
-            <p className="text-gray-500 text-center mb-4">
-              Selecciona los filtros y haz clic en "Generar Reporte" para comenzar
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
+
+  async function changePage(p: number) {
+    setLoading(true);
+    try {
+      const list = await adminReportesService.getList(desde, hasta, undefined, undefined, p, 20);
+      setItems(list.items);
+      setTotalRegistros(list.totalRegistros);
+      setPage(p);
+    } catch (err:any) {
+      toast.error('Error al cambiar de página');
+    } finally {
+      setLoading(false);
+    }
+  }
 }

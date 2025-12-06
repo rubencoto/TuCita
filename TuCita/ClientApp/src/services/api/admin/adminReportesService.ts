@@ -1,4 +1,5 @@
 import apiClient from '@/services/api/apiConfig';
+import axios from '@/services/api/axiosConfig';
 
 // ==================== TIPOS DE DATOS ====================
 
@@ -69,6 +70,41 @@ export interface FormatoInfo {
   nombre: string;
   extension: string;
   contentType: string;
+}
+
+export interface SummaryReport {
+  total: number;
+  atendidas: number;
+  canceladas: number;
+  noShow: number;
+  ingresos?: number;
+}
+
+export interface SeriesPoint {
+  fecha: string; // yyyy-MM-dd
+  programada: number;
+  confirmada: number;
+  atendida: number;
+  cancelada: number;
+  noShow: number;
+}
+
+export interface ReportItem {
+  id: number;
+  fecha: string;
+  hora: string;
+  paciente: string;
+  doctor: string;
+  especialidad?: string;
+  estado: string;
+  origen?: string;
+  agendadoPor?: string;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalRegistros: number;
+  totalPaginas: number;
 }
 
 // ==================== SERVICIO ====================
@@ -199,6 +235,26 @@ class AdminReportesService {
       console.error('Error al descargar blob:', error);
       throw error;
     }
+  }
+
+  async getSummary(desde?: string, hasta?: string): Promise<SummaryReport> {
+    const r = await axios.get(`${this.baseUrl}/summary`, { params: { desde, hasta } });
+    return r.data;
+  }
+
+  async getSeries(desde?: string, hasta?: string, granularidad: 'day' | 'week' = 'day'): Promise<SeriesPoint[]> {
+    const r = await axios.get(`${this.baseUrl}/series`, { params: { desde, hasta, granularidad } });
+    return r.data;
+  }
+
+  async getList(desde?: string, hasta?: string, estado?: string, medicoId?: number, page = 1, pageSize = 20, q?: string): Promise<PagedResult<ReportItem>> {
+    const r = await axios.get(`${this.baseUrl}/list`, { params: { desde, hasta, estado, medicoId, pagina: page, tamanoPagina: pageSize, q } });
+    return r.data;
+  }
+
+  async exportCsv(filters: { desde?: string; hasta?: string; estado?: string; medicoId?: number; q?: string }) {
+    const r = await axios.get(`${this.baseUrl}/export`, { params: filters, responseType: 'blob' });
+    return r.data as Blob;
   }
 }
 
