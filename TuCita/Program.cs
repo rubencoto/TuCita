@@ -11,32 +11,45 @@ using System.Diagnostics;
 using Amazon.S3;
 using Amazon.Runtime;
 
-// Cargar variables de entorno desde el archivo .env
-Env.Load();
+// Cargar variables de entorno desde el archivo .env (solo en desarrollo)
+if (File.Exists(".env"))
+{
+    Env.Load();
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurar codificación UTF-8 para toda la aplicación
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+// Configurar puerto dinámico de Heroku
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 // Construir cadena de conexión para SQL Server desde variables de entorno
-var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? throw new InvalidOperationException("DB_SERVER no configurada en .env");
+var dbServer = Environment.GetEnvironmentVariable("DB_SERVER") ?? throw new InvalidOperationException("DB_SERVER no configurada");
 var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "1433";
-var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME no configurada en .env");
-var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER no configurada en .env");
-var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD no configurada en .env");
+var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME no configurada");
+var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER no configurada");
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD no configurada");
 
 // Cadena de conexión para AWS RDS SQL Server
 var connectionString = $"Data Source={dbServer},{dbPort};Initial Catalog={dbName};User ID={dbUser};Password={dbPassword};Persist Security Info=True;Pooling=False;MultipleActiveResultSets=False;Connect Timeout=30;Encrypt=True;TrustServerCertificate=True;Command Timeout=0";
 
 // Logging de diagnóstico para conexión a BD (sin exponer la contraseña completa)
-Console.WriteLine($"?? Configuración de conexión AWS RDS SQL Server:");
-Console.WriteLine($"   Servidor: {dbServer}:{dbPort}");
-Console.WriteLine($"   Base de datos: {dbName}");
-Console.WriteLine($"   Usuario: {dbUser}");
-Console.WriteLine($"   Contraseña configurada: {!string.IsNullOrEmpty(dbPassword)} (longitud: {dbPassword?.Length ?? 0})");
-Console.WriteLine($"   Encrypt: True");
-Console.WriteLine($"   TrustServerCertificate: True");
+if (builder.Environment.IsDevelopment())
+{
+    Console.WriteLine($"?? Configuración de conexión AWS RDS SQL Server:");
+    Console.WriteLine($"   Servidor: {dbServer}:{dbPort}");
+    Console.WriteLine($"   Base de datos: {dbName}");
+    Console.WriteLine($"   Usuario: {dbUser}");
+    Console.WriteLine($"   Contraseña configurada: {!string.IsNullOrEmpty(dbPassword)} (longitud: {dbPassword?.Length ?? 0})");
+    Console.WriteLine($"   Encrypt: True");
+    Console.WriteLine($"   TrustServerCertificate: True");
+}
 
 // Add Entity Framework con SQL Server
 builder.Services.AddDbContext<TuCitaDbContext>(options =>
@@ -44,7 +57,7 @@ builder.Services.AddDbContext<TuCitaDbContext>(options =>
 );
 
 // Add JWT Authentication usando variables de entorno
-var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new InvalidOperationException("JWT_KEY no configurada en .env");
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new InvalidOperationException("JWT_KEY no configurada");
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "TuCita";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "TuCitaUsers";
 
@@ -245,8 +258,8 @@ using (var scope = app.Services.CreateScope())
     catch (Microsoft.Data.SqlClient.SqlException ex)
     {
         logger.LogError(ex, "? Error de conexión a SQL Server. Verifica:");
-        logger.LogError("   1. Credenciales correctas en .env");
-        logger.LogError("   2. Firewall de Azure permite tu IP");
+        logger.LogError("   1. Credenciales correctas en variables de entorno");
+        logger.LogError("   2. Firewall permite conexiones");
         logger.LogError("   3. Base de datos '{DbName}' existe", Environment.GetEnvironmentVariable("DB_NAME"));
         logger.LogError("   4. Usuario tiene permisos suficientes");
         logger.LogError("   Detalle: {Message}", ex.Message);
@@ -264,7 +277,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// En producción, no forzar HTTPS redirect si estamos detrás de un proxy (Heroku)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseSpaStaticFiles();
 
