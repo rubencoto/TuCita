@@ -29,8 +29,30 @@ import { DoctorScheduleConfigPage } from './components/pages/doctor/doctor-sched
 
 type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-schedule-config' | 'doctor-profile' | 'admin-panel';
 
+// Función para obtener la página desde la URL
+const getPageFromUrl = (): PageType => {
+  const hash = window.location.hash.slice(1); // Remover el #
+  if (!hash) return 'home';
+  
+  // Validar que sea una página válida
+  const validPages: PageType[] = [
+    'home', 'login', 'register', 'doctor-login', 'search', 'booking', 
+    'appointments', 'profile', 'forgot-password', 'reset-password', 
+    'medical-history', 'appointment-detail', 'reschedule', 'doctor-dashboard', 
+    'doctor-appointments', 'doctor-appointment-detail', 'doctor-medical-history', 
+    'doctor-availability', 'doctor-schedule-config', 'doctor-profile', 'admin-panel'
+  ];
+  
+  return validPages.includes(hash as PageType) ? (hash as PageType) : 'home';
+};
+
+// Función para actualizar la URL
+const updateUrl = (page: PageType) => {
+  window.location.hash = page;
+};
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('home');
+  const [currentPage, setCurrentPage] = useState<PageType>(getPageFromUrl());
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [user, setUser] = useState<any | null>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -38,6 +60,17 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [isDoctor, setIsDoctor] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
+  // Escuchar cambios en el hash de la URL
+  useEffect(() => {
+    const handleHashChange = () => {
+      const newPage = getPageFromUrl();
+      setCurrentPage(newPage);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Verificar si hay una sesión activa al cargar la app
   useEffect(() => {
@@ -54,12 +87,12 @@ export default function App() {
           const urlParams = new URLSearchParams(window.location.search);
           const resetToken = urlParams.get('token');
           if (resetToken) {
-            setCurrentPage('reset-password');
+            handleNavigate('reset-password');
           }
           return;
         }
         
-        // Si es un admin -> mantener en Home al iniciar la app (no navegar automáticamente)
+        // Si es un admin
         if (userRole === 'ADMIN') {
           const currentAdmin = adminAuthService.getCurrentAdmin();
           if (currentAdmin && adminAuthService.isAuthenticated()) {
@@ -68,12 +101,11 @@ export default function App() {
             setIsLoggedIn(true);
             setIsAdmin(true);
             setIsDoctor(false);
-            // No cambiar la página automáticamente para iniciar en Home
             return;
           }
         }
         
-        // Si es un doctor -> mantener en Home al iniciar la app (no navegar automáticamente)
+        // Si es un doctor
         if (userRole === 'DOCTOR') {
           const currentDoctor = doctorAuthService.getCurrentDoctor();
           if (currentDoctor && doctorAuthService.isAuthenticated()) {
@@ -82,7 +114,6 @@ export default function App() {
             setIsLoggedIn(true);
             setIsDoctor(true);
             setIsAdmin(false);
-            // No cambiar la página automáticamente para iniciar en Home
             return;
           }
         }
@@ -134,8 +165,10 @@ export default function App() {
 
   const handleNavigate = (page: string, data?: any): void => {
     console.log('🔄 Navegando a:', page, data);
-    setCurrentPage(page as PageType);
+    const pageType = page as PageType;
+    setCurrentPage(pageType);
     setPageData(data);
+    updateUrl(pageType); // Actualizar URL
   };
 
   const handleLogin = async (userData: any): Promise<void> => {
@@ -148,18 +181,21 @@ export default function App() {
       console.log('👨‍💼 Usuario es administrador');
       setIsAdmin(true);
       setIsDoctor(false);
+      handleNavigate('admin-panel');
     }
     // Verificar si es un doctor
     else if (userData.role === 'doctor' || userData.role === 'DOCTOR') {
       console.log('👨‍⚕️ Usuario es doctor');
       setIsDoctor(true);
       setIsAdmin(false);
+      handleNavigate('doctor-dashboard');
     } else {
       console.log('👤 Usuario es paciente');
       setIsDoctor(false);
       setIsAdmin(false);
       // Cargar citas del usuario recién logueado
       await loadUserAppointments();
+      handleNavigate('home');
     }
   };
 
@@ -179,7 +215,7 @@ export default function App() {
     setIsDoctor(false);
     setIsAdmin(false);
     setAppointments([]);
-    setCurrentPage('home');
+    handleNavigate('home');
   };
 
   const handleBookAppointment = async (appointmentData: any): Promise<any> => {
@@ -216,7 +252,7 @@ export default function App() {
     try {
       const success = await appointmentsService.cancelAppointment(Number(appointmentId));
       if (success) {
-        await loadUserAppointments(); // Recargar lista de citas
+        await loadUserAppointments();
       }
       return success;
     } catch (error) {
@@ -233,7 +269,7 @@ export default function App() {
       );
       
       if (rescheduledAppointment) {
-        await loadUserAppointments(); // Recargar lista de citas
+        await loadUserAppointments();
         return true;
       }
       return false;

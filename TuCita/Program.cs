@@ -131,6 +131,9 @@ builder.Services.AddScoped<IAdminUsuariosService, AdminUsuariosService>();
 builder.Services.AddScoped<IAdminCitasService, AdminCitasService>();
 builder.Services.AddScoped<IAdminReportesService, AdminReportesService>();
 
+// Add Background Service para limpieza automática de turnos vencidos (AWS RDS)
+builder.Services.AddHostedService<ExpiredSlotsCleanupService>();
+
 // Add AWS S3 Client
 var awsAccessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
 var awsSecretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");

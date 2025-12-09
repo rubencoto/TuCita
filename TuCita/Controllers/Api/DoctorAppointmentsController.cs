@@ -527,11 +527,11 @@ public class DoctorAppointmentsController : ControllerBase
         using var scope = HttpContext.RequestServices.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TuCita.Data.TuCitaDbContext>();
 
-        var medico = await context.PerfilesMedicos
-            .Where(m => m.UsuarioId == usuarioId)
-            .Select(m => m.UsuarioId)
-            .FirstOrDefaultAsync();
+        // Verificar que el perfil médico existe para este usuario
+        var perfilExiste = await context.PerfilesMedicos
+            .AnyAsync(m => m.UsuarioId == usuarioId);
 
-        return medico > 0 ? medico : null;
+        // El UsuarioId ES el ID del perfil médico (relación 1:1)
+        return perfilExiste ? usuarioId : null;
     }
 }

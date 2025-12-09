@@ -144,12 +144,23 @@ public class DoctorsService : IDoctorsService
         {
             var inicioDia = fecha.Date;
             var finDia = inicioDia.AddDays(1);
+            var ahora = DateTime.UtcNow;
 
-            var turnosDisponibles = await _context.AgendaTurnos
+            // Si la fecha es hoy, filtrar turnos que ya pasaron
+            // Si es una fecha futura, mostrar todos los turnos DISPONIBLE y RESERVADO (para mostrar atenuados)
+            var turnosQuery = _context.AgendaTurnos
                 .Where(t => t.MedicoId == doctorId && 
                            t.Inicio >= inicioDia && 
                            t.Inicio < finDia &&
-                           t.Estado == EstadoTurno.DISPONIBLE)
+                           (t.Estado == EstadoTurno.DISPONIBLE || t.Estado == EstadoTurno.RESERVADO));
+
+            // Si la fecha es hoy, filtrar turnos que ya pasaron
+            if (fecha.Date == ahora.Date)
+            {
+                turnosQuery = turnosQuery.Where(t => t.Inicio > ahora);
+            }
+
+            var turnosDisponibles = await turnosQuery
                 .OrderBy(t => t.Inicio)
                 .ToListAsync();
 

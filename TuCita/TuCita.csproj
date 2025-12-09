@@ -54,6 +54,7 @@
   <ItemGroup>
     <Folder Include="ClientApp\src\app\preview\weekly-schedule\" />
     <Folder Include="ClientApp\src\guidelines\" />
+    <Folder Include="Scripts\" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import doctorsService, { AgendaTurno } from '@/services/api/doctor/doctorsService';
 
-interface AppointmentCalendarProps {
+export interface AppointmentCalendarProps {
   doctorId: number;
   doctorName: string;
   onSelectSlot: (date: Date, timeSlot: AgendaTurno) => void;
@@ -66,7 +66,7 @@ export function AppointmentCalendar({
     };
 
     loadWeekSlots();
-  }, [doctorId, currentWeek]); // Solo depende de doctorId y currentWeek
+  }, [doctorId, currentWeek]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('es-ES', {
@@ -85,6 +85,23 @@ export function AppointmentCalendar({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return date < today;
+  };
+
+  // Verificar si un slot es un turno pasado (para el día actual)
+  const isSlotPast = (slotDate: Date, slot: AgendaTurno) => {
+    if (!isToday(slotDate)) return false;
+    
+    const now = new Date();
+    // Usar el campo 'inicio' que viene del backend como string ISO
+    const slotStartTime = new Date(slot.inicio);
+    
+    // Un turno está pasado solo si su hora de inicio ya pasó (no incluye la hora actual)
+    return slotStartTime < now;
+  };
+
+  // Verificar si un slot está ocupado
+  const isSlotOccupied = (slot: AgendaTurno) => {
+    return slot.estado === 'RESERVADO';
   };
 
   const nextWeek = () => setCurrentWeek(prev => Math.min(prev + 1, 3));
@@ -167,6 +184,9 @@ export function AppointmentCalendar({
                       daySlots.map((slot) => {
                         const isSelected = selectedSlot?.date.toDateString() === day.toDateString() 
                           && selectedSlot?.slot.id === slot.id;
+                        const slotIsOccupied = isSlotOccupied(slot);
+                        const slotIsPast = isSlotPast(day, slot);
+                        const isDisabled = isDisabledDay || slotIsOccupied || slotIsPast;
                         
                         return (
                           <Button
@@ -174,14 +194,26 @@ export function AppointmentCalendar({
                             variant={isSelected ? "default" : "outline"}
                             size="sm"
                             className={`w-full justify-center ${
-                              isDisabledDay
+                              isDisabled
                                 ? 'opacity-50 cursor-not-allowed' 
                                 : 'hover:scale-105 transition-transform'
+                            } ${
+                              slotIsOccupied 
+                                ? 'bg-gray-100 text-gray-400 line-through' 
+                                : ''
                             }`}
-                            disabled={isDisabledDay}
-                            onClick={() => onSelectSlot(day, slot)}
+                            disabled={isDisabled}
+                            onClick={() => !isDisabled && onSelectSlot(day, slot)}
+                            title={
+                              slotIsOccupied 
+                                ? 'Este horario ya está ocupado' 
+                                : slotIsPast 
+                                ? 'Este horario ya pasó' 
+                                : ''
+                            }
                           >
                             {slot.time}
+                            {slotIsOccupied && <span className="ml-1 text-xs">(Ocupado)</span>}
                           </Button>
                         );
                       })

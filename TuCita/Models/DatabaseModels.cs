@@ -278,15 +278,6 @@ public class Cita
     [Column("actualizado_en")]
     public DateTime ActualizadoEn { get; set; } = DateTime.UtcNow;
 
-    // Added optional columns used by reporting code
-    [StringLength(40)]
-    [Column("origen")]
-    public string? Origen { get; set; }
-
-    [StringLength(160)]
-    [Column("usuario_agendo")]
-    public string? UsuarioAgendo { get; set; }
-
     // Navegación
     [ForeignKey("TurnoId")]
     public virtual AgendaTurno Turno { get; set; } = null!;

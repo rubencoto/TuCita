@@ -318,8 +318,8 @@ namespace TuCita.Services
                     Doctor = c.Medico?.Usuario != null ? (c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido) : string.Empty,
                     Especialidad = especialidadesMap.ContainsKey(c.MedicoId) ? especialidadesMap[c.MedicoId] : null,
                     Estado = c.Estado.ToString(),
-                    Origen = c.Origen,
-                    AgendadoPor = c.UsuarioAgendo
+                    Origen = null,  // Campo no disponible
+                    AgendadoPor = null  // Campo no disponible
                 }).ToList();
 
                 var totalPaginas = (int)Math.Ceiling(totalRegistros / (double)tamanoPagina);
@@ -414,7 +414,7 @@ namespace TuCita.Services
 
                 // Build CSV
                 var csvLines = new List<string>();
-                csvLines.Add("Fecha,Hora,Paciente,Doctor,Especialidad,Estado,Origen,AgendadoPor");
+                csvLines.Add("Fecha,Hora,Paciente,Doctor,Especialidad,Estado");
 
                 foreach (var c in list)
                 {
@@ -424,8 +424,8 @@ namespace TuCita.Services
                     var doctor = c.Medico?.Usuario != null ? (c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido) : string.Empty;
                     var esp = especialidadesMap.ContainsKey(c.MedicoId) ? especialidadesMap[c.MedicoId] : string.Empty;
                     var estadoStr = c.Estado.ToString();
-                    var origen = c.Origen ?? string.Empty;
-                    var agendadoPor = c.UsuarioAgendo ?? string.Empty;
+                    var origen = string.Empty;  // Campo no disponible
+                    var agendadoPor = string.Empty;  // Campo no disponible
 
                     // Escape double quotes and commas
                     string Escape(string s)

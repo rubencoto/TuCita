@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, CalendarRange, Loader2, AlertCircle, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
-import { WeeklyScheduleBuilder } from '@/components/doctor/weekly-schedule-builder';
+import { WeeklyScheduleBuilder } from '@/components/pages/doctor/weekly-schedule-builder';
 import * as availabilityService from '@/services/api/doctor/doctorAvailabilityService';
 import type { WeeklyTimeSlot } from '@/services/api/doctor/doctorAvailabilityService';
 

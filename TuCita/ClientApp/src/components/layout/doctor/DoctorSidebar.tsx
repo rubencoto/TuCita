@@ -7,6 +7,7 @@ import {
   LogOut,
   Stethoscope
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -17,6 +18,34 @@ interface DoctorSidebarProps {
 }
 
 export function DoctorSidebar({ currentPage, onNavigate, onLogout }: DoctorSidebarProps) {
+  // Estado local que se sincroniza con la URL hash
+  const [activePage, setActivePage] = useState(currentPage);
+
+  // Sincronizar con el hash de la URL al montar y cuando cambia
+  useEffect(() => {
+    const updateFromHash = () => {
+      const hash = window.location.hash.slice(1); // Remover el #
+      if (hash && hash.startsWith('doctor-')) {
+        setActivePage(hash);
+      }
+    };
+
+    // Actualizar al montar
+    updateFromHash();
+
+    // Escuchar cambios en el hash
+    window.addEventListener('hashchange', updateFromHash);
+
+    return () => {
+      window.removeEventListener('hashchange', updateFromHash);
+    };
+  }, []);
+
+  // También actualizar cuando cambia la prop (navegación programática)
+  useEffect(() => {
+    setActivePage(currentPage);
+  }, [currentPage]);
+
   const menuItems = [
     { id: 'doctor-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'doctor-profile', label: 'Mi Perfil', icon: User },
@@ -43,7 +72,7 @@ export function DoctorSidebar({ currentPage, onNavigate, onLogout }: DoctorSideb
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentPage === item.id;
+          const isActive = activePage === item.id;
           
           return (
             <Button
