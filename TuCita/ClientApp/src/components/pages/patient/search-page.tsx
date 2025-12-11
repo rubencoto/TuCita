@@ -4,7 +4,7 @@ import { DoctorCard } from '@/components/common/doctor-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Filter, SortAsc, MapPin, Loader2 } from 'lucide-react';
+import { Filter, MapPin, Loader2 } from 'lucide-react';
 import doctorsService, { Doctor } from '@/services/api/doctor/doctorsService';
 import { toast } from 'sonner';
 
@@ -29,7 +29,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
     availability: '',
     query: '',
   });
-  const [sortBy, setSortBy] = useState('rating');
 
   // Cargar doctores al montar el componente
   useEffect(() => {
@@ -75,7 +74,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
           );
         }
         
-        setFilteredDoctors(sortDoctors(filtered, sortBy));
+        setFilteredDoctors(filtered);
       } else {
         // Filtrar localmente
         let filtered = doctors.filter(doctor => {
@@ -87,7 +86,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
           return matchesQuery;
         });
 
-        setFilteredDoctors(sortDoctors(filtered, sortBy));
+        setFilteredDoctors(filtered);
       }
     } catch (error) {
       console.error('Error en búsqueda:', error);
@@ -96,27 +95,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
       setLoading(false);
     }
   };
-
-  const sortDoctors = (doctorsList: Doctor[], sortType: string): Doctor[] => {
-    return [...doctorsList].sort((a, b) => {
-      switch (sortType) {
-        case 'rating':
-          return b.rating - a.rating;
-        case 'name':
-          return a.nombre.localeCompare(b.nombre);
-        case 'experience':
-          return b.experienceYears.localeCompare(a.experienceYears);
-        default:
-          return 0;
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (filteredDoctors.length > 0) {
-      setFilteredDoctors(sortDoctors(filteredDoctors, sortBy));
-    }
-  }, [sortBy]);
 
   const handleViewSchedule = (doctorId: string) => {
     const doctor = doctors.find(d => d.id === Number(doctorId));
@@ -191,22 +169,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
               </div>
             )}
           </div>
-
-          {/* Sort Options */}
-          {!loading && filteredDoctors.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <SortAsc className="h-4 w-4 text-muted-foreground" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="text-sm bg-background border border-border rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="rating">Mejor calificación</option>
-                <option value="name">Nombre A-Z</option>
-                <option value="experience">Más experiencia</option>
-              </select>
-            </div>
-          )}
         </div>
 
         {/* Active Filters */}

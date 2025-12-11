@@ -78,7 +78,6 @@ public class AppointmentsService : IAppointmentsService
             Console.WriteLine($"?? [1/7] Buscando turno: TurnoId={request.TurnoId}");
             
             // Verificar que el turno existe y está disponible
-            // NO validamos MedicoId porque request.DoctorId es el UsuarioId, no el MedicoId del turno
             var turno = await _context.AgendaTurnos
                 .Include(t => t.Medico)
                     .ThenInclude(m => m.Usuario)
@@ -112,18 +111,19 @@ public class AppointmentsService : IAppointmentsService
             }
 
             Console.WriteLine($"? [2/7] Turno encontrado: MedicoId={turno.MedicoId}, Estado={turno.Estado}");
-            Console.WriteLine($"?? [3/7] Validando DoctorId: request.DoctorId={request.DoctorId}, turno.Medico.UsuarioId={turno.Medico?.UsuarioId}");
+            Console.WriteLine($"?? [3/7] Validando DoctorId: request.DoctorId={request.DoctorId}, turno.MedicoId={turno.MedicoId}");
 
-            // Verificar que el DoctorId del request coincide con el Usuario del médico del turno
+            // Verificar que el Medico del turno es el mismo del request
             if (turno.Medico == null)
             {
                 Console.WriteLine($"? [3/7] El turno no tiene médico asociado (Medico is null)");
                 return null;
             }
 
-            if (turno.Medico.UsuarioId != request.DoctorId)
+            // El DoctorId del request es el ID del médico (tabla Medicos), no el UsuarioId
+            if (turno.MedicoId != request.DoctorId)
             {
-                Console.WriteLine($"? [3/7] El turno pertenece al doctor con UsuarioId={turno.Medico.UsuarioId}, pero se solicitó DoctorId={request.DoctorId}");
+                Console.WriteLine($"? [3/7] El turno pertenece al doctor con MedicoId={turno.MedicoId}, pero se solicitó DoctorId={request.DoctorId}");
                 Console.WriteLine($"?? [3/7] Médico del turno: {turno.Medico.Usuario?.Nombre} {turno.Medico.Usuario?.Apellido}");
                 return null;
             }
@@ -134,7 +134,7 @@ public class AppointmentsService : IAppointmentsService
             var cita = new Cita
             {
                 TurnoId = turno.Id,
-                MedicoId = turno.MedicoId, // Usar el MedicoId del turno
+                MedicoId = turno.MedicoId,
                 PacienteId = pacienteId,
                 Estado = EstadoCita.PENDIENTE,
                 Motivo = request.Motivo,

@@ -7,7 +7,6 @@ import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { 
   ArrowLeft, 
   MapPin, 
-  Star, 
   Clock, 
   Calendar,
   CheckCircle,
@@ -242,12 +241,6 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                   />
                   <h3 className="text-xl font-semibold">{doctor.nombre}</h3>
                   <p className="text-muted-foreground">{doctor.especialidades?.[0] || 'Especialidad General'}</p>
-                  
-                  <div className="flex items-center justify-center space-x-1 mt-2">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{doctor.rating}</span>
-                    <span className="text-muted-foreground">({doctor.reviewCount} reseñas)</span>
-                  </div>
                 </div>
 
                 {/* Hospital Info */}

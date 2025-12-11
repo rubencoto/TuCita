@@ -155,15 +155,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-gray-300 text-[#2E8BC0] focus:ring-[#2E8BC0]" 
-                        disabled={isLoading}
-                      />
-                      <span className="text-gray-600">Recordarme</span>
-                    </label>
+                  <div className="flex items-center justify-end text-sm">
                     <button
                       type="button"
                       className="text-[#2E8BC0] hover:underline"
@@ -238,15 +230,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-gray-300 text-[#2E8BC0] focus:ring-[#2E8BC0]" 
-                        disabled={isLoading}
-                      />
-                      <span className="text-gray-600">Recordarme</span>
-                    </label>
+                  <div className="flex items-center justify-end text-sm">
                     <button
                       type="button"
                       className="text-[#2E8BC0] hover:underline"
@@ -278,10 +262,10 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6">
               <Separator />
               
-              <div className="text-center space-y-3">
+              <div className="text-center mt-4">
                 <button
                   onClick={() => onNavigate('login')}
                   className="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center w-full"
@@ -290,52 +274,6 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Volver al login de pacientes
                 </button>
-
-                <div className="pt-2 border-t">
-                  <p className="text-sm text-gray-600 mb-2">
-                    ¿Aún no estás registrado como médico?
-                  </p>
-                  <button
-                    type="button"
-                    className="text-sm text-[#2E8BC0] hover:underline font-medium"
-                    onClick={() => {
-                      toast.info('Solicitar credenciales', {
-                        description: 'Contacta a administración: admin@tucitaonline.com'
-                      });
-                    }}
-                    disabled={isLoading}
-                  >
-                    Solicitar credenciales de acceso
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-500 text-center">
-                <strong>Aviso de Seguridad:</strong> Este portal maneja información médica confidencial. 
-                Tu sesión está protegida con encriptación de extremo a extremo.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Demo credentials */}
-        <Card className="mt-4 bg-yellow-50 border-yellow-200">
-          <CardContent className="pt-4">
-            <p className="text-xs text-yellow-800 mb-2">
-              <strong>🔑 Credenciales de prueba:</strong>
-            </p>
-            <div className="space-y-2">
-              <div className="text-xs text-yellow-700">
-                <strong>Doctor:</strong><br />
-                Email: doctor@tucitaonline.com<br />
-                Contraseña: demo123
-              </div>
-              <div className="text-xs text-yellow-700 pt-2 border-t border-yellow-300">
-                <strong>Admin:</strong><br />
-                Email: admin@tucitaonline.com<br />
-                Contraseña: admin123
               </div>
             </div>
           </CardContent>

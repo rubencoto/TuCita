@@ -41,7 +41,7 @@ export function DoctorSidebar({ currentPage, onNavigate, onLogout }: DoctorSideb
     };
   }, []);
 
-  // También actualizar cuando cambia la prop (navegación programática)
+  // TambiÃ©n actualizar cuando cambia la prop (navegaciÃ³n programÃ¡tica)
   useEffect(() => {
     setActivePage(currentPage);
   }, [currentPage]);
@@ -63,7 +63,7 @@ export function DoctorSidebar({ currentPage, onNavigate, onLogout }: DoctorSideb
           </div>
           <div>
             <h1 className="font-bold text-lg text-gray-900">TuCitaOnline</h1>
-            <p className="text-xs text-gray-500">Panel Médico</p>
+            <p className="text-xs text-gray-500">Panel MÃ©dico</p>
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ export function DoctorSidebar({ currentPage, onNavigate, onLogout }: DoctorSideb
           onClick={onLogout}
         >
           <LogOut className="h-5 w-5 mr-3" />
-          Cerrar Sesión
+          Cerrar SesiÃ³n
         </Button>
       </div>
     </div>

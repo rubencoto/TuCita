@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Stethoscope, Filter } from 'lucide-react';
+import { Search, Stethoscope, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface SearchBarProps {
@@ -32,19 +32,6 @@ const specialties = [
   'Urología',
 ];
 
-const locations = [
-  'Ciudad de México',
-  'Guadalajara',
-  'Monterrey',
-  'Puebla',
-  'Tijuana',
-  'León',
-  'Juárez',
-  'Torreón',
-  'Querétaro',
-  'Mérida',
-];
-
 const availabilityOptions = [
   { value: 'today', label: 'Hoy' },
   { value: 'tomorrow', label: 'Mañana' },
@@ -56,7 +43,7 @@ const availabilityOptions = [
 export function SearchBar({ onSearch, showFilters = false }: SearchBarProps) {
   const [filters, setFilters] = useState<SearchFilters>({
     specialty: 'all-specialties',
-    location: 'all-locations',
+    location: '',
     availability: 'all-availability',
     query: '',
   });
@@ -81,7 +68,7 @@ export function SearchBar({ onSearch, showFilters = false }: SearchBarProps) {
   const handleClearFilters = () => {
     setFilters({
       specialty: 'all-specialties',
-      location: 'all-locations',
+      location: '',
       availability: 'all-availability',
       query: '',
     });
@@ -124,29 +111,6 @@ export function SearchBar({ onSearch, showFilters = false }: SearchBarProps) {
                   {specialties.map((specialty) => (
                     <SelectItem key={specialty} value={specialty}>
                       {specialty}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Ubicación */}
-            <div className="lg:w-48">
-              <Select
-                value={filters.location || 'all-locations'}
-                onValueChange={(value: string) => handleFilterChange('location', value)}
-              >
-                <SelectTrigger>
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Ubicación" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all-locations">Todas las ubicaciones</SelectItem>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
                     </SelectItem>
                   ))}
                 </SelectContent>

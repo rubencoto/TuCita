@@ -14,7 +14,7 @@ import {
   Phone, 
   Lock, 
   Bell, 
-  Shield, 
+  Shield,
   Camera,
   Save,
   Eye,
@@ -69,14 +69,6 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
     emailReminders: true,
     smsReminders: true,
     appointmentConfirmations: true,
-    healthTips: false,
-    promotions: false,
-  });
-
-  const [privacy, setPrivacy] = useState({
-    shareDataWithDoctors: true,
-    allowMarketingEmails: false,
-    dataRetention: '2years',
   });
 
   // Cargar perfil completo al montar el componente
@@ -181,12 +173,6 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
 
   const handleSaveNotifications = () => {
     toast.success('Configuración de notificaciones guardada', {
-      description: 'Tus preferencias han sido actualizadas.',
-    });
-  };
-
-  const handleSavePrivacy = () => {
-    toast.success('Configuración de privacidad guardada', {
       description: 'Tus preferencias han sido actualizadas.',
     });
   };
@@ -459,19 +445,6 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </Button>
                   </div>
                 </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-medium mb-4">Autenticación de Dos Factores</h3>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-foreground">Protege tu cuenta con verificación adicional</p>
-                      <p className="text-xs text-muted-foreground">Recibe códigos por SMS o aplicación</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -487,7 +460,9 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Recordatorios por Email</p>
-                      <p className="text-sm text-muted-foreground">Recibe recordatorios de citas por correo</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Recibe recordatorios de citas por correo
+                      </p>
                     </div>
                     <Switch
                       checked={notifications.emailReminders}
@@ -498,7 +473,9 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Recordatorios por SMS</p>
-                      <p className="text-sm text-muted-foreground">Recibe recordatorios de citas por mensaje</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Recibe recordatorios de citas por mensaje
+                      </p>
                     </div>
                     <Switch
                       checked={notifications.smsReminders}
@@ -509,35 +486,13 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Confirmaciones de Citas</p>
-                      <p className="text-sm text-muted-foreground">Notificaciones cuando se confirme una cita</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Notificaciones cuando se confirme una cita
+                      </p>
                     </div>
                     <Switch
                       checked={notifications.appointmentConfirmations}
                       onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, appointmentConfirmations: checked }))}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Consejos de Salud</p>
-                      <p className="text-sm text-muted-foreground">Recibe tips y consejos médicos semanales</p>
-                    </div>
-                    <Switch
-                      checked={notifications.healthTips}
-                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, healthTips: checked }))}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Promociones y Ofertas</p>
-                      <p className="text-sm text-muted-foreground">Notificaciones sobre descuentos especiales</p>
-                    </div>
-                    <Switch
-                      checked={notifications.promotions}
-                      onCheckedChange={(checked: boolean) => setNotifications(prev => ({ ...prev, promotions: checked }))}
                     />
                   </div>
                 </div>
@@ -557,49 +512,6 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                 <CardTitle>Configuración de Privacidad</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Compartir Datos con Médicos</p>
-                      <p className="text-sm text-muted-foreground">Permite a los médicos acceder a tu historial</p>
-                    </div>
-                    <Switch
-                      checked={privacy.shareDataWithDoctors}
-                      onCheckedChange={(checked: boolean) => setPrivacy(prev => ({ ...prev, shareDataWithDoctors: checked }))}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Emails de Marketing</p>
-                      <p className="text-sm text-muted-foreground">Recibir comunicaciones promocionales</p>
-                    </div>
-                    <Switch
-                      checked={privacy.allowMarketingEmails}
-                      onCheckedChange={(checked: boolean) => setPrivacy(prev => ({ ...prev, allowMarketingEmails: checked }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Retención de Datos</Label>
-                    <select
-                      value={privacy.dataRetention}
-                      onChange={(e) => setPrivacy(prev => ({ ...prev, dataRetention: e.target.value }))}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                    >
-                      <option value="1year">1 año</option>
-                      <option value="2years">2 años</option>
-                      <option value="5years">5 años</option>
-                      <option value="indefinite">Indefinido</option>
-                    </select>
-                    <p className="text-xs text-muted-foreground">
-                      Tiempo que mantendremos tus datos después de eliminar tu cuenta
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
                 <div className="space-y-4">
                   <h3 className="font-medium text-destructive">Zona de Peligro</h3>
                   <div className="border border-destructive/20 rounded-lg p-4 space-y-4">
@@ -624,11 +536,6 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     </div>
                   </div>
                 </div>
-
-                <Button onClick={handleSavePrivacy}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar Configuración
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>

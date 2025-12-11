@@ -32,8 +32,8 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="px-8 py-4 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-              <p className="text-sm text-gray-500">Gestión completa del sistema</p>
+              <h1 className="text-2xl font-bold text-gray-900">Panel de AdministraciÃ³n</h1>
+              <p className="text-sm text-gray-500">GestiÃ³n completa del sistema</p>
             </div>
 
             {/* User Menu */}
@@ -60,7 +60,7 @@ export function AdminLayout({ children, currentPage, onNavigate, onLogout }: Adm
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Cerrar sesión</span>
+                  <span>Cerrar sesiÃ³n</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
