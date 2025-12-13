@@ -22,22 +22,24 @@ public class JwtLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // Ignorar archivos estáticos - NO procesar logging para mejorar performance
+        var path = context.Request.Path.Value ?? "";
+        var extension = Path.GetExtension(path);
+        
+        if (StaticFileExtensions.Contains(extension) ||
+            path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/index.html", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase))
+        {
+            // Pasar directamente al siguiente middleware sin procesamiento
+            await _next(context);
+            return;
+        }
+
+        // Wrap SOLO el código de logging en try-catch, no todo el middleware
         try
         {
-            // Ignorar archivos estáticos
-            var path = context.Request.Path.Value ?? "";
-            var extension = Path.GetExtension(path);
-            
-            if (StaticFileExtensions.Contains(extension) ||
-                path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/index.html", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase))
-            {
-                await _next(context);
-                return;
-            }
-
             // Solo loggear requests a /api/historial/documento/{id}/download
             if (context.Request.Path.StartsWithSegments("/api/historial/documento") && 
                 path.Contains("/download", StringComparison.OrdinalIgnoreCase))
@@ -90,10 +92,19 @@ public class JwtLoggingMiddleware
                 
                 _logger.LogInformation("==================================");
             }
+        }
+        catch (Exception ex)
+        {
+            // Solo loggear el error, NO afectar el flujo de la request
+            _logger.LogError(ex, "? Error en logging de JWT - continuando con la request");
+        }
 
-            await _next(context);
-            
-            // Log el response status si es un error
+        // Siempre continuar con el siguiente middleware
+        await _next(context);
+        
+        // Log el response status si es un error (también protegido)
+        try
+        {
             if (context.Request.Path.StartsWithSegments("/api/historial/documento") && 
                 path.Contains("/download", StringComparison.OrdinalIgnoreCase) &&
                 context.Response.StatusCode >= 400)
@@ -103,9 +114,7 @@ public class JwtLoggingMiddleware
         }
         catch (Exception ex)
         {
-            // NUNCA lanzar excepciones del middleware de logging
-            _logger.LogError(ex, "? Error en JwtLoggingMiddleware - la request continuará");
-            await _next(context);
+            _logger.LogError(ex, "? Error al loggear response status");
         }
     }
 }
