@@ -1,1 +1,1 @@
-web: dotnet TuCita/bin/publish/TuCita.dll
+web: cd TuCita/bin/publish && dotnet TuCita.dll
