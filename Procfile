@@ -1,1 +1,1 @@
-web: dotnet TuCita.dll
+web: dotnet bin/publish/TuCita.dll
