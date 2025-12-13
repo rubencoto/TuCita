@@ -2,15 +2,7 @@
   "name": "tucita-heroku-root",
   "version": "1.0.0",
   "private": true,
-  "description": "Root package.json for Heroku Node.js buildpack detection. Real frontend is in TuCita/ClientApp/",
   "engines": {
-    "node": "20.x",
-    "npm": "10.x"
-  },
-  "scripts": {
-    "postinstall": "cd TuCita/ClientApp && npm install"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+    "node": "20.x"
+  }
 }

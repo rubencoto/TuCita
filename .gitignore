@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Root Node.js (Heroku buildpack detection only)
+/node_modules/
+/package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

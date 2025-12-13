@@ -1,14 +1,15 @@
 # Heroku .slugignore - Exclude files from the deployed slug to reduce size
 
 # Root node_modules (only used for Heroku buildpack detection)
-node_modules/
-package-lock.json
+/node_modules/
+/package-lock.json
 
 # Frontend source files (only dist is needed)
 TuCita/ClientApp/src/
 TuCita/ClientApp/public/
 TuCita/ClientApp/node_modules/
 TuCita/ClientApp/.vite/
+TuCita/ClientApp/package-lock.json
 
 # Development and build artifacts
 TuCita/obj/
@@ -21,14 +22,16 @@ TuCita/bin/Debug/
 *.md
 *.txt
 TuCita/ClientApp/README.md
+HEROKU_BUILDPACK_STRUCTURE.md
 
 # Git files
 .git/
 .gitignore
 .gitattributes
 
-# Docker files (not used with buildpacks)
+# Docker files (MUST NOT BE USED - conflicts with buildpacks)
 Dockerfile
+TuCita/Dockerfile
 .dockerignore
 heroku.yml
 
@@ -45,8 +48,9 @@ TuCita/Tools/
 # Test files
 **/tests/
 **/*.test.*
-// **/*.spec.*
+**/*.spec.*
 
 # Environment files (should be set via Heroku config vars)
 .env
 .env.*
+TuCita/.env
