@@ -20,31 +20,41 @@ El buildpack de .NET en Heroku ejecuta:
 dotnet publish TuCita.sln --runtime linux-x64 "-p:PublishDir=bin/publish" --artifacts-path /tmp/build_artifacts
 ```
 
-Esto genera la aplicación publicada en: `bin/publish/TuCita.dll`
+Cuando se ejecuta desde la raíz del repositorio, esto genera la aplicación publicada en: `TuCita/bin/publish/TuCita.dll`
 
-### Procfile ANTES (incorrecto)
+### Procfile ORIGINAL (incorrecto)
 
 ```
 web: dotnet TuCita.dll
 ```
 
-**Problema:** Intenta ejecutar `TuCita.dll` desde la raíz del slug, pero el archivo no está ahí. El buildpack de .NET publica en `bin/publish/`.
+**Problema:** Intenta ejecutar `TuCita.dll` desde la raíz del slug, pero el archivo no está ahí.
 
----
-
-## ?? SOLUCIÓN APLICADA
-
-### Procfile DESPUÉS (correcto)
+### Procfile INTERMEDIO (parcialmente correcto)
 
 ```
 web: dotnet bin/publish/TuCita.dll
 ```
 
+**Problema:** No incluía el subdirectorio `TuCita/` donde realmente se publica el DLL.
+
+---
+
+## ?? SOLUCIÓN APLICADA
+
+### Procfile FINAL (correcto)
+
+```
+web: dotnet TuCita/bin/publish/TuCita.dll
+```
+
 **Por qué funciona:**
-1. El buildpack de .NET publica en `bin/publish/TuCita.dll`
-2. El runtime de .NET Core está instalado en el slug (por el buildpack)
-3. No se necesita el SDK para ejecutar un DLL ya compilado
-4. `dotnet bin/publish/TuCita.dll` ejecuta la aplicación correctamente
+1. El buildpack de .NET publica desde la raíz del repo
+2. El proyecto está en el subdirectorio `TuCita/`
+3. La publicación genera: `TuCita/bin/publish/TuCita.dll`
+4. El runtime de .NET Core está instalado en el slug (por el buildpack)
+5. No se necesita el SDK para ejecutar un DLL ya compilado
+6. `dotnet TuCita/bin/publish/TuCita.dll` ejecuta la aplicación correctamente
 
 ---
 
@@ -52,17 +62,20 @@ web: dotnet bin/publish/TuCita.dll
 
 ```
 /app/  (raíz del slug)
-??? bin/
-?   ??? publish/
-?       ??? TuCita.dll          ? El DLL que queremos ejecutar
-?       ??? TuCita.pdb
-?       ??? appsettings.json
-?       ??? web.config
-?       ??? wwwroot/            ? Frontend compilado (de ClientApp/dist)
-?           ??? index.html
-?           ??? assets/
-??? Procfile                     ? Apunta a bin/publish/TuCita.dll
-??? TuCita/                      ? Código fuente (no se usa en runtime)
+??? TuCita/
+?   ??? bin/
+?   ?   ??? publish/
+?   ?       ??? TuCita.dll          ? El DLL que queremos ejecutar
+?   ?       ??? TuCita.pdb
+?   ?       ??? appsettings.json
+?   ?       ??? web.config
+?   ?       ??? wwwroot/            ? Frontend compilado (de ClientApp/dist)
+?   ?           ??? index.html
+?   ?           ??? assets/
+?   ??? Controllers/
+?   ??? Services/
+?   ??? ...                          ? Código fuente (no se usa en runtime)
+??? Procfile                         ? Apunta a TuCita/bin/publish/TuCita.dll
 ??? ...
 ```
 
@@ -72,17 +85,22 @@ web: dotnet bin/publish/TuCita.dll
 
 ### **Procfile**
 
-**ANTES:**
+**VERSIÓN ORIGINAL:**
 ```
 web: dotnet TuCita.dll
 ```
 
-**DESPUÉS:**
+**VERSIÓN INTERMEDIA:**
 ```
 web: dotnet bin/publish/TuCita.dll
 ```
 
-**Cambio:** Añadido el path `bin/publish/` para apuntar al DLL publicado.
+**VERSIÓN FINAL (CORRECTA):**
+```
+web: dotnet TuCita/bin/publish/TuCita.dll
+```
+
+**Cambio:** Añadido el prefijo `TuCita/` para reflejar la estructura real del directorio de publicación.
 
 ---
 
@@ -90,8 +108,8 @@ web: dotnet bin/publish/TuCita.dll
 
 ### En Heroku, el proceso debería ser:
 
-1. ? Buildpack de .NET compila y publica: `dotnet publish ? bin/publish/TuCita.dll`
-2. ? Heroku ejecuta: `dotnet bin/publish/TuCita.dll` (comando del Procfile)
+1. ? Buildpack de .NET compila y publica: `dotnet publish ? TuCita/bin/publish/TuCita.dll`
+2. ? Heroku ejecuta: `dotnet TuCita/bin/publish/TuCita.dll` (comando del Procfile)
 3. ? El runtime de .NET ejecuta el DLL (no necesita SDK)
 4. ? La aplicación ASP.NET Core arranca en el puerto `$PORT`
 5. ? El dyno está saludable y responde a requests
@@ -99,7 +117,7 @@ web: dotnet bin/publish/TuCita.dll
 ### Logs esperados (exitosos):
 
 ```
-Starting process with command `dotnet bin/publish/TuCita.dll`
+Starting process with command `dotnet TuCita/bin/publish/TuCita.dll`
 info: Microsoft.Hosting.Lifetime[14]
       Now listening on: http://0.0.0.0:5000
 info: Microsoft.Hosting.Lifetime[0]
@@ -126,25 +144,25 @@ State changed from starting to up
 
 ### ¿Por qué funciona la solución?
 
-**Comando:** `dotnet bin/publish/TuCita.dll`
+**Comando:** `dotnet TuCita/bin/publish/TuCita.dll`
 
 **Razón:**
 1. `dotnet <archivo.dll>` es un comando de **runtime** (no de SDK)
 2. Solo necesita el **.NET Runtime** (que está instalado)
-3. El DLL ya está compilado (en `bin/publish/`)
+3. El DLL ya está compilado (en `TuCita/bin/publish/`)
 4. No requiere compilación adicional
 
 ---
 
 ## ?? COMPARACIÓN
 
-| Aspecto | Antes (?) | Después (?) |
-|---------|-----------|-------------|
-| Comando | `dotnet TuCita.dll` | `dotnet bin/publish/TuCita.dll` |
-| Path del DLL | Raíz (incorrecto) | `bin/publish/` (correcto) |
-| Encuentra el DLL | ? No | ? Sí |
-| Requiere SDK | ? Sí (error) | ? No (solo runtime) |
-| Dyno arranca | ? No | ? Sí |
+| Aspecto | Original (?) | Intermedio (?) | Final (?) |
+|---------|--------------|----------------|------------|
+| Comando | `dotnet TuCita.dll` | `dotnet bin/publish/TuCita.dll` | `dotnet TuCita/bin/publish/TuCita.dll` |
+| Path del DLL | Raíz (incorrecto) | Sin subdirectorio (incorrecto) | `TuCita/bin/publish/` (correcto) |
+| Encuentra el DLL | ? No | ? No | ? Sí |
+| Requiere SDK | ? Sí (error) | ? Sí (error) | ? No (solo runtime) |
+| Dyno arranca | ? No | ? No | ? Sí |
 
 ---
 
@@ -152,7 +170,7 @@ State changed from starting to up
 
 Con este fix, el dyno en Heroku debería:
 
-1. ? Encontrar el DLL en `bin/publish/TuCita.dll`
+1. ? Encontrar el DLL en `TuCita/bin/publish/TuCita.dll`
 2. ? Ejecutarlo usando el .NET Runtime (sin necesitar SDK)
 3. ? Arrancar la aplicación ASP.NET Core
 4. ? Escuchar en el puerto configurado por Heroku (`$PORT`)
@@ -161,14 +179,17 @@ Con este fix, el dyno en Heroku debería:
 
 ---
 
-## ?? COMMIT REALIZADO
+## ?? COMMITS REALIZADOS
 
 **Branch:** `ParteRuben`
 
-**Commit:** `b30b1cc` - "Fix Procfile: Execute published DLL from bin/publish/ to avoid SDK requirement"
+**Commits:**
+1. `b30b1cc` - Fix Procfile: Execute published DLL from bin/publish/ to avoid SDK requirement
+2. `f2b773c` - Add documentation for Procfile fix
+3. `508c5f9` - Fix Procfile: Update path to TuCita/bin/publish/TuCita.dll for correct Heroku execution
 
 **Cambios:**
-- `Procfile`: 1 línea modificada
+- `Procfile`: Path actualizado a `TuCita/bin/publish/TuCita.dll`
 
 **Estado:** ? Pusheado a `origin/ParteRuben`
 
@@ -176,14 +197,15 @@ Con este fix, el dyno en Heroku debería:
 
 ## ?? LECCIÓN APRENDIDA
 
-**Problema:** El Procfile apuntaba a un DLL que no existe en la ubicación especificada.
+**Problema:** El Procfile apuntaba a un DLL que no existe en la ubicación especificada debido a la estructura de directorios del proyecto.
 
-**Solución:** Actualizar el Procfile para apuntar al DLL en la ubicación correcta después de `dotnet publish`.
+**Solución:** Actualizar el Procfile para incluir el prefijo `TuCita/` que refleja la estructura real del proyecto después de `dotnet publish`.
 
 **Principio:** En Heroku con buildpacks de .NET:
 - El **build time** tiene SDK (para compilar)
 - El **runtime** solo tiene .NET Runtime (para ejecutar DLLs)
-- El Procfile debe ejecutar el DLL publicado, no comandos de SDK
+- El Procfile debe ejecutar el DLL publicado con la ruta completa desde la raíz del slug
+- La estructura de directorios del proyecto debe respetarse en la ruta del DLL
 
 **Referencia:** [Heroku .NET Buildpack Documentation](https://github.com/heroku/dotnet-buildpack)
 
@@ -191,4 +213,4 @@ Con este fix, el dyno en Heroku debería:
 
 ## ? LISTO PARA DESPLIEGUE
 
-El Procfile ahora está correctamente configurado para ejecutar la aplicación en Heroku. ??
+El Procfile ahora está correctamente configurado con la ruta completa `TuCita/bin/publish/TuCita.dll` para ejecutar la aplicación en Heroku. ??
