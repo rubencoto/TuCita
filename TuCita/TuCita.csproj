@@ -70,46 +70,29 @@
 
   <!-- 
     Heroku Buildpack Support:
-    - Heroku's Node.js buildpack runs 'npm install' automatically in ClientApp directory
-    - We run 'npm run build' during publish to create ClientApp/dist
-    - Then copy dist/** to wwwroot/ so ASP.NET Core can serve the files
-    - Check if npm is available before running commands (for local builds without Node.js)
+    - Heroku's Node.js buildpack runs 'heroku-postbuild' which builds the frontend
+    - During publish, we copy the already-built ClientApp/dist/** to wwwroot/
+    - The files will be included in the publish output automatically
   -->
   <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
-    <!-- Check if node is available -->
-    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="NodeExitCode" />
-    </Exec>
+    <Message Importance="high" Text="Checking for frontend dist folder at: $(SpaRoot)dist" />
     
-    <!-- Only run npm commands if Node.js is available -->
-    <PropertyGroup>
-      <NodeAvailable Condition="'$(NodeExitCode)' == '0'">true</NodeAvailable>
-      <NodeAvailable Condition="'$(NodeExitCode)' != '0'">false</NodeAvailable>
-    </PropertyGroup>
-    
-    <Message Importance="high" Text="Node.js available: $(NodeAvailable)" />
-    
-    <!-- Run npm install and build if Node.js is available -->
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" Condition="'$(NodeAvailable)' == 'true'" />
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" Condition="'$(NodeAvailable)' == 'true'" />
-
-    <!-- Copy ClientApp/dist/** to wwwroot/ for ASP.NET Core static file serving -->
+    <!-- Include all files from ClientApp/dist as content to be published -->
     <ItemGroup>
-      <!-- Get all files from ClientApp/dist -->
-      <DistFiles Include="$(SpaRoot)dist\**\*.*" Condition="Exists('$(SpaRoot)dist')" />
+      <!-- Get all files from ClientApp/dist recursively -->
+      <DistFiles Include="$(SpaRoot)dist\**\*" />
       
-      <!-- Copy to wwwroot maintaining structure -->
+      <!-- Add them as files to publish in wwwroot -->
       <ResolvedFileToPublish Include="@(DistFiles)">
-        <!-- Remove 'ClientApp/dist/' prefix and place directly in wwwroot/ -->
         <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
     
-    <!-- Warning if dist folder doesn't exist -->
-    <Warning Condition="!Exists('$(SpaRoot)dist')" Text="Frontend dist folder not found at $(SpaRoot)dist. Make sure 'npm run build' completed successfully." />
-    <Message Importance="high" Text="Frontend files will be copied to wwwroot/ in the published output" Condition="Exists('$(SpaRoot)dist')" />
+    <!-- Log the files being published -->
+    <Message Importance="high" Text="Found @(DistFiles->Count()) files in dist folder" Condition="'@(DistFiles)' != ''" />
+    <Warning Condition="'@(DistFiles)' == ''" Text="No files found in $(SpaRoot)dist. Frontend may not have been built. Run 'npm run build' in ClientApp directory." />
   </Target>
 
 </Project>
