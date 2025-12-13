@@ -69,30 +69,88 @@
   </Target>
 
   <!-- 
-    Heroku Buildpack Support:
-    - Heroku's Node.js buildpack runs 'heroku-postbuild' which builds the frontend
-    - During publish, we copy the already-built ClientApp/dist/** to wwwroot/
-    - The files will be included in the publish output automatically
+    ================================================================================
+    TARGET: BuildSpaForPublish
+    ================================================================================
+    Se ejecuta ANTES de ComputeFilesToPublish para construir el frontend Vite.
+    Compatible con Windows y Linux (Heroku).
+    ================================================================================
   -->
-  <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
-    <Message Importance="high" Text="Checking for frontend dist folder at: $(SpaRoot)dist" />
+  <Target Name="BuildSpaForPublish" BeforeTargets="ComputeFilesToPublish" Condition=" '$(Configuration)' == 'Release' ">
+    <Message Importance="high" Text="========================================" />
+    <Message Importance="high" Text="Building Vite SPA for Production" />
+    <Message Importance="high" Text="========================================" />
+    <Message Importance="high" Text="SPA Root: $(SpaRoot)" />
     
-    <!-- Include all files from ClientApp/dist as content to be published -->
+    <!-- Verificar que Node.js esté disponible -->
+    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="NodeExitCode" />
+    </Exec>
+    
+    <Error Condition="'$(NodeExitCode)' != '0'" Text="Node.js is required to build the SPA. Install Node.js from https://nodejs.org/" />
+    
+    <!-- Instalar dependencias con npm ci (más rápido y determinista que npm install) -->
+    <Message Importance="high" Text="Installing frontend dependencies with npm ci..." />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci --include=dev" />
+    
+    <!-- Construir el frontend con Vite -->
+    <Message Importance="high" Text="Building frontend with Vite (npm run build)..." />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    
+    <!-- Verificar que el directorio dist existe -->
+    <Error Condition="!Exists('$(SpaRoot)dist')" Text="Vite build failed: dist folder not found at $(SpaRoot)dist" />
+    <Error Condition="!Exists('$(SpaRoot)dist/index.html')" Text="Vite build failed: index.html not found in $(SpaRoot)dist" />
+    
+    <Message Importance="high" Text="✓ Frontend built successfully at $(SpaRoot)dist" />
+    <Message Importance="high" Text="========================================" />
+  </Target>
+
+  <!-- 
+    ================================================================================
+    TARGET: IncludeSpaInPublish
+    ================================================================================
+    Se ejecuta DESPUÉS de ComputeFilesToPublish para copiar ClientApp/dist/** a wwwroot/**.
+    Usa rutas relativas compatibles con Windows y Linux.
+    ================================================================================
+  -->
+  <Target Name="IncludeSpaInPublish" AfterTargets="ComputeFilesToPublish">
+    <Message Importance="high" Text="========================================" />
+    <Message Importance="high" Text="Including SPA files in Publish output" />
+    <Message Importance="high" Text="========================================" />
+    
+    <!-- Obtener todos los archivos de ClientApp/dist recursivamente -->
     <ItemGroup>
-      <!-- Get all files from ClientApp/dist recursively -->
       <DistFiles Include="$(SpaRoot)dist\**\*" />
+    </ItemGroup>
+    
+    <Message Importance="high" Text="Found @(DistFiles->Count()) files in $(SpaRoot)dist" />
+    <Warning Condition="'@(DistFiles)' == ''" Text="No files found in $(SpaRoot)dist - Frontend may not have been built" />
+    
+    <!-- 
+      Agregar cada archivo a ResolvedFileToPublish para que MSBuild lo copie al publish directory.
       
-      <!-- Add them as files to publish in wwwroot -->
+      Mapeo de rutas:
+      - Origen: ClientApp/dist/index.html
+      - Destino en publish: wwwroot/index.html
+      
+      - Origen: ClientApp/dist/assets/index-abc123.js
+      - Destino en publish: wwwroot/assets/index-abc123.js
+      
+      %(RecursiveDir) preserva la estructura de subdirectorios (assets/, etc.)
+    -->
+    <ItemGroup>
       <ResolvedFileToPublish Include="@(DistFiles)">
-        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <!-- Construir ruta relativa: wwwroot/{subdirectorio}/{archivo} -->
+        <RelativePath>wwwroot/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
     
-    <!-- Log the files being published -->
-    <Message Importance="high" Text="Found @(DistFiles->Count()) files in dist folder" Condition="'@(DistFiles)' != ''" />
-    <Warning Condition="'@(DistFiles)' == ''" Text="No files found in $(SpaRoot)dist. Frontend may not have been built. Run 'npm run build' in ClientApp directory." />
+    <Message Importance="high" Text="✓ SPA files will be published to wwwroot/" />
+    <Message Importance="high" Text="  - wwwroot/index.html" />
+    <Message Importance="high" Text="  - wwwroot/assets/* (all bundled JS/CSS)" />
+    <Message Importance="high" Text="========================================" />
   </Target>
 
 </Project>
