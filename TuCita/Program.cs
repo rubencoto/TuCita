@@ -285,6 +285,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// IMPORTANTE: UseStaticFiles DEBE ir ANTES de autenticación
+// Los archivos estáticos (index.html, assets, etc.) NO requieren autenticación
 app.UseStaticFiles();
 app.UseSpaStaticFiles();
 
@@ -302,12 +305,15 @@ app.Use(async (context, next) =>
 
 app.UseRouting();
 
-// Add Authentication & Authorization middleware
+// ORDEN CORRECTO DE MIDDLEWARES:
+// 1. UseAuthentication - Lee y valida el JWT si existe
 app.UseAuthentication();
 
-// Add JWT Logging Middleware (AFTER Authentication so user is authenticated)
+// 2. UseJwtLogging - Logging opcional (DESPUÉS de autenticación para tener acceso a User)
+// Este middleware NUNCA debe romper requests públicas
 app.UseJwtLogging();
 
+// 3. UseAuthorization - Valida permisos basados en claims
 app.UseAuthorization();
 
 // Configure API routes
