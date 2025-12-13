@@ -10,6 +10,7 @@ using DotNetEnv;
 using System.Diagnostics;
 using Amazon.S3;
 using Amazon.Runtime;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // Cargar variables de entorno desde el archivo .env (solo en desarrollo)
 if (File.Exists(".env"))
@@ -191,6 +192,19 @@ builder.Services.AddSpaStaticFiles(configuration =>
 
 var app = builder.Build();
 
+// ========================================
+// ? CONFIGURACIÓN HTTPS PARA HEROKU
+// ========================================
+// Heroku maneja SSL y reenvía requests por HTTP al dyno
+// Debemos configurar Forwarded Headers para reconocer HTTPS correctamente
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto,
+    // Heroku usa proxies dinámicos, limpiamos las listas conocidas
+    KnownNetworks = { },
+    KnownProxies = { }
+});
+
 // Iniciar servidor Vite automáticamente en Development
 Process? viteProcess = null;
 if (app.Environment.IsDevelopment())
@@ -280,11 +294,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// En producción, no forzar HTTPS redirect si estamos detrás de un proxy (Heroku)
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// ========================================
+// ? FORZAR HTTPS EN TODOS LOS ENTORNOS
+// ========================================
+// UseForwardedHeaders debe ejecutarse ANTES de UseHttpsRedirection
+// Esto funciona tanto en local como en Heroku sin causar loops
+app.UseHttpsRedirection();
 
 // IMPORTANTE: UseStaticFiles DEBE ir ANTES de autenticación
 // Los archivos estáticos (index.html, assets, etc.) NO requieren autenticación
