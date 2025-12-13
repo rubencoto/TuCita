@@ -101,7 +101,7 @@ export function AppointmentCard({
           />
           <div>
             <p className="font-medium text-foreground">
-              Dr. {appointment.doctorName}
+              {appointment.doctorName}
             </p>
             <p className="text-sm text-muted-foreground">
               {appointment.doctorSpecialty}

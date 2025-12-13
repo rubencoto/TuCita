@@ -26,8 +26,10 @@ import doctorAuthService from './services/api/auth/doctorAuthService';
 import adminAuthService from './services/api/auth/adminAuthService';
 import appointmentsService from './services/api/patient/appointmentsService';
 import { DoctorScheduleConfigPage } from './components/pages/doctor/doctor-schedule-config-page';
+import { PrivacyPolicyPage } from './components/pages/legal/privacy-policy-page';
+import { TermsConditionsPage } from './components/pages/legal/terms-conditions-page';
 
-type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-schedule-config' | 'doctor-profile' | 'admin-panel';
+type PageType = 'home' | 'login' | 'register' | 'doctor-login' | 'search' | 'booking' | 'appointments' | 'profile' | 'forgot-password' | 'reset-password' | 'medical-history' | 'appointment-detail' | 'reschedule' | 'doctor-dashboard' | 'doctor-appointments' | 'doctor-appointment-detail' | 'doctor-medical-history' | 'doctor-availability' | 'doctor-schedule-config' | 'doctor-profile' | 'admin-panel' | 'privacy-policy' | 'terms' | 'faq';
 
 // Función para obtener la página desde la URL
 const getPageFromUrl = (): PageType => {
@@ -40,7 +42,8 @@ const getPageFromUrl = (): PageType => {
     'appointments', 'profile', 'forgot-password', 'reset-password', 
     'medical-history', 'appointment-detail', 'reschedule', 'doctor-dashboard', 
     'doctor-appointments', 'doctor-appointment-detail', 'doctor-medical-history', 
-    'doctor-availability', 'doctor-schedule-config', 'doctor-profile', 'admin-panel'
+    'doctor-availability', 'doctor-schedule-config', 'doctor-profile', 'admin-panel',
+    'privacy-policy', 'terms', 'faq'
   ];
   
   return validPages.includes(hash as PageType) ? (hash as PageType) : 'home';
@@ -559,6 +562,17 @@ export default function App() {
           />
         );
       
+      // Páginas legales
+      case 'privacy-policy':
+        return <PrivacyPolicyPage onNavigate={handleNavigate} />;
+      
+      case 'terms':
+        return <TermsConditionsPage onNavigate={handleNavigate} />;
+      
+      case 'faq':
+        // TODO: Create FAQPage component
+        return <PrivacyPolicyPage onNavigate={handleNavigate} />; // Placeholder
+      
       case 'home':
       default:
         return (
@@ -596,7 +610,7 @@ export default function App() {
         {renderPage()}
       </main>
       
-      {showNavAndFooter && <Footer />}
+      {showNavAndFooter && <Footer onNavigate={handleNavigate} />}
       
       <Toaster position="top-right" />
     </div>

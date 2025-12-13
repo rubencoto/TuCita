@@ -1,4 +1,4 @@
-import { useState } from 'react';
+Ôªøimport { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,7 +27,7 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
   const [submitting, setSubmitting] = useState(false);
 
   const handleBulkCreate = async () => {
-    // Validar que hay al menos un dÌa configurado
+    // Validar que hay al menos un d√≠a configurado
     const totalSlots = Object.values(bulkSchedule).reduce((sum, slots) => sum + slots.length, 0);
     if (totalSlots === 0) {
       toast.error('Debe configurar al menos un horario');
@@ -50,10 +50,10 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
       });
 
       if (result.errores.length > 0) {
-        console.warn('Errores en creaciÛn masiva:', result.errores);
+        console.warn('Errores en creaci√≥n masiva:', result.errores);
       }
 
-      // Volver a la p·gina de disponibilidad
+      // Volver a la p√°gina de disponibilidad
       onNavigate('doctor-availability');
     } catch (error: any) {
       console.error('Error creating bulk slots:', error);
@@ -124,7 +124,7 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
               Crear Horario Mensual
             </h1>
             <p className="text-gray-600">
-              Configura tu horario semanal y se aplicar· autom·ticamente al rango de fechas seleccionado
+              Configura tu horario semanal y se aplicar√° autom√°ticamente al rango de fechas seleccionado
             </p>
           </div>
         </div>
@@ -156,7 +156,7 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
                 </div>
               </div>
               <p className="text-sm text-blue-700 mt-3">
-                Se crear·n horarios desde el {new Date(bulkDateRange.start + 'T00:00:00').toLocaleDateString('es-ES')} 
+                Se crear√°n horarios desde el {new Date(bulkDateRange.start + 'T00:00:00').toLocaleDateString('es-ES')} 
                 {' '}hasta el {new Date(bulkDateRange.end + 'T00:00:00').toLocaleDateString('es-ES')}
               </p>
             </CardContent>
@@ -172,8 +172,8 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Se crear·n aproximadamente <strong>{estimatedSlots}</strong> slots. 
-              Los horarios que se solapen con slots existentes ser·n ignorados.
+              Se crear√°n aproximadamente <strong>{estimatedSlots}</strong> slots. 
+              Los horarios que se solapen con slots existentes ser√°n ignorados.
             </AlertDescription>
           </Alert>
 

@@ -121,13 +121,6 @@ const comparisonItems = [
   { feature: 'Múltiples formas de pago', traditional: true, tucita: true },
 ];
 
-const stats = [
-  { number: '50,000+', label: 'Pacientes Registrados', icon: Users },
-  { number: '1,200+', label: 'Profesionales Médicos', icon: UserCheck },
-  { number: '25', label: 'Ciudades en México', icon: Building2 },
-  { number: '150K+', label: 'Consultas Agendadas', icon: ClipboardList },
-];
-
 export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
   return (
     <div className="min-h-screen">
@@ -253,26 +246,6 @@ export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
               <div className="absolute -top-6 -left-6 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
               <div className="absolute -bottom-6 -right-6 w-40 h-40 bg-green-400/10 rounded-full blur-2xl"></div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="bg-primary py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div key={index} className="text-center">
-                  <Icon className="h-10 w-10 text-blue-200 mx-auto mb-3" />
-                  <div className="text-3xl lg:text-4xl font-bold text-white mb-2">
-                    {stat.number}
-                  </div>
-                  <p className="text-blue-100 text-sm lg:text-base">{stat.label}</p>
-                </div>
-              );
-            })}
           </div>
         </div>
       </section>
@@ -565,8 +538,7 @@ export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
             {!isLoggedIn && (
               <Button 
                 size="lg"
-                variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-primary text-lg px-10 py-6 h-auto"
+                className="bg-white text-primary hover:bg-gray-200 border-2 border-white text-lg px-10 py-6 h-auto shadow-xl"
                 onClick={() => onNavigate('login')}
               >
                 Iniciar Sesión

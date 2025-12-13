@@ -458,14 +458,14 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   <div>
                     <Label htmlFor="correo" className="flex items-center mb-2">
                       <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                      Correo electránico
+                      Correo electrónico
                     </Label>
                     <Input
                       id="correo"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      disabled={!isEditing}
+                      disabled={true}
+                      className="bg-gray-50 cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -491,8 +491,8 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   <Input
                     id="licencia"
                     value={formData.numeroLicencia}
-                    onChange={(e) => setFormData({ ...formData, numeroLicencia: e.target.value })}
-                    disabled={!isEditing}
+                    disabled={true}
+                    className="bg-gray-50 cursor-not-allowed"
                   />
                 </div>
 
@@ -518,21 +518,12 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                   <Textarea
                     id="biografia"
                     value={formData.biografia}
-                    onChange={( e) => setFormData({ ...formData, biografia: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
                     disabled={!isEditing}
                     rows={4}
-                    placeholder="Cuántanos sobre tu experiencia, formación y áreas de interés..."
+                    placeholder="Cuéntanos sobre tu experiencia, formación y áreas de interés..."
                   />
                 </div>
-
-                {isEditing && (
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <AlertCircle className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-800">
-                      El ID Doctor no puede ser modificado. Para cambiar especialidades, contacta al administrador.
-                    </AlertDescription>
-                  </Alert>
-                )}
               </CardContent>
             </Card>
           </div>

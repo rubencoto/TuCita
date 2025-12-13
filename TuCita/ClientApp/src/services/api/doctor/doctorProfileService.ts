@@ -227,9 +227,18 @@ class DoctorProfileService {
    * @returns true si es válido, false en caso contrario
    */
   isValidPhone(phone: string): boolean {
-    // Acepta formatos: +34 612345678, 612345678, +34 612 345 678
-    const phoneRegex = /^(\+\d{1,3}\s?)?\d{9,15}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
+    // Si está vacío, es válido (campo opcional)
+    if (!phone || phone.trim() === '') {
+      return true;
+    }
+    
+    // Limpiar el teléfono de espacios, guiones y paréntesis
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    
+    // Acepta formatos internacionales con + y números de 8 a 15 dígitos
+    // Ejemplos válidos: +506 8888-8888, (506) 8888-8888, 88888888, +1 234 567 8900
+    const phoneRegex = /^(\+?\d{1,4})?\d{8,15}$/;
+    return phoneRegex.test(cleanPhone);
   }
 
   /**

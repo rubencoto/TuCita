@@ -1,6 +1,16 @@
-import { Heart, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Heart, Mail, Clock } from 'lucide-react';
 
-export function Footer() {
+interface FooterProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function Footer({ onNavigate }: FooterProps) {
+  const handleLinkClick = (page: string) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
+  };
+
   return (
     <footer className="bg-primary text-primary-foreground mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -14,7 +24,7 @@ export function Footer() {
               <span className="text-xl font-semibold">TuCitaOnline</span>
             </div>
             <p className="text-primary-foreground/80 mb-4 max-w-md">
-              La plataforma más confiable para agendar tus citas médicas en línea. 
+              La plataforma más confiable para agendar tus citas médicas en línea.
               Conectamos pacientes con los mejores profesionales de la salud.
             </p>
             <div className="flex items-center space-x-2 text-primary-foreground/80">
@@ -28,16 +38,13 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Contacto</h3>
             <div className="space-y-3">
               <div className="flex items-center space-x-2 text-primary-foreground/80">
-                <Phone className="h-4 w-4" />
-                <span>+1 (555) 123-4567</span>
-              </div>
-              <div className="flex items-center space-x-2 text-primary-foreground/80">
                 <Mail className="h-4 w-4" />
-                <span>info@tucitaonline.com</span>
-              </div>
-              <div className="flex items-center space-x-2 text-primary-foreground/80">
-                <MapPin className="h-4 w-4" />
-                <span>Ciudad de México, México</span>
+                <a
+                  href="mailto:info@tucitaonline.org"
+                  className="hover:text-primary-foreground transition-colors"
+                >
+                  info@tucitaonline.org
+                </a>
               </div>
             </div>
           </div>
@@ -46,18 +53,24 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Enlaces Útiles</h3>
             <div className="space-y-2">
-              <a href="#" className="block text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+              <button
+                onClick={() => handleLinkClick('faq')}
+                className="block text-left text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+              >
                 Preguntas Frecuentes
-              </a>
-              <a href="#" className="block text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+              </button>
+              <button
+                onClick={() => handleLinkClick('terms')}
+                className="block text-left text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+              >
                 Términos y Condiciones
-              </a>
-              <a href="#" className="block text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+              </button>
+              <button
+                onClick={() => handleLinkClick('privacy-policy')}
+                className="block text-left text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+              >
                 Política de Privacidad
-              </a>
-              <a href="#" className="block text-primary-foreground/80 hover:text-primary-foreground transition-colors">
-                Soporte Técnico
-              </a>
+              </button>
             </div>
           </div>
         </div>

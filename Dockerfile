@@ -1,55 +1,72 @@
-# Stage 1: Build Node.js frontend
-FROM node:20-alpine AS node-build
-WORKDIR /app/ClientApp
-
-# Copiar archivos de package.json
-COPY TuCita/ClientApp/package*.json ./
-
-# Instalar dependencias
-RUN npm ci --only=production
-
-# Copiar código fuente del frontend
-COPY TuCita/ClientApp/ ./
-
-# Build del frontend con Vite
-RUN npm run build
-
-# Stage 2: Build .NET backend
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dotnet-build
+# ===================================
+# Stage 1: Build React Frontend
+# ===================================
+FROM node:20-alpine AS frontend-build
 WORKDIR /app
 
-# Copiar archivo de proyecto y restaurar dependencias
-COPY TuCita/*.csproj ./TuCita/
-RUN dotnet restore TuCita/TuCita.csproj
+# Copy package files
+COPY ClientApp/package*.json ./
 
-# Copiar el resto del código
-COPY TuCita/ ./TuCita/
+# Install dependencies
+RUN npm ci --only=production
 
-# Copiar el build del frontend desde el stage anterior
-COPY --from=node-build /app/ClientApp/dist ./TuCita/ClientApp/dist
+# Copy frontend source
+COPY ClientApp/ ./
 
-# Publicar la aplicación
-WORKDIR /app/TuCita
-RUN dotnet publish -c Release -o /app/publish
+# Build frontend (Vite)
+RUN npm run build
 
-# Stage 3: Runtime
+# ===================================
+# Stage 2: Build .NET Backend
+# ===================================
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend-build
+WORKDIR /src
+
+# Copy csproj and restore dependencies
+COPY ["TuCita.csproj", "./"]
+RUN dotnet restore "TuCita.csproj"
+
+# Copy everything else
+COPY . .
+
+# Build backend
+RUN dotnet build "TuCita.csproj" -c Release -o /app/build
+
+# ===================================
+# Stage 3: Publish .NET App
+# ===================================
+FROM backend-build AS publish
+WORKDIR /src
+
+# Copy built frontend into publish location
+COPY --from=frontend-build /app/dist ./ClientApp/dist
+
+# Publish the application
+RUN dotnet publish "TuCita.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# ===================================
+# Stage 4: Final Runtime Image
+# ===================================
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# Instalar dependencias necesarias para producción
+# Install curl for health checks
 RUN apt-get update && apt-get install -y \
     curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos publicados
-COPY --from=dotnet-build /app/publish .
+# Copy published application
+COPY --from=publish /app/publish .
 
-# Exponer puerto dinámico de Heroku
-EXPOSE $PORT
+# Heroku uses dynamic PORT environment variable
+EXPOSE 8080
 
-# Variable de entorno para ASP.NET Core
+# Environment variables
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_URLS=http://0.0.0.0:$PORT
 
-# Comando para ejecutar la aplicación
+# Heroku will set PORT environment variable
+# Program.cs already handles this with: builder.WebHost.UseUrls($"http://0.0.0.0:${port}");
+
+# Entry point
 ENTRYPOINT ["dotnet", "TuCita.dll"]

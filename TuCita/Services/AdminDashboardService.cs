@@ -205,27 +205,27 @@ public class AdminDashboardService : IAdminDashboardService
     {
         try
         {
-            var distribution = await _context.Citas
-                .GroupBy(c => c.Estado)
-                .Select(g => new
-                {
-                    Estado = g.Key,
-                    Cantidad = g.Count()
-                })
+            // Obtener todas las citas con sus estados
+            var todasLasCitas = await _context.Citas
+                .Select(c => c.Estado)
                 .ToListAsync();
 
-            var result = distribution.Select(d => new StatusDistributionDto
-            {
-                Estado = GetEstadoDisplayName(d.Estado),
-                Cantidad = d.Cantidad,
-                Color = GetEstadoColor(d.Estado)
-            }).ToList();
+            // Agrupar por el nombre de visualización (para combinar PENDIENTE y CONFIRMADA en "PROGRAMADA")
+            var distribution = todasLasCitas
+                .GroupBy(estado => GetEstadoDisplayName(estado))
+                .Select(g => new StatusDistributionDto
+                {
+                    Estado = g.Key,
+                    Cantidad = g.Count(),
+                    Color = GetEstadoColorByDisplayName(g.Key)
+                })
+                .ToList();
 
-            return result;
+            return distribution;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener distribución de estados");
+            _logger.LogError(ex, "Error al obtener distribuci?n de estados");
             throw;
         }
     }
@@ -408,6 +408,21 @@ public class AdminDashboardService : IAdminDashboardService
             EstadoCita.CANCELADA => "#F59E0B", // Amarillo/Naranja
             EstadoCita.RECHAZADA => "#F59E0B", // Amarillo/Naranja
             EstadoCita.NO_ATENDIDA => "#EF4444", // Rojo
+            _ => "#6B7280" // Gris
+        };
+    }
+
+    /// <summary>
+    /// Obtiene el color hexadecimal para cada nombre de visualizaci?n de estado
+    /// </summary>
+    private static string GetEstadoColorByDisplayName(string estadoDisplayName)
+    {
+        return estadoDisplayName switch
+        {
+            "PROGRAMADA" => "#3B82F6", // Azul
+            "ATENDIDA" => "#10B981", // Verde
+            "CANCELADA" => "#F59E0B", // Amarillo/Naranja
+            "NO_SHOW" => "#EF4444", // Rojo
             _ => "#6B7280" // Gris
         };
     }
