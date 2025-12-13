@@ -6,6 +6,6 @@
     "node": "20.x"
   },
   "scripts": {
-    "heroku-postbuild": "cd TuCita/ClientApp && npm install && npm run build"
+    "heroku-postbuild": "cd TuCita/ClientApp && npm install --production=false && npm run build"
   }
 }
