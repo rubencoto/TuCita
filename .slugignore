@@ -1,0 +1,48 @@
+# Heroku .slugignore - Exclude files from the deployed slug to reduce size
+
+# Frontend source files (only dist is needed)
+TuCita/ClientApp/src/
+TuCita/ClientApp/public/
+TuCita/ClientApp/node_modules/
+TuCita/ClientApp/.vite/
+
+# Development and build artifacts
+TuCita/obj/
+TuCita/bin/Debug/
+*.user
+*.suo
+.vs/
+
+# Documentation and design files
+*.md
+*.txt
+TuCita/ClientApp/README.md
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Docker files (not used with buildpacks)
+Dockerfile
+.dockerignore
+heroku.yml
+
+# Development configuration
+TuCita/ClientApp/.eslintrc*
+TuCita/ClientApp/vite.config.ts
+TuCita/ClientApp/tsconfig*.json
+TuCita/ClientApp/postcss.config.js
+TuCita/ClientApp/tailwind.config.js
+
+# Tools and scripts
+TuCita/Tools/
+
+# Test files
+**/tests/
+**/*.test.*
+**/*.spec.*
+
+# Environment files (should be set via Heroku config vars)
+.env
+.env.*

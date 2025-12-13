@@ -57,6 +57,7 @@
     <Folder Include="Scripts\" />
   </ItemGroup>
 
+  <!-- Only restore npm packages in Debug mode if node_modules doesn't exist -->
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
     <!-- Ensure Node.js is installed -->
     <Exec Command="node --version" ContinueOnError="true">
@@ -67,20 +68,48 @@
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
   </Target>
 
+  <!-- 
+    Heroku Buildpack Support:
+    - Heroku's Node.js buildpack runs 'npm install' automatically in ClientApp directory
+    - We run 'npm run build' during publish to create ClientApp/dist
+    - Then copy dist/** to wwwroot/ so ASP.NET Core can serve the files
+    - Check if npm is available before running commands (for local builds without Node.js)
+  -->
   <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
-    <!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <!-- Check if node is available -->
+    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="NodeExitCode" />
+    </Exec>
+    
+    <!-- Only run npm commands if Node.js is available -->
+    <PropertyGroup>
+      <NodeAvailable Condition="'$(NodeExitCode)' == '0'">true</NodeAvailable>
+      <NodeAvailable Condition="'$(NodeExitCode)' != '0'">false</NodeAvailable>
+    </PropertyGroup>
+    
+    <Message Importance="high" Text="Node.js available: $(NodeAvailable)" />
+    
+    <!-- Run npm install and build if Node.js is available -->
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" Condition="'$(NodeAvailable)' == 'true'" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" Condition="'$(NodeAvailable)' == 'true'" />
 
-    <!-- Include the newly-built files in the publish output -->
+    <!-- Copy ClientApp/dist/** to wwwroot/ for ASP.NET Core static file serving -->
     <ItemGroup>
-      <DistFiles Include="$(SpaRoot)dist\**" />
-      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-        <RelativePath>%(DistFiles.Identity)</RelativePath>
+      <!-- Get all files from ClientApp/dist -->
+      <DistFiles Include="$(SpaRoot)dist\**\*.*" Condition="Exists('$(SpaRoot)dist')" />
+      
+      <!-- Copy to wwwroot maintaining structure -->
+      <ResolvedFileToPublish Include="@(DistFiles)">
+        <!-- Remove 'ClientApp/dist/' prefix and place directly in wwwroot/ -->
+        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
+    
+    <!-- Warning if dist folder doesn't exist -->
+    <Warning Condition="!Exists('$(SpaRoot)dist')" Text="Frontend dist folder not found at $(SpaRoot)dist. Make sure 'npm run build' completed successfully." />
+    <Message Importance="high" Text="Frontend files will be copied to wwwroot/ in the published output" Condition="Exists('$(SpaRoot)dist')" />
   </Target>
 
 </Project>

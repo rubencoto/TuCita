@@ -183,10 +183,10 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
-// Add SPA services
+// Add SPA services - Frontend is built to wwwroot during publish
 builder.Services.AddSpaStaticFiles(configuration =>
 {
-    configuration.RootPath = "ClientApp/dist";
+    configuration.RootPath = "wwwroot";
 });
 
 var app = builder.Build();
