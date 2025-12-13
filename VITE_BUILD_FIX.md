@@ -7,11 +7,15 @@ The Vite build was failing in production (Heroku) with the error:
 ```
 
 ## Root Cause
-The `vite.config.ts` was missing explicit `root` and `base` path configuration. While Vite works with default settings in many environments, production builds on Heroku (which uses Linux and has different path resolution) require explicit configuration to ensure consistent behavior across all environments.
+The build was failing due to two issues:
+1. The `vite.config.ts` was missing explicit `root` and `base` path configuration
+2. The `index.html` was using an absolute path (`/src/main.tsx`) instead of a relative path
+
+While Vite works with default settings in many environments, production builds on Heroku (which uses Linux and has different path resolution) require explicit configuration to ensure consistent behavior across all environments.
 
 ## Solution Applied
 
-### Changed File: `TuCita/ClientApp/vite.config.ts`
+### Changed File 1: `TuCita/ClientApp/vite.config.ts`
 
 Added two critical configuration options at the top level:
 
@@ -23,18 +27,33 @@ export default defineConfig({
 });
 ```
 
-### Why This Fixes the Issue
+### Changed File 2: `TuCita/ClientApp/index.html`
+
+Changed the script entry point from absolute to relative path:
+
+**Before:**
+```html
+<script type="module" src="/src/main.tsx"></script>
+```
+
+**After:**
+```html
+<script type="module" src="./src/main.tsx"></script>
+```
+
+## Why This Fixes the Issue
 
 1. **`root: './'`**: Explicitly tells Vite that the project root is the current directory (where vite.config.ts lives). This ensures Vite correctly resolves `index.html` and the `src/` directory regardless of where the build command is executed from.
 
 2. **`base: './'`**: Configures Vite to use **relative paths** in the production build instead of absolute paths from the server root. This ensures that the built assets work correctly whether served from the root (`/`) or a subdirectory.
 
+3. **Relative path in index.html** (`./src/main.tsx`): Using a relative path instead of an absolute path ensures that Vite can resolve the entry point correctly in all environments, especially on Linux-based systems like Heroku.
+
 ### Files NOT Changed
 
-? `TuCita/ClientApp/index.html` - Already correct with `/src/main.tsx` (standard Vite convention)
-? `TuCita/ClientApp/src/main.tsx` - Already exists and is correctly referenced
 ? Heroku configuration files - Not modified
 ? .NET configuration - Not modified
+? Buildpacks - Not modified
 
 ## Verification
 
@@ -58,6 +77,7 @@ This fix ensures:
 - ? Heroku builds work (buildpacks correctly build the frontend)
 - ? The .NET app can serve the built files from `wwwroot/`
 - ? All asset paths resolve correctly in production
+- ? Works correctly on both Windows (dev) and Linux (production)
 
 ## Deployment
 The changes are minimal and safe to deploy. The build process remains the same:
