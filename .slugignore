@@ -4,9 +4,9 @@
 /node_modules/
 /package-lock.json
 
-# Frontend source files (only dist is needed)
-TuCita/ClientApp/src/
-TuCita/ClientApp/public/
+# Frontend artifacts - KEEP SOURCE for build, only exclude after
+# TuCita/ClientApp/src/                    # ? REMOVED: Needed for vite build
+# TuCita/ClientApp/public/                 # ? REMOVED: May be needed for vite build
 TuCita/ClientApp/node_modules/
 TuCita/ClientApp/.vite/
 TuCita/ClientApp/package-lock.json
@@ -35,12 +35,12 @@ TuCita/Dockerfile
 .dockerignore
 heroku.yml
 
-# Development configuration
-TuCita/ClientApp/.eslintrc*
-TuCita/ClientApp/vite.config.ts
-TuCita/ClientApp/tsconfig*.json
-TuCita/ClientApp/postcss.config.js
-TuCita/ClientApp/tailwind.config.js
+# Development configuration - KEEP FOR BUILD
+# TuCita/ClientApp/.eslintrc*              # ? REMOVED: May be needed
+# TuCita/ClientApp/vite.config.ts          # ? REMOVED: REQUIRED for vite build
+# TuCita/ClientApp/tsconfig*.json          # ? REMOVED: REQUIRED for TypeScript compilation
+# TuCita/ClientApp/postcss.config.js       # ? REMOVED: REQUIRED for Tailwind CSS
+# TuCita/ClientApp/tailwind.config.js      # ? REMOVED: REQUIRED for Tailwind CSS
 
 # Tools and scripts
 TuCita/Tools/
