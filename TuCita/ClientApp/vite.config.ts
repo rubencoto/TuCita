@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 export default defineConfig({
-  root: './',
   base: './',
   plugins: [react()],
   resolve: {
@@ -66,7 +65,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'https://localhost:7063', // ? Actualizado al puerto correcto del .env
+        target: 'https://localhost:7063',
         changeOrigin: true,
         secure: false,
       },
