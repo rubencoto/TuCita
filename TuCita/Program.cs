@@ -291,18 +291,6 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseSpaStaticFiles();
 
-// Configurar middleware para UTF-8 - solo para respuestas HTML
-app.Use(async (context, next) =>
-{
-    await next();
-    
-    // Solo aplicar UTF-8 a respuestas HTML, no a API
-    if (context.Response.ContentType != null && context.Response.ContentType.StartsWith("text/html"))
-    {
-        context.Response.Headers["Content-Type"] = "text/html; charset=utf-8";
-    }
-});
-
 app.UseRouting();
 
 // ORDEN CORRECTO DE MIDDLEWARES:
