@@ -33,7 +33,7 @@ public class DoctorsService : IDoctorsService
                 .Include(pm => pm.AgendaTurnos)
                 .AsQueryable();
 
-            // Aplicar filtros solo si el usuario está activo
+            // Aplicar filtros solo si el usuario esta activo
             query = query.Where(pm => pm.Usuario != null && pm.Usuario.Activo);
 
             if (!string.IsNullOrEmpty(especialidad))
@@ -54,7 +54,7 @@ public class DoctorsService : IDoctorsService
                 Id = pm.UsuarioId,
                 Nombre = pm.Usuario != null 
                     ? $"Dr. {pm.Usuario.Nombre} {pm.Usuario.Apellido}" 
-                    : "Médico no disponible",
+                    : "Medico no disponible",
                 Especialidades = pm.EspecialidadesMedico?
                     .Where(me => me.Especialidad != null)
                     .Select(me => me.Especialidad!.Nombre)
@@ -96,7 +96,7 @@ public class DoctorsService : IDoctorsService
                 Id = medico.UsuarioId,
                 Nombre = medico.Usuario != null 
                     ? $"Dr. {medico.Usuario.Nombre} {medico.Usuario.Apellido}" 
-                    : "Médico no disponible",
+                    : "Medico no disponible",
                 Especialidades = medico.EspecialidadesMedico?
                     .Where(me => me.Especialidad != null)
                     .Select(me => me.Especialidad!.Nombre)
@@ -110,7 +110,7 @@ public class DoctorsService : IDoctorsService
                     ? GetDoctorImageUrl(medico.Usuario.Nombre, medico.Usuario.Apellido) 
                     : GetDoctorImageUrl("Doctor", "Default"),
                 ExperienceYears = CalculateExperienceYears(medico.CreadoEn),
-                About = medico.Biografia ?? "Información no disponible"
+                About = medico.Biografia ?? "Informacion no disponible"
             };
         }
         catch (Exception ex)
@@ -187,7 +187,7 @@ public class DoctorsService : IDoctorsService
         if (DateTime.UtcNow < creadoEn.AddYears(years))
             years--;
             
-        return years <= 0 ? "Nuevo" : $"{years} año{(years == 1 ? "" : "s")} de experiencia";
+        return years <= 0 ? "Nuevo" : $"{years} ano{(years == 1 ? "" : "s")} de experiencia";
     }
 
     private static int GetAvailableSlotsCount(ICollection<AgendaTurno> turnos)
@@ -218,7 +218,7 @@ public class DoctorsService : IDoctorsService
         var days = (nextSlot.Inicio.Date - now.Date).Days;
         
         if (days == 0) return $"Hoy {nextSlot.Inicio:HH:mm}";
-        if (days == 1) return $"Mañana {nextSlot.Inicio:HH:mm}";
+        if (days == 1) return $"Tomorrow {nextSlot.Inicio:HH:mm}";
         if (days < 7) return nextSlot.Inicio.ToString("dddd HH:mm");
         
         return nextSlot.Inicio.ToString("dd/MM HH:mm");
