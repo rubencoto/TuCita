@@ -6,24 +6,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Plus, Filter, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useMyAppointments, useCancelPatientAppointment } from '@/hooks/queries';
+import { toast } from 'sonner';
 
 interface AppointmentsPageProps {
-  appointments: any[];
   onNavigate: (page: string, data?: any) => void;
-  onUpdateAppointment: (appointmentId: string, status: string) => void;
-  onCancelAppointment: (appointmentId: string) => Promise<boolean>;
-  loading?: boolean;
 }
 
 export function AppointmentsPage({ 
-  appointments, 
-  onNavigate, 
-  onUpdateAppointment,
-  onCancelAppointment,
-  loading = false
+  onNavigate
 }: AppointmentsPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');
+
+  // ✅ REACT QUERY: Fetch appointments
+  const { data: appointments = [], isLoading: loading } = useMyAppointments();
+  
+  // ✅ REACT QUERY: Cancel mutation
+  const cancelMutation = useCancelPatientAppointment();
 
   // Separar citas por estado
   const upcomingAppointments = appointments.filter(apt => 
@@ -52,7 +52,7 @@ export function AppointmentsPage({
 
   const handleReschedule = (appointmentId: string) => {
     // Buscar la cita por ID
-    const appointment = appointments.find(apt => apt.id === appointmentId);
+    const appointment = appointments.find(apt => apt.id.toString() === appointmentId);
     if (appointment) {
       // Navegar a la página de reagendamiento con los datos de la cita
       onNavigate('reschedule', { appointment });
@@ -61,10 +61,12 @@ export function AppointmentsPage({
 
   const handleCancel = async (appointmentId: string) => {
     if (confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
-      const success = await onCancelAppointment(appointmentId);
-      if (!success) {
-        alert('No se pudo cancelar la cita. Por favor, inténtalo de nuevo.');
-      }
+      // ✅ REACT QUERY: Use mutation with optimistic update
+      cancelMutation.mutate(Number(appointmentId), {
+        onError: () => {
+          toast.error('No se pudo cancelar la cita. Por favor, inténtalo de nuevo.');
+        }
+      });
     }
   };
 

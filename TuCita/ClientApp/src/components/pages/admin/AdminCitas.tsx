@@ -31,11 +31,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Eye, Loader2, MoreVertical, CheckCircle, XCircle, Clock, AlertCircle, Ban } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import adminCitasService, { AdminCitaList, CitasFilter, DoctorConEspecialidad } from '@/services/api/admin/adminCitasService';
-import adminAuthService from '@/services/api/auth/adminAuthService';
-import { toast } from 'sonner';
 import { AdminCitasNueva } from './AdminCitasNueva';
 import { AdminCitaDetalle } from './AdminCitaDetalle';
+import { 
+  useAdminCitas, 
+  useAdminDoctores, 
+  useUpdateEstadoCitaAdmin, 
+  useDeleteCitaAdmin 
+} from '@/hooks/queries';
 
 const statusColors: Record<string, string> = {
   PROGRAMADA: 'bg-blue-100 text-blue-800',
@@ -91,13 +94,7 @@ interface DeleteDialog {
   citaNombre: string;
 }
 
-// Extensión local para incluir quién agendó la cita
-type AdminCitaListExtended = AdminCitaList & { agendadoPor?: string };
-
 export function AdminCitas({ onCreateNew }: AdminCitasProps) {
-  const [citas, setCitas] = useState<AdminCitaListExtended[]>([]);
-  const [doctores, setDoctores] = useState<DoctorConEspecialidad[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [filterDoctor, setFilterDoctor] = useState('Todos');
@@ -107,9 +104,25 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   
   // paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRegistros, setTotalRegistros] = useState(0);
   const pageSize = 20;
+
+  // 🎯 REACT QUERY: Obtener citas con filtros
+  const { data: citasData, isLoading: loading } = useAdminCitas({
+    pagina: currentPage,
+    tamanoPagina: pageSize,
+    busqueda: searchQuery.trim() || undefined,
+    estado: filterStatus !== 'Todos' ? filterStatus : undefined,
+    medicoId: filterDoctor !== 'Todos' ? parseInt(filterDoctor) : undefined,
+    fechaDesde: fechaDesde || undefined,
+    fechaHasta: fechaHasta || undefined,
+  });
+
+  // 🎯 REACT QUERY: Obtener doctores
+  const { data: doctores = [] } = useAdminDoctores();
+
+  // 🎯 REACT QUERY: Mutations
+  const updateEstado = useUpdateEstadoCitaAdmin();
+  const deleteCita = useDeleteCitaAdmin();
 
   // Diálogos
   const [statusUpdateDialog, setStatusUpdateDialog] = useState<StatusUpdateDialog>({
@@ -124,7 +137,6 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     citaNombre: '',
   });
   const [notas, setNotas] = useState('');
-  const [updating, setUpdating] = useState(false);
 
   // Nuevo estado para el modal de detalle
   const [detalleModal, setDetalleModal] = useState<{
@@ -138,11 +150,6 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
   // Modal Nueva Cita
   const [showNuevaCitaModal, setShowNuevaCitaModal] = useState(false);
 
-  // Cargar doctores al montar el componente
-  useEffect(() => {
-    loadDoctores();
-  }, []);
-
   // Si se selecciona un día, sincronizar fechaDesde/fechaHasta para filtrar ese día
   useEffect(() => {
     if (selectedDay) {
@@ -155,96 +162,12 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     }
   }, [selectedDay]);
 
-  // Cargar citas cuando cambien los filtros
+  // Reset page when filters change
   useEffect(() => {
-    loadCitas();
-  }, [searchQuery, filterStatus, filterDoctor, fechaDesde, fechaHasta, currentPage]);
-
-  const loadDoctores = async () => {
-    try {
-      // Verificar autenticación de admin antes de llamar al API
-      if (!adminAuthService.isAuthenticated() || !adminAuthService.isAdminRole()) {
-        console.warn('Acceso no autorizado a getDoctores: admin no autenticado');
-        toast.error('Sesión de administrador no iniciada. Por favor inicia sesión.');
-        return;
-      }
-
-      const data = await adminCitasService.getDoctores();
-      setDoctores(data);
-    } catch (error) {
-      console.error('Error al cargar doctores:', error);
-      toast.error('Error al cargar la lista de doctores');
-    }
-  };
-
-  const loadCitas = async () => {
-    setLoading(true);
-    try {
-      // Verificar autenticación de admin antes de llamar al API
-      if (!adminAuthService.isAuthenticated() || !adminAuthService.isAdminRole()) {
-        console.warn('Acceso no autorizado a getCitasPaginadas: admin no autenticado');
-        toast.error('Sesión de administrador no iniciada. Por favor inicia sesión.');
-        setCitas([]);
-        setLoading(false);
-        return;
-      }
-
-      const filtros: CitasFilter = {
-        pagina: currentPage,
-        tamanoPagina: pageSize,
-      };
-
-      if (searchQuery.trim()) {
-        filtros.busqueda = searchQuery.trim();
-      }
-
-      if (filterStatus !== 'Todos') {
-        filtros.estado = filterStatus;
-      }
-
-      if (filterDoctor !== 'Todos') {
-        filtros.medicoId = parseInt(filterDoctor);
-      }
-
-      if (fechaDesde) {
-        filtros.fechaDesde = fechaDesde;
-      }
-
-      if (fechaHasta) {
-        filtros.fechaHasta = fechaHasta;
-      }
-
-      const response = await adminCitasService.getCitasPaginadas(filtros);
-
-      // Enriquecer con quien agendó la cita (si el endpoint de detalle lo provee)
-      const enriched: AdminCitaListExtended[] = await Promise.all(
-        response.citas.map(async (c) => {
-          try {
-            const detalle = await adminCitasService.getCitaDetalle(c.id);
-            const detalleAny = detalle as any;
-            const agendadoPor = detalleAny?.agendadoPor || detalleAny?.usuarioAgendo || (c.origen === 'ADMIN' ? 'Administrador' : c.paciente);
-            return { ...c, agendadoPor } as AdminCitaListExtended;
-          } catch (err) {
-            const agendadoPor = c.origen === 'ADMIN' ? 'Administrador' : c.paciente;
-            return { ...c, agendadoPor } as AdminCitaListExtended;
-          }
-        })
-      );
-
-      setCitas(enriched);
-      setTotalPages(response.totalPaginas);
-      setTotalRegistros(response.totalRegistros);
-    } catch (error: any) {
-      console.error('Error al cargar citas:', error);
-      toast.error(error.message || 'Error al cargar las citas');
-      setCitas([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setCurrentPage(1);
+  }, [searchQuery, filterStatus, filterDoctor, fechaDesde, fechaHasta]);
 
   const handleViewDetails = (citaId: number) => {
-    // debug log to confirm click
     console.debug('handleViewDetails called for citaId=', citaId);
     setDetalleModal({
       isOpen: true,
@@ -260,10 +183,6 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     });
   };
 
-  const handleDetalleUpdateSuccess = () => {
-    loadCitas(); // Recargar lista despuós de actualizar desde el detalle
-  };
-
   const handleResetFilters = () => {
     setSearchQuery('');
     setFilterStatus('Todos');
@@ -274,7 +193,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     setCurrentPage(1);
   };
 
-  const openStatusUpdateDialog = (cita: AdminCitaList, nuevoEstado: string) => {
+  const openStatusUpdateDialog = (cita: any, nuevoEstado: string) => {
     setStatusUpdateDialog({
       isOpen: true,
       citaId: cita.id,
@@ -284,7 +203,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     setNotas('');
   };
 
-  const openDeleteDialog = (cita: AdminCitaList) => {
+  const openDeleteDialog = (cita: any) => {
     setDeleteDialog({
       isOpen: true,
       citaId: cita.id,
@@ -301,64 +220,47 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     }
   };
 
-  const handleNuevaCitaSuccess = () => {
-    loadCitas(); // Recargar lista de citas
-  };
-
   const handleUpdateEstado = async () => {
     if (!statusUpdateDialog.citaId || !statusUpdateDialog.nuevoEstado) return;
 
-    setUpdating(true);
-    try {
-      await adminCitasService.updateEstadoCita(statusUpdateDialog.citaId, {
-        estado: statusUpdateDialog.nuevoEstado,
-        notas: notas.trim() || undefined,
-      });
-
-      toast.success(`Estado actualizado a ${statusUpdateDialog.nuevoEstado}`);
-      
-      // Actualizar la cita en el estado local
-      setCitas(prev => prev.map(cita => 
-        cita.id === statusUpdateDialog.citaId 
-          ? { ...cita, estado: statusUpdateDialog.nuevoEstado! }
-          : cita
-      ));
-
-      setStatusUpdateDialog({ isOpen: false, citaId: null, nuevoEstado: null, citaNombre: '' });
-      setNotas('');
-    } catch (error: any) {
-      console.error('Error al actualizar estado:', error);
-      toast.error(error.message || 'Error al actualizar el estado de la cita');
-    } finally {
-      setUpdating(false);
-    }
+    // ✅ USAR MUTATION de React Query
+    updateEstado.mutate(
+      {
+        citaId: statusUpdateDialog.citaId,
+        data: {
+          estado: statusUpdateDialog.nuevoEstado,
+          notas: notas.trim() || undefined,
+        }
+      },
+      {
+        onSuccess: () => {
+          setStatusUpdateDialog({ isOpen: false, citaId: null, nuevoEstado: null, citaNombre: '' });
+          setNotas('');
+        }
+      }
+    );
   };
 
   const handleDeleteCita = async () => {
     if (!deleteDialog.citaId) return;
 
-    setUpdating(true);
-    try {
-      await adminCitasService.deleteCita(deleteDialog.citaId);
-      
-      toast.success('Cita cancelada exitosamente');
-      
-      // Recargar las citas
-      await loadCitas();
-
-      setDeleteDialog({ isOpen: false, citaId: null, citaNombre: '' });
-      setNotas('');
-    } catch (error: any) {
-      console.error('Error al cancelar cita:', error);
-      toast.error(error.message || 'Error al cancelar la cita');
-    } finally {
-      setUpdating(false);
-    }
+    // ✅ USAR MUTATION de React Query
+    deleteCita.mutate(deleteDialog.citaId, {
+      onSuccess: () => {
+        setDeleteDialog({ isOpen: false, citaId: null, citaNombre: '' });
+        setNotas('');
+      }
+    });
   };
 
   const getAvailableActions = (estado: string) => {
     return statusActions[estado as keyof typeof statusActions] || [];
   };
+
+  // Extract data with default values
+  const citas = citasData?.citas || [];
+  const totalPages = citasData?.totalPaginas || 1;
+  const totalRegistros = citasData?.totalRegistros || 0;
 
   // Quick status counts for summary
   const counts = citas.reduce((acc, c) => {
@@ -366,6 +268,9 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
     acc[c.estado] = (acc[c.estado] || 0) + 1;
     return acc;
   }, { total: 0 } as any);
+
+  // ✅ Estado de updating desde React Query
+  const updating = updateEstado.isPending || deleteCita.isPending;
 
   return (
     <div className="space-y-6">
@@ -456,7 +361,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
         Mostrando {citas.length} de {totalRegistros} citas{ (searchQuery || filterStatus !== 'Todos' || filterDoctor !== 'Todos' || fechaDesde || fechaHasta) ? ' (filtradas)' : '' }
       </div>
 
-      {/* Table - ahora incluye columna 'Agendó' y es totalmente manipulable via detalle/acciones */}
+      {/* Table */}
       <Card>
         <CardContent className="pt-6">
           <div className="overflow-x-auto">
@@ -475,7 +380,6 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">ID</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Paciente</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Doctor</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Agendó</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Fecha</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Estado</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Acciones</th>
@@ -490,7 +394,6 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                         <td className="py-4 px-4 text-sm text-gray-700">#{cita.id}</td>
                         <td className="py-4 px-4 text-sm font-medium text-gray-900">{cita.paciente}</td>
                         <td className="py-4 px-4 text-sm text-gray-700">{cita.doctor}</td>
-                        <td className="py-4 px-4 text-sm text-gray-700">{cita.agendadoPor || (cita.origen === 'ADMIN' ? 'Administrador' : cita.paciente)}</td>
                         <td className="py-4 px-4 text-sm text-gray-900">{cita.fechaStr} • {cita.hora}</td>
                         <td className="py-4 px-4">
                           <Badge className={statusColors[cita.estado] || 'bg-gray-100 text-gray-800'}>
@@ -559,7 +462,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
                                 )}
 
                                 <DropdownMenuItem
-                                  variant="destructive"
+                                  className="text-red-600"
                                   onClick={() => openDeleteDialog(cita)}
                                 >
                                   <Ban className="h-4 w-4 mr-2" />
@@ -607,7 +510,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
       </Card>
 
       {/* Diálogo de actualización de Estado */}
-      <AlertDialog open={statusUpdateDialog.isOpen} onOpenChange={(open) => {
+      <AlertDialog open={statusUpdateDialog.isOpen} onOpenChange={(open: boolean) => {
         if (!open) {
           setStatusUpdateDialog({ isOpen: false, citaId: null, nuevoEstado: null, citaNombre: '' });
           setNotas('');
@@ -617,7 +520,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Actualizar Estado de Cita</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estós seguro de cambiar el estado a <strong>{statusUpdateDialog.nuevoEstado}</strong> para:
+              ¿Estás seguro de cambiar el estado a <strong>{statusUpdateDialog.nuevoEstado}</strong> para:
               <br />
               <span className="font-medium text-gray-900">{statusUpdateDialog.citaNombre}</span>?
             </AlertDialogDescription>
@@ -656,7 +559,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
       </AlertDialog>
 
       {/* Diálogo de Eliminación */}
-      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => {
+      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open: boolean) => {
         if (!open) {
           setDeleteDialog({ isOpen: false, citaId: null, citaNombre: '' });
           setNotas('');
@@ -666,12 +569,12 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Cita</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estós seguro de eliminar permanentemente esta cita?
+              ¿Estás seguro de eliminar permanentemente esta cita?
               <br />
               <span className="font-medium text-gray-900">{deleteDialog.citaNombre}</span>
               <br />
               <br />
-              Esta acción no se puede deshacer y el turno se liberaró para otros pacientes.
+              Esta acción no se puede deshacer y el turno se liberará para otros pacientes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           
@@ -679,7 +582,7 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
             <Label htmlFor="delete-notas">Motivo de Eliminación (opcional)</Label>
             <Textarea
               id="delete-notas"
-              placeholder="Describe el motivo de la Eliminación..."
+              placeholder="Describe el motivo de la eliminación..."
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
               className="mt-2"
@@ -711,7 +614,10 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
       <AdminCitasNueva
         isOpen={showNuevaCitaModal}
         onClose={() => setShowNuevaCitaModal(false)}
-        onSuccess={handleNuevaCitaSuccess}
+        onSuccess={() => {
+          setShowNuevaCitaModal(false);
+          // React Query auto-refetch
+        }}
       />
 
       {/* Modal Detalle de Cita */}
@@ -719,16 +625,10 @@ export function AdminCitas({ onCreateNew }: AdminCitasProps) {
         isOpen={detalleModal.isOpen}
         onClose={handleDetalleClose}
         citaId={detalleModal.citaId}
-        onUpdateSuccess={handleDetalleUpdateSuccess}
+        onUpdateSuccess={() => {
+          // React Query auto-refetch
+        }}
       />
-
-      {/* Debug: show current detalleModal state when open (temporary, remove when fixed) */}
-      {detalleModal.isOpen && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-md bg-black/70 text-white px-3 py-2 text-sm">
-          Detalle abierta: {detalleModal.citaId}
-        </div>
-      )}
-
     </div>
   );
 }

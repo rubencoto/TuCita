@@ -1,130 +1,51 @@
 using Microsoft.AspNetCore.Mvc;
 using TuCita.DTOs.Doctors;
-using System.Collections.Concurrent;
-using System.Globalization;
+using TuCita.Services;
 
 namespace TuCita.Controllers.Api;
 
 /// <summary>
 /// Controlador para gestionar la disponibilidad de horarios de los doctores
 /// Compatible con doctor-availability-page.tsx
+/// Ahora usa base de datos real en lugar de almacenamiento en memoria
 /// </summary>
 [ApiController]
 [Route("api/doctor/availability")]
 public class DoctorAvailabilityController : ControllerBase
 {
-    // Almacenamiento en memoria temporal (en producción usaría DbContext)
-    private static readonly ConcurrentDictionary<long, DoctorSlotDto> _slots = new();
-    private static long _idSequence = 1;
+    private readonly DoctorAvailabilityService _service;
     private readonly ILogger<DoctorAvailabilityController> _logger;
 
-    public DoctorAvailabilityController(ILogger<DoctorAvailabilityController> logger)
+    public DoctorAvailabilityController(
+        DoctorAvailabilityService service,
+        ILogger<DoctorAvailabilityController> logger)
     {
+        _service = service;
         _logger = logger;
-        SeedData();
-    }
-
-    /// <summary>
-    /// Inicializa datos de ejemplo
-    /// </summary>
-    private void SeedData()
-    {
-        if (!_slots.IsEmpty) return;
-
-        var today = DateTime.Now.Date;
-        var tomorrow = today.AddDays(1);
-
-        var sampleSlots = new[]
-        {
-            new DoctorSlotDto 
-            { 
-                IdSlot = 1, 
-                DoctorId = "DOC-001", 
-                Fecha = today.ToString("yyyy-MM-dd"), 
-                HoraInicio = "09:00", 
-                HoraFin = "10:00", 
-                Tipo = SlotTipo.PRESENCIAL, 
-                Estado = SlotEstado.DISPONIBLE 
-            },
-            new DoctorSlotDto 
-            { 
-                IdSlot = 2, 
-                DoctorId = "DOC-001", 
-                Fecha = today.ToString("yyyy-MM-dd"), 
-                HoraInicio = "10:00", 
-                HoraFin = "11:00", 
-                Tipo = SlotTipo.PRESENCIAL, 
-                Estado = SlotEstado.OCUPADO 
-            },
-            new DoctorSlotDto 
-            { 
-                IdSlot = 3, 
-                DoctorId = "DOC-001", 
-                Fecha = today.ToString("yyyy-MM-dd"), 
-                HoraInicio = "11:00", 
-                HoraFin = "12:00", 
-                Tipo = SlotTipo.TELECONSULTA, 
-                Estado = SlotEstado.DISPONIBLE 
-            },
-            new DoctorSlotDto 
-            { 
-                IdSlot = 4, 
-                DoctorId = "DOC-001", 
-                Fecha = today.ToString("yyyy-MM-dd"), 
-                HoraInicio = "16:00", 
-                HoraFin = "17:00", 
-                Tipo = SlotTipo.PRESENCIAL, 
-                Estado = SlotEstado.BLOQUEADO 
-            },
-            new DoctorSlotDto 
-            { 
-                IdSlot = 5, 
-                DoctorId = "DOC-001", 
-                Fecha = tomorrow.ToString("yyyy-MM-dd"), 
-                HoraInicio = "09:00", 
-                HoraFin = "10:00", 
-                Tipo = SlotTipo.TELECONSULTA, 
-                Estado = SlotEstado.DISPONIBLE 
-            },
-        };
-
-        foreach (var slot in sampleSlots)
-        {
-            _slots[slot.IdSlot] = slot;
-        }
-        _idSequence = 6;
     }
 
     /// <summary>
     /// Obtiene todos los slots, opcionalmente filtrados por doctorId y fecha
-    /// GET /api/doctor/availability?doctorId=DOC-001&fecha=2025-01-20
+    /// GET /api/doctor/availability?doctorId=21&fecha=2025-01-20
     /// </summary>
     [HttpGet]
-    public ActionResult<IEnumerable<DoctorSlotDto>> GetSlots(
+    public async Task<ActionResult<IEnumerable<DoctorSlotDto>>> GetSlots(
         [FromQuery] string? doctorId = null,
         [FromQuery] string? fecha = null)
     {
         try
         {
-            var slots = _slots.Values.AsEnumerable();
-
-            if (!string.IsNullOrEmpty(doctorId))
-                slots = slots.Where(s => s.DoctorId == doctorId);
-
-            if (!string.IsNullOrEmpty(fecha))
+            if (string.IsNullOrEmpty(doctorId))
             {
-                if (!IsValidDateFormat(fecha))
-                {
-                    return BadRequest(new { message = "Formato de fecha inválido (debe ser YYYY-MM-DD)" });
-                }
-                slots = slots.Where(s => s.Fecha == fecha);
+                return BadRequest(new { message = "El ID del doctor es requerido" });
             }
 
-            var result = slots.OrderBy(s => s.Fecha).ThenBy(s => s.HoraInicio).ToList();
+            var slots = await _service.GetDoctorSlotsAsync(doctorId, fecha);
+            
             _logger.LogInformation("Obtenidos {Count} slots para doctor={DoctorId}, fecha={Fecha}", 
-                result.Count, doctorId ?? "todos", fecha ?? "todas");
+                slots.Count, doctorId, fecha ?? "todas");
 
-            return Ok(result);
+            return Ok(slots);
         }
         catch (Exception ex)
         {
@@ -138,18 +59,20 @@ public class DoctorAvailabilityController : ControllerBase
     /// GET /api/doctor/availability/1
     /// </summary>
     [HttpGet("{id}")]
-    public ActionResult<DoctorSlotDto> GetSlot(long id)
+    public async Task<ActionResult<DoctorSlotDto>> GetSlot(long id)
     {
         try
         {
-            if (_slots.TryGetValue(id, out var slot))
+            var slot = await _service.GetSlotByIdAsync(id);
+            
+            if (slot == null)
             {
-                _logger.LogInformation("Slot {SlotId} obtenido correctamente", id);
-                return Ok(slot);
+                _logger.LogWarning("Slot {SlotId} no encontrado", id);
+                return NotFound(new { message = $"Slot con ID {id} no encontrado" });
             }
 
-            _logger.LogWarning("Slot {SlotId} no encontrado", id);
-            return NotFound(new { message = $"Slot con ID {id} no encontrado" });
+            _logger.LogInformation("Slot {SlotId} obtenido correctamente", id);
+            return Ok(slot);
         }
         catch (Exception ex)
         {
@@ -159,168 +82,11 @@ public class DoctorAvailabilityController : ControllerBase
     }
 
     /// <summary>
-    /// Solicitud para crear un nuevo slot
-    /// </summary>
-    public class CreateSlotRequest
-    {
-        public string DoctorId { get; set; } = string.Empty;
-        public string Fecha { get; set; } = string.Empty;
-        public string HoraInicio { get; set; } = string.Empty;
-        public string HoraFin { get; set; } = string.Empty;
-        public SlotTipo Tipo { get; set; }
-        public SlotEstado Estado { get; set; }
-    }
-
-    /// <summary>
-    /// Definición de un slot en un horario semanal
-    /// </summary>
-    public class WeeklyTimeSlot
-    {
-        public string HoraInicio { get; set; } = string.Empty;
-        public string HoraFin { get; set; } = string.Empty;
-        public SlotTipo Tipo { get; set; }
-    }
-
-    /// <summary>
-    /// Solicitud para crear slots en lote basados en un horario semanal
-    /// </summary>
-    public class BulkCreateSlotsRequest
-    {
-        public string DoctorId { get; set; } = string.Empty;
-        public string FechaInicio { get; set; } = string.Empty;
-        public string FechaFin { get; set; } = string.Empty;
-        
-        // Horarios por día de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
-        public Dictionary<int, List<WeeklyTimeSlot>> HorarioSemanal { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Crea slots en lote para un rango de fechas basado en un patrón semanal
-    /// POST /api/doctor/availability/bulk
-    /// </summary>
-    [HttpPost("bulk")]
-    public ActionResult<BulkCreateResult> BulkCreateSlots([FromBody] BulkCreateSlotsRequest request)
-    {
-        try
-        {
-            // Validaciones
-            if (string.IsNullOrWhiteSpace(request.DoctorId))
-                return BadRequest(new { message = "El ID del doctor es requerido" });
-
-            if (!IsValidDateFormat(request.FechaInicio))
-                return BadRequest(new { message = "Formato de fecha de inicio inválido (debe ser YYYY-MM-DD)" });
-
-            if (!IsValidDateFormat(request.FechaFin))
-                return BadRequest(new { message = "Formato de fecha de fin inválido (debe ser YYYY-MM-DD)" });
-
-            var fechaInicio = DateOnly.ParseExact(request.FechaInicio, "yyyy-MM-dd");
-            var fechaFin = DateOnly.ParseExact(request.FechaFin, "yyyy-MM-dd");
-
-            if (fechaFin < fechaInicio)
-                return BadRequest(new { message = "La fecha de fin debe ser posterior a la fecha de inicio" });
-
-            if (fechaInicio < DateOnly.FromDateTime(DateTime.Now))
-                return BadRequest(new { message = "No se pueden crear slots en fechas pasadas" });
-
-            var diasDiferencia = fechaFin.DayNumber - fechaInicio.DayNumber;
-            if (diasDiferencia > 90)
-                return BadRequest(new { message = "El rango de fechas no puede exceder 90 días" });
-
-            var creados = new List<DoctorSlotDto>();
-            var errores = new List<string>();
-
-            // Iterar sobre cada día en el rango
-            for (var fecha = fechaInicio; fecha <= fechaFin; fecha = fecha.AddDays(1))
-            {
-                var diaSemana = (int)fecha.DayOfWeek;
-
-                // Verificar si hay horarios configurados para este día
-                if (!request.HorarioSemanal.ContainsKey(diaSemana) || 
-                    request.HorarioSemanal[diaSemana].Count == 0)
-                    continue;
-
-                var fechaStr = fecha.ToString("yyyy-MM-dd");
-
-                // Crear cada slot para este día
-                foreach (var timeSlot in request.HorarioSemanal[diaSemana])
-                {
-                    // Validar formato de horas
-                    if (!IsValidTimeFormat(timeSlot.HoraInicio) || !IsValidTimeFormat(timeSlot.HoraFin))
-                    {
-                        errores.Add($"{fechaStr}: Formato de hora inválido ({timeSlot.HoraInicio}-{timeSlot.HoraFin})");
-                        continue;
-                    }
-
-                    if (string.Compare(timeSlot.HoraInicio, timeSlot.HoraFin) >= 0)
-                    {
-                        errores.Add($"{fechaStr}: La hora de inicio debe ser anterior a la hora de fin");
-                        continue;
-                    }
-
-                    // Verificar solapamiento
-                    var overlaps = _slots.Values.Any(s =>
-                        s.DoctorId == request.DoctorId &&
-                        s.Fecha == fechaStr &&
-                        TimesOverlap(timeSlot.HoraInicio, timeSlot.HoraFin, s.HoraInicio, s.HoraFin));
-
-                    if (overlaps)
-                    {
-                        errores.Add($"{fechaStr} {timeSlot.HoraInicio}-{timeSlot.HoraFin}: Se solapa con slot existente");
-                        continue;
-                    }
-
-                    // Crear el slot
-                    var newId = Interlocked.Increment(ref _idSequence);
-                    var slot = new DoctorSlotDto
-                    {
-                        IdSlot = newId,
-                        DoctorId = request.DoctorId,
-                        Fecha = fechaStr,
-                        HoraInicio = timeSlot.HoraInicio,
-                        HoraFin = timeSlot.HoraFin,
-                        Tipo = timeSlot.Tipo,
-                        Estado = SlotEstado.DISPONIBLE
-                    };
-
-                    _slots[newId] = slot;
-                    creados.Add(slot);
-                }
-            }
-
-            _logger.LogInformation(
-                "Creación masiva de slots completada. Doctor={DoctorId}, Creados={Creados}, Errores={Errores}",
-                request.DoctorId, creados.Count, errores.Count);
-
-            return Ok(new BulkCreateResult
-            {
-                SlotsCreados = creados.Count,
-                Slots = creados,
-                Errores = errores
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error en creación masiva de slots");
-            return StatusCode(500, new { message = "Error interno del servidor" });
-        }
-    }
-
-    /// <summary>
-    /// Resultado de creación masiva de slots
-    /// </summary>
-    public class BulkCreateResult
-    {
-        public int SlotsCreados { get; set; }
-        public List<DoctorSlotDto> Slots { get; set; } = new();
-        public List<string> Errores { get; set; } = new();
-    }
-
-    /// <summary>
     /// Crea un nuevo slot de disponibilidad
     /// POST /api/doctor/availability
     /// </summary>
     [HttpPost]
-    public ActionResult<DoctorSlotDto> CreateSlot([FromBody] CreateSlotRequest request)
+    public async Task<ActionResult<DoctorSlotDto>> CreateSlot([FromBody] CreateSlotRequest request)
     {
         try
         {
@@ -348,33 +114,23 @@ public class DoctorAvailabilityController : ControllerBase
                     return BadRequest(new { message = "No se pueden crear slots en fechas pasadas" });
             }
 
-            // Verificar solapamiento de horarios
-            var overlaps = _slots.Values.Any(s =>
-                s.DoctorId == request.DoctorId &&
-                s.Fecha == request.Fecha &&
-                TimesOverlap(request.HoraInicio, request.HoraFin, s.HoraInicio, s.HoraFin));
+            var slot = await _service.CreateSlotAsync(
+                request.DoctorId,
+                request.Fecha,
+                request.HoraInicio,
+                request.HoraFin,
+                request.Tipo,
+                request.Estado
+            );
 
-            if (overlaps)
-                return Conflict(new { message = "El horario se solapa con otro slot existente" });
-
-            // Crear nuevo slot
-            var newId = Interlocked.Increment(ref _idSequence);
-            var slot = new DoctorSlotDto
-            {
-                IdSlot = newId,
-                DoctorId = request.DoctorId,
-                Fecha = request.Fecha,
-                HoraInicio = request.HoraInicio,
-                HoraFin = request.HoraFin,
-                Tipo = request.Tipo,
-                Estado = request.Estado
-            };
-
-            _slots[newId] = slot;
             _logger.LogInformation("Slot creado: ID={SlotId}, Doctor={DoctorId}, Fecha={Fecha}, Hora={HoraInicio}-{HoraFin}", 
-                newId, request.DoctorId, request.Fecha, request.HoraInicio, request.HoraFin);
+                slot.IdSlot, request.DoctorId, request.Fecha, request.HoraInicio, request.HoraFin);
 
-            return CreatedAtAction(nameof(GetSlot), new { id = newId }, slot);
+            return CreatedAtAction(nameof(GetSlot), new { id = slot.IdSlot }, slot);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -384,14 +140,71 @@ public class DoctorAvailabilityController : ControllerBase
     }
 
     /// <summary>
-    /// Solicitud para actualizar un slot existente
+    /// Crea slots en lote para un rango de fechas basado en un patrón semanal
+    /// POST /api/doctor/availability/bulk
     /// </summary>
-    public class UpdateSlotRequest
+    [HttpPost("bulk")]
+    public async Task<ActionResult<BulkCreateResult>> BulkCreateSlots([FromBody] BulkCreateSlotsRequest request)
     {
-        public string? HoraInicio { get; set; }
-        public string? HoraFin { get; set; }
-        public SlotTipo? Tipo { get; set; }
-        public SlotEstado? Estado { get; set; }
+        try
+        {
+            // Validaciones
+            if (string.IsNullOrWhiteSpace(request.DoctorId))
+                return BadRequest(new { message = "El ID del doctor es requerido" });
+
+            if (!IsValidDateFormat(request.FechaInicio))
+                return BadRequest(new { message = "Formato de fecha de inicio inválido (debe ser YYYY-MM-DD)" });
+
+            if (!IsValidDateFormat(request.FechaFin))
+                return BadRequest(new { message = "Formato de fecha de fin inválido (debe ser YYYY-MM-DD)" });
+
+            var fechaInicio = DateOnly.ParseExact(request.FechaInicio, "yyyy-MM-dd");
+            var fechaFin = DateOnly.ParseExact(request.FechaFin, "yyyy-MM-dd");
+
+            if (fechaFin < fechaInicio)
+                return BadRequest(new { message = "La fecha de fin debe ser posterior a la fecha de inicio" });
+
+            if (fechaInicio < DateOnly.FromDateTime(DateTime.Now))
+                return BadRequest(new { message = "No se pueden crear slots en fechas pasadas" });
+
+            var diasDiferencia = fechaFin.DayNumber - fechaInicio.DayNumber;
+            if (diasDiferencia > 90)
+                return BadRequest(new { message = "El rango de fechas no puede exceder 90 días" });
+
+            // Convertir el horario semanal del request al formato esperado por el servicio
+            var horarioSemanal = request.HorarioSemanal.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.Select(ts => new Services.WeeklyTimeSlot
+                {
+                    HoraInicio = ts.HoraInicio,
+                    HoraFin = ts.HoraFin,
+                    Tipo = ts.Tipo
+                }).ToList()
+            );
+
+            var (created, slots, errors) = await _service.BulkCreateSlotsAsync(
+                request.DoctorId,
+                request.FechaInicio,
+                request.FechaFin,
+                horarioSemanal
+            );
+
+            _logger.LogInformation(
+                "Creación masiva de slots completada. Doctor={DoctorId}, Creados={Creados}, Errores={Errores}",
+                request.DoctorId, created, errors.Count);
+
+            return Ok(new BulkCreateResult
+            {
+                SlotsCreados = created,
+                Slots = slots,
+                Errores = errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en creación masiva de slots");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
     }
 
     /// <summary>
@@ -399,27 +212,10 @@ public class DoctorAvailabilityController : ControllerBase
     /// PUT /api/doctor/availability/1
     /// </summary>
     [HttpPut("{id}")]
-    public ActionResult<DoctorSlotDto> UpdateSlot(long id, [FromBody] UpdateSlotRequest request)
+    public async Task<ActionResult<DoctorSlotDto>> UpdateSlot(long id, [FromBody] UpdateSlotRequest request)
     {
         try
         {
-            if (!_slots.TryGetValue(id, out var existing))
-            {
-                _logger.LogWarning("Intento de actualizar slot inexistente: {SlotId}", id);
-                return NotFound(new { message = $"Slot con ID {id} no encontrado" });
-            }
-
-            // No permitir modificar slots ocupados
-            if (existing.Estado == SlotEstado.OCUPADO)
-            {
-                _logger.LogWarning("Intento de modificar slot ocupado: {SlotId}", id);
-                return BadRequest(new { message = "No se pueden modificar slots ocupados" });
-            }
-
-            // Aplicar cambios
-            var horaInicio = request.HoraInicio ?? existing.HoraInicio;
-            var horaFin = request.HoraFin ?? existing.HoraFin;
-
             // Validar formatos si se proporcionaron
             if (request.HoraInicio != null && !IsValidTimeFormat(request.HoraInicio))
                 return BadRequest(new { message = "Formato de hora de inicio inválido (debe ser HH:mm)" });
@@ -427,30 +223,26 @@ public class DoctorAvailabilityController : ControllerBase
             if (request.HoraFin != null && !IsValidTimeFormat(request.HoraFin))
                 return BadRequest(new { message = "Formato de hora de fin inválido (debe ser HH:mm)" });
 
-            // Validar que hora inicio sea anterior a hora fin
-            if (string.Compare(horaInicio, horaFin) >= 0)
-                return BadRequest(new { message = "La hora de inicio debe ser anterior a la hora de fin" });
+            var slot = await _service.UpdateSlotAsync(
+                id,
+                request.HoraInicio,
+                request.HoraFin,
+                request.Tipo,
+                request.Estado
+            );
 
-            // Verificar solapamiento excluyendo el slot actual
-            var overlaps = _slots.Values.Any(s =>
-                s.DoctorId == existing.DoctorId &&
-                s.Fecha == existing.Fecha &&
-                s.IdSlot != id &&
-                TimesOverlap(horaInicio, horaFin, s.HoraInicio, s.HoraFin));
+            if (slot == null)
+            {
+                _logger.LogWarning("Intento de actualizar slot inexistente: {SlotId}", id);
+                return NotFound(new { message = $"Slot con ID {id} no encontrado" });
+            }
 
-            if (overlaps)
-                return Conflict(new { message = "El horario se solapa con otro slot existente" });
-
-            // Actualizar
-            existing.HoraInicio = horaInicio;
-            existing.HoraFin = horaFin;
-            if (request.Tipo.HasValue) existing.Tipo = request.Tipo.Value;
-            if (request.Estado.HasValue) existing.Estado = request.Estado.Value;
-
-            _slots[id] = existing;
             _logger.LogInformation("Slot actualizado: {SlotId}", id);
-
-            return Ok(existing);
+            return Ok(slot);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -464,27 +256,24 @@ public class DoctorAvailabilityController : ControllerBase
     /// DELETE /api/doctor/availability/1
     /// </summary>
     [HttpDelete("{id}")]
-    public ActionResult DeleteSlot(long id)
+    public async Task<ActionResult> DeleteSlot(long id)
     {
         try
         {
-            if (!_slots.TryGetValue(id, out var slot))
+            var deleted = await _service.DeleteSlotAsync(id);
+
+            if (!deleted)
             {
                 _logger.LogWarning("Intento de eliminar slot inexistente: {SlotId}", id);
                 return NotFound(new { message = $"Slot con ID {id} no encontrado" });
             }
 
-            // No permitir eliminar slots ocupados
-            if (slot.Estado == SlotEstado.OCUPADO)
-            {
-                _logger.LogWarning("Intento de eliminar slot ocupado: {SlotId}", id);
-                return BadRequest(new { message = "No se pueden eliminar slots ocupados. Primero cancele las citas asociadas." });
-            }
-
-            _slots.TryRemove(id, out _);
             _logger.LogInformation("Slot eliminado: {SlotId}", id);
-
             return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -493,31 +282,60 @@ public class DoctorAvailabilityController : ControllerBase
         }
     }
 
-    #region Métodos de Ayuda
+    #region Request/Response Models
 
-    /// <summary>
-    /// Valida el formato de hora HH:mm
-    /// </summary>
+    public class CreateSlotRequest
+    {
+        public string DoctorId { get; set; } = string.Empty;
+        public string Fecha { get; set; } = string.Empty;
+        public string HoraInicio { get; set; } = string.Empty;
+        public string HoraFin { get; set; } = string.Empty;
+        public SlotTipo Tipo { get; set; }
+        public SlotEstado Estado { get; set; }
+    }
+
+    public class WeeklyTimeSlot
+    {
+        public string HoraInicio { get; set; } = string.Empty;
+        public string HoraFin { get; set; } = string.Empty;
+        public SlotTipo Tipo { get; set; }
+    }
+
+    public class BulkCreateSlotsRequest
+    {
+        public string DoctorId { get; set; } = string.Empty;
+        public string FechaInicio { get; set; } = string.Empty;
+        public string FechaFin { get; set; } = string.Empty;
+        public Dictionary<int, List<WeeklyTimeSlot>> HorarioSemanal { get; set; } = new();
+    }
+
+    public class BulkCreateResult
+    {
+        public int SlotsCreados { get; set; }
+        public List<DoctorSlotDto> Slots { get; set; } = new();
+        public List<string> Errores { get; set; } = new();
+    }
+
+    public class UpdateSlotRequest
+    {
+        public string? HoraInicio { get; set; }
+        public string? HoraFin { get; set; }
+        public SlotTipo? Tipo { get; set; }
+        public SlotEstado? Estado { get; set; }
+    }
+
+    #endregion
+
+    #region Helper Methods
+
     private static bool IsValidTimeFormat(string time)
     {
         return TimeOnly.TryParseExact(time, "HH:mm", out _);
     }
 
-    /// <summary>
-    /// Valida el formato de fecha YYYY-MM-DD
-    /// </summary>
     private static bool IsValidDateFormat(string date)
     {
         return DateOnly.TryParseExact(date, "yyyy-MM-dd", out _);
-    }
-
-    /// <summary>
-    /// Verifica si dos rangos de tiempo se solapan
-    /// </summary>
-    private static bool TimesOverlap(string start1, string end1, string start2, string end2)
-    {
-        // Dos rangos se solapan si: inicio1 < fin2 AND inicio2 < fin1
-        return string.Compare(start1, end2) < 0 && string.Compare(start2, end1) < 0;
     }
 
     #endregion

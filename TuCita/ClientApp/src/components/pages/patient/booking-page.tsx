@@ -16,18 +16,19 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AgendaTurno } from '@/services/api/doctor/doctorsService';
-import appointmentsService from '@/services/api/patient/appointmentsService';
+import { useCreatePatientAppointment } from '@/hooks/queries';
 
 interface BookingPageProps {
   doctor: any;
   onNavigate: (page: string) => void;
-  onBookAppointment: (appointment: any) => void;
 }
 
-export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPageProps) {
+export function BookingPage({ doctor, onNavigate }: BookingPageProps) {
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slot: AgendaTurno } | null>(null);
-  const [isBooking, setIsBooking] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+
+  // ✅ REACT QUERY: Create appointment mutation
+  const createAppointment = useCreatePatientAppointment();
 
   if (!doctor) {
     return (
@@ -62,7 +63,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
       toast.error('Error de validación', {
         description: 'El horario seleccionado no es válido. Por favor selecciona otro horario.',
       });
-      setSelectedSlot(null); // Limpiar selección inválida
+      setSelectedSlot(null);
       return;
     }
 
@@ -75,69 +76,40 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
       return;
     }
 
-    setIsBooking(true);
-    
-    try {
-      // Llamar a la API real para crear la cita
-      const appointmentRequest = {
-        TurnoId: selectedSlot.slot.id, // Cambiado a PascalCase para coincidir con el backend
-        DoctorId: doctor.id, // Cambiado a PascalCase para coincidir con el backend
-        Motivo: 'Consulta médica' // Cambiado a PascalCase para coincidir con el backend
-      };
+    const appointmentRequest = {
+      TurnoId: selectedSlot.slot.id,
+      DoctorId: doctor.id,
+      Motivo: 'Consulta médica'
+    };
 
-      console.log('📤 Enviando solicitud de cita:', appointmentRequest);
-      console.log('📋 Slot seleccionado:', selectedSlot);
-      console.log('👨‍⚕️ Doctor:', doctor);
+    console.log('📤 Enviando solicitud de cita:', appointmentRequest);
+    console.log('📋 Slot seleccionado:', selectedSlot);
+    console.log('👨‍⚕️ Doctor:', doctor);
 
-      const createdAppointment = await appointmentsService.createAppointment(appointmentRequest);
-      
-      console.log('✅ Cita creada exitosamente:', createdAppointment);
-
-      // Formatear la cita para el estado local
-      const newAppointment = {
-        id: createdAppointment.id.toString(),
-        doctorName: doctor.nombre,
-        doctorSpecialty: doctor.especialidades?.[0] || 'Especialidad General',
-        doctorImage: doctor.imageUrl,
-        date: selectedSlot.date.toLocaleDateString('es-ES', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
-        time: selectedSlot.slot.time,
-        location: doctor.sedes?.[0]?.location || doctor.direccion || 'Ubicación no especificada',
-        status: 'confirmed' as const,
-        type: 'consultation' as const,
-      };
-
-      onBookAppointment(newAppointment);
-      setBookingConfirmed(true);
-      
-      toast.success('¡Cita confirmada exitosamente!', {
-        description: `Tu cita con ${doctor.nombre} ha sido agendada para el ${newAppointment.date} a las ${newAppointment.time}.`,
-      });
-    } catch (error: any) {
-      console.error('❌ Error al crear la cita:', error);
-      console.error('📋 Response data:', error.response?.data);
-      console.error('📋 Response status:', error.response?.status);
-      console.error('📋 Full response:', error.response);
-      
-      // Mostrar detalles del error de validación si existen
-      if (error.response?.data?.errors) {
-        console.error('📋 Validation errors:', error.response.data.errors);
+    // ✅ REACT QUERY: Use mutation with automatic cache update
+    createAppointment.mutate(appointmentRequest, {
+      onSuccess: (createdAppointment) => {
+        console.log('✅ Cita creada exitosamente:', createdAppointment);
+        setBookingConfirmed(true);
+        
+        toast.success('¡Cita confirmada exitosamente!', {
+          description: `Tu cita con ${doctor.nombre} ha sido agendada para el ${selectedSlot.date.toLocaleDateString('es-ES')} a las ${selectedSlot.slot.time}.`,
+        });
+      },
+      onError: (error: any) => {
+        console.error('❌ Error al crear la cita:', error);
+        console.error('📋 Response data:', error.response?.data);
+        console.error('📋 Response status:', error.response?.status);
+        
+        if (error.response?.data?.errors) {
+          console.error('📋 Validation errors:', error.response.data.errors);
+        }
+        
+        if (error.response?.data?.message) {
+          console.error('📋 Error message:', error.response.data.message);
+        }
       }
-      
-      if (error.response?.data?.message) {
-        console.error('📋 Error message:', error.response.data.message);
-      }
-      
-      toast.error('Error al agendar la cita', {
-        description: error.response?.data?.message || error.response?.data?.title || 'No se pudo crear la cita. Por favor, inténtalo de nuevo.',
-      });
-    } finally {
-      setIsBooking(false);
-    }
+    });
   };
 
   if (bookingConfirmed) {
@@ -346,10 +318,10 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                     <div className="flex flex-col sm:flex-row gap-4">
                       <Button
                         onClick={handleConfirmBooking}
-                        disabled={isBooking}
+                        disabled={createAppointment.isPending}
                         className="flex-1"
                       >
-                        {isBooking ? (
+                        {createAppointment.isPending ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             Confirmando...
@@ -364,7 +336,7 @@ export function BookingPage({ doctor, onNavigate, onBookAppointment }: BookingPa
                       <Button
                         variant="outline"
                         onClick={() => setSelectedSlot(null)}
-                        disabled={isBooking}
+                        disabled={createAppointment.isPending}
                       >
                         Cancelar
                       </Button>

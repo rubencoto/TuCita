@@ -1,6 +1,5 @@
-﻿import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, CheckCircle, XCircle, UserCheck, AlertTriangle } from 'lucide-react';
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, CheckCircle, XCircle, UserCheck, AlertTriangle, Loader2, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   BarChart,
@@ -15,14 +14,9 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import adminDashboardService, { 
-  AdminDashboard,
-  WeeklyChartData,
-  StatusDistribution,
-  UpcomingAppointment,
-  SystemAlert
-} from '@/services/api/admin/adminDashboardService';
-import { toast } from 'sonner';
+import { useAdminDashboard } from '@/hooks/queries';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface MetricCardData {
   title: string;
@@ -41,50 +35,33 @@ const statusColors: Record<string, string> = {
 };
 
 export function AdminDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState<AdminDashboard | null>(null);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const data = await adminDashboardService.getDashboardData();
-      setDashboardData(data);
-    } catch (error: any) {
-      console.error('Error al cargar datos del dashboard:', error);
-      toast.error('Error al cargar datos del dashboard', {
-        description: error.response?.data?.message || 'Por favor intenta nuevamente'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 🎯 REACT QUERY: Obtener datos del dashboard
+  const { data: dashboardData, isLoading: loading, isError, error, refetch } = useAdminDashboard();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-spin" />
           <p className="text-gray-600">Cargando dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!dashboardData) {
+  if (isError || !dashboardData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600">Error al cargar los datos del dashboard</p>
-          <button
-            onClick={loadDashboardData}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
+          <Alert className="bg-red-50 border-red-200 mb-4">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              {(error as Error)?.message || 'Error al cargar los datos del dashboard'}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => refetch()} className="bg-blue-600 hover:bg-blue-700">
             Reintentar
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -194,7 +171,7 @@ export function AdminDashboard() {
         {/* Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>distribución total</CardTitle>
+            <CardTitle>Distribución total</CardTitle>
             <CardDescription>Por estado de cita</CardDescription>
           </CardHeader>
           <CardContent>
@@ -227,12 +204,12 @@ export function AdminDashboard() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Próximas citas de hoy</CardTitle>
-            <CardDescription>Agenda del dóa en curso</CardDescription>
+            <CardDescription>Agenda del día en curso</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData.proximasCitas.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No hay citas programadas para el resto del dóa
+                No hay citas programadas para el resto del día
               </div>
             ) : (
               <div className="overflow-x-auto">

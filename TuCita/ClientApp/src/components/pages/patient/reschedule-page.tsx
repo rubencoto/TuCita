@@ -17,28 +17,24 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useReschedulePatientAppointment } from '@/hooks/queries';
+import type { AgendaTurno } from '@/services/api/doctor/doctorsService';
 
 interface ReschedulePageProps {
   appointment: any;
   onNavigate: (page: string, data?: any) => void;
-  onRescheduleAppointment: (appointmentId: string, newTurnoId: number) => Promise<boolean>;
-}
-
-interface TimeSlot {
-  time: string;
-  available: boolean;
-  id: string;
 }
 
 export function ReschedulePage({ 
   appointment, 
-  onNavigate, 
-  onRescheduleAppointment 
+  onNavigate
 }: ReschedulePageProps) {
-  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slot: TimeSlot } | null>(null);
-  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; slot: AgendaTurno } | null>(null);
   const [rescheduleConfirmed, setRescheduleConfirmed] = useState(false);
   const [newAppointmentData, setNewAppointmentData] = useState<any>(null);
+
+  // ? REACT QUERY: Use reschedule mutation
+  const rescheduleMutation = useReschedulePatientAppointment();
 
   if (!appointment) {
     return (
@@ -56,54 +52,47 @@ export function ReschedulePage({
     );
   }
 
-  const handleSlotSelect = (date: Date, timeSlot: TimeSlot) => {
+  const handleSlotSelect = (date: Date, timeSlot: AgendaTurno) => {
     setSelectedSlot({ date, slot: timeSlot });
   };
 
   const handleConfirmReschedule = async () => {
     if (!selectedSlot) return;
 
-    setIsRescheduling(true);
-    
-    try {
-      // Convertir el ID del slot a número (turnoId)
-      const newTurnoId = parseInt(selectedSlot.slot.id);
-      
-      // Llamar al servicio de reagendamiento
-      const success = await onRescheduleAppointment(appointment.id, newTurnoId);
-      
-      if (success) {
-        const newDate = selectedSlot.date.toLocaleDateString('es-ES', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        });
-        const newTime = selectedSlot.slot.time;
+    const newDate = selectedSlot.date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const newTime = selectedSlot.slot.time;
 
-        setNewAppointmentData({
-          date: newDate,
-          time: newTime
-        });
-
-        setRescheduleConfirmed(true);
-        
-        toast.success('¡Cita reagendada exitosamente!', {
-          description: `Tu cita con ${appointment.doctorName} ha sido reagendada para el ${newDate} a las ${newTime}.`,
-        });
-      } else {
-        toast.error('Error al reagendar la cita', {
-          description: 'No se pudo reagendar la cita. Por favor, intenta de nuevo.',
-        });
+    // ? REACT QUERY: Use mutation instead of callback prop
+    rescheduleMutation.mutate(
+      {
+        appointmentId: Number(appointment.id),
+        newTurnoId: selectedSlot.slot.id  // ? Already a number, no need to parseInt
+      },
+      {
+        onSuccess: () => {
+          setNewAppointmentData({
+            date: newDate,
+            time: newTime
+          });
+          setRescheduleConfirmed(true);
+          
+          toast.success('¡Cita reagendada exitosamente!', {
+            description: `Tu cita con ${appointment.doctorName} ha sido reagendada para el ${newDate} a las ${newTime}.`,
+          });
+        },
+        onError: (error: any) => {
+          console.error('Error al reagendar cita:', error);
+          toast.error('Error al reagendar la cita', {
+            description: error.message || 'No se pudo reagendar la cita. Por favor, intenta de nuevo.',
+          });
+        }
       }
-    } catch (error) {
-      console.error('Error al reagendar cita:', error);
-      toast.error('Error al reagendar la cita', {
-        description: 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
-      });
-    } finally {
-      setIsRescheduling(false);
-    }
+    );
   };
 
   const handleCancel = () => {
@@ -404,12 +393,11 @@ export function ReschedulePage({
                     <div className="flex flex-col sm:flex-row gap-4">
                       <Button
                         onClick={handleConfirmReschedule}
-                        disabled={isRescheduling}
+                        disabled={rescheduleMutation.isPending}
                         className="flex-1"
                       >
-                        {isRescheduling ? (
+                        {rescheduleMutation.isPending ? (
                           <>
-
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             Reagendando...
                           </>
@@ -423,7 +411,7 @@ export function ReschedulePage({
                       <Button
                         variant="outline"
                         onClick={handleCancel}
-                        disabled={isRescheduling}
+                        disabled={rescheduleMutation.isPending}
                       >
                         Cancelar
                       </Button>

@@ -21,9 +21,10 @@ import {
   TrendingUp,
   Loader2
 } from 'lucide-react';
-import doctorAppointmentsService, { DoctorAppointment, DashboardStats } from '@/services/api/doctor/doctorAppointmentsService';
 import { toast } from 'sonner';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
+import { useTodayAppointments } from '@/hooks/queries/useAppointments';
+import { DoctorAppointment } from '@/services/api/doctor/doctorAppointmentsService';
 
 interface DoctorDashboardPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -32,14 +33,13 @@ interface DoctorDashboardPageProps {
 
 export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [todayAppointments, setTodayAppointments] = useState<DoctorAppointment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats>({
-    total: 0,
-    completed: 0,
-    pending: 0,
-    cancelled: 0,
-  });
+
+  // 🎯 React Query: Reemplaza useState + useEffect + loadTodayAppointments
+  const { data, isLoading, isError, error } = useTodayAppointments();
+
+  // Extraer datos de React Query
+  const todayAppointments = data?.appointments || [];
+  const stats = data?.stats || { total: 0, completed: 0, pending: 0, cancelled: 0 };
 
   // Obtener nombre del doctor desde localStorage
   const getDoctorName = () => {
@@ -62,25 +62,13 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
     return () => clearInterval(timer);
   }, []);
 
+  // 🚨 Manejo de errores con React Query
   useEffect(() => {
-    loadTodayAppointments();
-  }, []);
-
-  const loadTodayAppointments = async () => {
-    setLoading(true);
-    try {
-      const appointments = await doctorAppointmentsService.getTodayAppointments();
-      setTodayAppointments(appointments);
-      const calculatedStats = doctorAppointmentsService.calculateDashboardStats(appointments);
-      setStats(calculatedStats);
-    } catch (error: any) {
+    if (isError) {
       console.error('Error al cargar citas del día:', error);
       toast.error('Error al cargar las citas del día');
-      setTodayAppointments([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [isError, error]);
 
   const getNextAppointment = () => {
     const now = currentTime;
@@ -211,7 +199,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Total del día</p>
-                    <p className="text-3xl font-bold text-gray-900">{loading ? '-' : stats.total}</p>
+                    <p className="text-3xl font-bold text-gray-900">{isLoading ? '-' : stats.total}</p>
                   </div>
                   <div className="bg-[#2E8BC0]/10 p-3 rounded-xl">
                     <Calendar className="h-6 w-6 text-[#2E8BC0]" />
@@ -225,7 +213,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-green-700 mb-1">Completadas</p>
-                    <p className="text-3xl font-bold text-green-900">{loading ? '-' : stats.completed}</p>
+                    <p className="text-3xl font-bold text-green-900">{isLoading ? '-' : stats.completed}</p>
                   </div>
                   <div className="bg-green-500 p-3 rounded-xl">
                     <CheckCircle2 className="h-6 w-6 text-white" />
@@ -239,7 +227,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-blue-700 mb-1">Pendientes</p>
-                    <p className="text-3xl font-bold text-blue-900">{loading ? '-' : stats.pending}</p>
+                    <p className="text-3xl font-bold text-blue-900">{isLoading ? '-' : stats.pending}</p>
                   </div>
                   <div className="bg-blue-500 p-3 rounded-xl">
                     <AlertCircle className="h-6 w-6 text-white" />
@@ -253,7 +241,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-red-700 mb-1">Canceladas</p>
-                    <p className="text-3xl font-bold text-red-900">{loading ? '-' : stats.cancelled}</p>
+                    <p className="text-3xl font-bold text-red-900">{isLoading ? '-' : stats.cancelled}</p>
                   </div>
                   <div className="bg-red-500 p-3 rounded-xl">
                     <XCircle className="h-6 w-6 text-white" />
@@ -275,13 +263,13 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {isLoading ? (
                   <LoadingState />
                 ) : todayAppointments.length === 0 ? (
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 font-medium">No hay citas programadas para hoy</p>
-                    <p className="text-sm text-gray-500 mt-2">Las citas aparecerán aquá cuando están agendadas</p>
+                    <p className="text-sm text-gray-500 mt-2">Las citas aparecerán aquí cuando están agendadas</p>
                   </div>
                 ) : (
                   <Table>
@@ -339,7 +327,7 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
 
           {/* Sidebar - Próxima cita */}
           <div className="space-y-6">
-            {loading ? (
+            {isLoading ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-3" />
@@ -375,7 +363,6 @@ export function DoctorDashboardPage({ onNavigate, onLogout }: DoctorDashboardPag
                     <Button 
                       className="w-full bg-white text-[#2E8BC0] hover:bg-gray-100"
                       onClick={() => onNavigate('doctor-appointment-detail', { appointmentId: nextAppointment.id })}
-
                     >
                       Ver detalles
                     </Button>

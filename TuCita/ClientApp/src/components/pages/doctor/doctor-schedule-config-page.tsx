@@ -10,6 +10,8 @@ import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
 import { WeeklyScheduleBuilder } from '@/components/pages/doctor/weekly-schedule-builder';
 import * as availabilityService from '@/services/api/doctor/doctorAvailabilityService';
 import type { WeeklyTimeSlot } from '@/services/api/doctor/doctorAvailabilityService';
+import { useBulkCreateDoctorSlots } from '@/hooks/queries';
+import doctorAuthService from '@/services/api/auth/doctorAuthService';
 
 interface DoctorScheduleConfigPageProps {
   onNavigate: (page: string) => void;
@@ -24,7 +26,13 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
     const range = availabilityService.getNextMonthRange();
     return range;
   });
-  const [submitting, setSubmitting] = useState(false);
+
+  // 🎯 Obtener ID del doctor desde el servicio de autenticación
+  const currentDoctor = doctorAuthService.getCurrentDoctor();
+  const doctorId = currentDoctor?.id?.toString() || '';
+
+  // 🎯 REACT QUERY: Mutation para crear slots en lote
+  const bulkCreateSlots = useBulkCreateDoctorSlots();
 
   const handleBulkCreate = async () => {
     // Validar que hay al menos un día configurado
@@ -34,33 +42,21 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const result = await availabilityService.bulkCreateSlots({
-        doctorId: 'DOC-001',
+    // ✅ USAR MUTATION de React Query
+    bulkCreateSlots.mutate(
+      {
+        doctorId,
         fechaInicio: bulkDateRange.start,
         fechaFin: bulkDateRange.end,
         horarioSemanal: bulkSchedule,
-      });
-
-      toast.success(`${result.slotsCreados} horarios creados correctamente`, {
-        description: result.errores.length > 0 
-          ? `${result.errores.length} conflictos encontrados` 
-          : undefined
-      });
-
-      if (result.errores.length > 0) {
-        console.warn('Errores en creación masiva:', result.errores);
+      },
+      {
+        onSuccess: () => {
+          // Volver a la página de disponibilidad
+          onNavigate('doctor-availability');
+        }
       }
-
-      // Volver a la página de disponibilidad
-      onNavigate('doctor-availability');
-    } catch (error: any) {
-      console.error('Error creating bulk slots:', error);
-      toast.error(error.message || 'Error al crear horarios masivos');
-    } finally {
-      setSubmitting(false);
-    }
+    );
   };
 
   const estimatedSlots = (() => {
@@ -71,6 +67,9 @@ export function DoctorScheduleConfigPage({ onNavigate, onLogout }: DoctorSchedul
     const weeksCount = Math.ceil(days / 7);
     return Math.min(totalSlots * weeksCount, totalSlots * days);
   })();
+
+  // ✅ Estado de submitting desde React Query
+  const submitting = bulkCreateSlots.isPending;
 
   return (
     <DoctorLayout 

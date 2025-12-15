@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,40 +20,33 @@ import {
   Eye,
   EyeOff,
   Calendar,
-  Settings
+  Settings,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import profileService from '@/services/api/patient/profileService';
-import type { AuthResponse } from '@/services/api/auth/authService';
+import { usePatientProfile, useUpdatePatientProfile, useChangePassword } from '@/hooks/queries';
 
-interface ProfilePageProps {
-  user: any;
-  onUpdateUser: (userData: any) => void;
-}
-
-export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
+export function ProfilePage({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // ✅ REACT QUERY: Fetch profile
+  const { data: profile, isLoading: loadingProfile } = usePatientProfile();
   
-  const [originalInfo, setOriginalInfo] = useState({
+  // ✅ REACT QUERY: Update profile mutation
+  const updateProfile = useUpdatePatientProfile();
+  
+  // ✅ REACT QUERY: Change password mutation
+  const changePassword = useChangePassword();
+  
+  const [personalInfo, setPersonalInfo] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    birthDate: '',
-    identification: '',
-    emergencyPhone: '',
-  });
-
-  const [personalInfo, setPersonalInfo] = useState({
-    firstName: user.name.split(' ')[0] || '',
-    lastName: user.name.split(' ').slice(1).join(' ') || '',
-    email: user.email || '',
-    phone: user.phone || '',
     birthDate: '',
     identification: '',
     emergencyPhone: '',
@@ -71,16 +64,10 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
     appointmentConfirmations: true,
   });
 
-  // Cargar perfil completo al montar el componente
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      const profile = await profileService.getProfile();
-      
-      const profileData = {
+  // Update personalInfo when profile loads
+  React.useEffect(() => {
+    if (profile) {
+      setPersonalInfo({
         firstName: profile.nombre || '',
         lastName: profile.apellido || '',
         email: profile.email || '',
@@ -88,21 +75,14 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
         birthDate: profile.fechaNacimiento || '',
         identification: profile.identificacion || '',
         emergencyPhone: profile.telefonoEmergencia || '',
-      };
-
-      setPersonalInfo(profileData);
-      setOriginalInfo(profileData);
-    } catch (error) {
-      console.error('Error al cargar perfil:', error);
-      toast.error('Error al cargar el perfil');
+      });
     }
-  };
+  }, [profile]);
 
   const handleSavePersonalInfo = async () => {
-    setIsLoading(true);
-    
-    try {
-      const response = await profileService.updateProfile({
+    // ✅ REACT QUERY: Use mutation instead of service
+    updateProfile.mutate(
+      {
         nombre: personalInfo.firstName,
         apellido: personalInfo.lastName,
         email: personalInfo.email,
@@ -110,27 +90,16 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
         fechaNacimiento: personalInfo.birthDate || undefined,
         identificacion: personalInfo.identification || undefined,
         telefonoEmergencia: personalInfo.emergencyPhone || undefined,
-      });
-      
-      // Actualizar el contexto del usuario en la aplicación
-      if (response.user) {
-        onUpdateUser(response.user);
+      },
+      {
+        onSuccess: () => {
+          setIsEditing(false);
+          toast.success('Información personal actualizada', {
+            description: 'Tus datos han sido guardados exitosamente.',
+          });
+        }
       }
-
-      setOriginalInfo(personalInfo);
-      
-      setIsEditing(false);
-      
-      toast.success('Información personal actualizada', {
-        description: 'Tus datos han sido guardados exitosamente.',
-      });
-    } catch (error: any) {
-      toast.error('Error al actualizar', {
-        description: error.message || 'No se pudo actualizar la información.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
   const handleChangePassword = async () => {
@@ -144,31 +113,27 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      await profileService.changePassword({
+    // ✅ REACT QUERY: Use mutation instead of service
+    changePassword.mutate(
+      {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
         confirmPassword: passwordForm.confirmPassword,
-      });
-
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      
-      toast.success('Contraseña actualizada', {
-        description: 'Tu contraseña ha sido cambiada exitosamente.',
-      });
-    } catch (error: any) {
-      toast.error('Error al cambiar contraseña', {
-        description: error.message || 'No se pudo cambiar la contraseña.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          setPasswordForm({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          });
+          
+          toast.success('Contraseña actualizada', {
+            description: 'Tu contraseña ha sido cambiada exitosamente.',
+          });
+        }
+      }
+    );
   };
 
   const handleSaveNotifications = () => {
@@ -176,6 +141,34 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
       description: 'Tus preferencias han sido actualizadas.',
     });
   };
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">No se pudo cargar el perfil</p>
+            <Button onClick={() => window.location.reload()}>
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const fullName = `${profile.nombre || ''} ${profile.apellido || ''}`.trim();
 
   return (
     <div className="min-h-screen bg-muted">
@@ -196,8 +189,8 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
               <div className="relative">
                 <ImageWithFallback
-                  src={user.avatar}
-                  alt={user.name}
+                  src=""
+                  alt={fullName}
                   className="w-24 h-24 rounded-full object-cover"
                 />
                 <button className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors">
@@ -207,16 +200,16 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
               
               <div className="text-center sm:text-left flex-1">
                 <h2 className="text-2xl font-semibold text-foreground">
-                  {user.name}
+                  {fullName}
                 </h2>
-                <p className="text-muted-foreground">{user.email}</p>
+                <p className="text-muted-foreground">{profile.email}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Miembro desde octubre 2024
+                  Miembro desde {profile.creadoEn ? new Date(profile.creadoEn).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'octubre 2024'}
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => onNavigate?.('medical-history')}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Ver Historial
                 </Button>
@@ -255,7 +248,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(!isEditing)}
-                  disabled={isLoading}
+                  disabled={updateProfile.isPending}
                 >
                   {isEditing ? 'Cancelar' : 'Editar'}
                 </Button>
@@ -268,8 +261,8 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       id="firstName"
                       value={personalInfo.firstName}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, firstName: e.target.value }))}
-                      disabled={!isEditing || isLoading}
-                      placeholder={originalInfo.firstName || 'Ingresa tu nombre'}
+                      disabled={!isEditing || updateProfile.isPending}
+                      placeholder="Ingresa tu nombre"
                     />
                   </div>
                   <div className="space-y-2">
@@ -278,8 +271,8 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       id="lastName"
                       value={personalInfo.lastName}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, lastName: e.target.value }))}
-                      disabled={!isEditing || isLoading}
-                      placeholder={originalInfo.lastName || 'Ingresa tus apellidos'}
+                      disabled={!isEditing || updateProfile.isPending}
+                      placeholder="Ingresa tus apellidos"
                     />
                   </div>
                 </div>
@@ -293,9 +286,9 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                       type="email"
                       value={personalInfo.email}
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, email: e.target.value }))}
-                      disabled={!isEditing || isLoading}
+                      disabled={!isEditing || updateProfile.isPending}
                       className="pl-10"
-                      placeholder={originalInfo.email || 'correo@ejemplo.com'}
+                      placeholder="correo@ejemplo.com"
                     />
                   </div>
                 </div>
@@ -306,7 +299,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     id="phone"
                     value={personalInfo.phone}
                     onChange={(value) => setPersonalInfo(prev => ({ ...prev, phone: value }))}
-                    disabled={!isEditing || isLoading}
+                    disabled={!isEditing || updateProfile.isPending}
                   />
                 </div>
 
@@ -317,7 +310,7 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     type="date"
                     value={personalInfo.birthDate}
                     onChange={(e) => setPersonalInfo(prev => ({ ...prev, birthDate: e.target.value }))}
-                    disabled={!isEditing || isLoading}
+                    disabled={!isEditing || updateProfile.isPending}
                   />
                 </div>
 
@@ -328,8 +321,8 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     type="text"
                     value={personalInfo.identification}
                     onChange={(e) => setPersonalInfo(prev => ({ ...prev, identification: e.target.value }))}
-                    disabled={!isEditing || isLoading}
-                    placeholder={originalInfo.identification || 'Cédula o pasaporte'}
+                    disabled={!isEditing || updateProfile.isPending}
+                    placeholder="Cédula o pasaporte"
                   />
                 </div>
 
@@ -339,17 +332,26 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                     id="emergencyPhone"
                     value={personalInfo.emergencyPhone}
                     onChange={(value) => setPersonalInfo(prev => ({ ...prev, emergencyPhone: value }))}
-                    disabled={!isEditing || isLoading}
+                    disabled={!isEditing || updateProfile.isPending}
                   />
                 </div>
 
                 {isEditing && (
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleSavePersonalInfo} disabled={isLoading}>
-                      <Save className="h-4 w-4 mr-2" />
-                      {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                    <Button onClick={handleSavePersonalInfo} disabled={updateProfile.isPending}>
+                      {updateProfile.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar Cambios
+                        </>
+                      )}
                     </Button>
-                    <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isLoading}>
+                    <Button variant="outline" onClick={() => setIsEditing(false)} disabled={updateProfile.isPending}>
                       Cancelar
                     </Button>
                   </div>
@@ -378,14 +380,14 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                           value={passwordForm.currentPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                           className="pl-10 pr-10"
-                          disabled={isLoading}
+                          disabled={changePassword.isPending}
                           placeholder="Ingresa tu contraseña actual"
                         />
                         <button
                           type="button"
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          disabled={isLoading}
+                          disabled={changePassword.isPending}
                         >
                           {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -403,13 +405,13 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                           className="pl-10 pr-10"
                           placeholder="Mínimo 8 caracteres"
-                          disabled={isLoading}
+                          disabled={changePassword.isPending}
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          disabled={isLoading}
+                          disabled={changePassword.isPending}
                         >
                           {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -426,22 +428,29 @@ export function ProfilePage({ user, onUpdateUser }: ProfilePageProps) {
                           value={passwordForm.confirmPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                           className="pl-10 pr-10"
-                          disabled={isLoading}
+                          disabled={changePassword.isPending}
                           placeholder="Repite tu nueva contraseña"
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          disabled={isLoading}
+                          disabled={changePassword.isPending}
                         >
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
 
-                    <Button onClick={handleChangePassword} disabled={isLoading}>
-                      {isLoading ? 'Cambiando...' : 'Cambiar Contraseña'}
+                    <Button onClick={handleChangePassword} disabled={changePassword.isPending}>
+                      {changePassword.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Cambiando...
+                        </>
+                      ) : (
+                        'Cambiar Contraseña'
+                      )}
                     </Button>
                   </div>
                 </div>

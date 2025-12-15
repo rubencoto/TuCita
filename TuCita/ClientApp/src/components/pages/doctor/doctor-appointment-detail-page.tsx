@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +44,7 @@ import { ImageWithFallback } from '@/components/common/ImageWithFallback';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import doctorAppointmentsService from '@/services/api/doctor/doctorAppointmentsService';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
+import { useAppointmentDetail, useUpdateAppointmentStatus } from '@/hooks/queries';
 
 interface DoctorAppointmentDetailPageProps {
   appointmentId: number;
@@ -59,11 +60,18 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
   const [showDocumentForm, setShowDocumentForm] = useState(false);
   
-  // Estados para datos del backend
-  const [loading, setLoading] = useState(true);
+  // ✅ REACT QUERY: Reemplazar useState + useEffect con hooks
+  const { 
+    data: appointmentDetail, 
+    isLoading: loading, 
+    isError, 
+    error: queryError,
+    refetch 
+  } = useAppointmentDetail(appointmentId);
+  
+  const updateStatus = useUpdateAppointmentStatus();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [appointmentDetail, setAppointmentDetail] = useState<any>(null);
+  const error = queryError ? (queryError as Error).message : null;
 
   // Estados para el modal de completar cita
   const [showCompleteAppointmentModal, setShowCompleteAppointmentModal] = useState(false);
@@ -128,41 +136,6 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
     selectedFile: null as File | null
   });
 
-  // Cargar datos de la cita al montar el componente
-  useEffect(() => {
-    loadAppointmentDetail();
-  }, [appointmentId]);
-
-  const loadAppointmentDetail = async () => {
-    console.log('🔄 [loadAppointmentDetail] Iniciando carga de datos');
-    console.log('📋 appointmentId:', appointmentId);
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log('🌐 Llamando a getAppointmentDetail...');
-      const detail = await doctorAppointmentsService.getAppointmentDetail(appointmentId);
-      console.log('✅ Datos recibidos del backend:', detail);
-      console.log('📊 Estado de la cita:', detail?.estado);
-      console.log('📊 Diagnósticos:', detail?.diagnosticos?.length || 0);
-      console.log('📊 Notas clínicas:', detail?.notasClinicas?.length || 0);
-      console.log('📊 Recetas:', detail?.recetas?.length || 0);
-      console.log('📊 Documentos:', detail?.documentos?.length || 0);
-      
-      setAppointmentDetail(detail);
-      console.log('✅ Estado local actualizado con datos del backend');
-    } catch (err: any) {
-      console.error('❌ Error al cargar detalle de cita:', err);
-      console.error('❌ Error response:', err.response);
-      setError(err.message || 'Error al cargar el detalle de la cita');
-      toast.error('Error al cargar el detalle de la cita');
-    } finally {
-      setLoading(false);
-      console.log('✅ loadAppointmentDetail finalizado');
-    }
-  };
-
   const statusConfig = {
     CONFIRMADA: { 
       label: 'Confirmada', 
@@ -216,55 +189,27 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
   const canAddToHistory = currentStatus === 'EN_PROGRESO' || currentStatus === 'ATENDIDA';
 
   const handleStatusChange = async (newStatus: string) => {
-    console.log('🔄 [handleStatusChange] Iniciando cambio de estado');
-    console.log('📊 Estado actual:', currentStatus);
-    console.log('📊 Nuevo estado:', newStatus);
-    console.log('📊 appointmentDetail actual:', appointmentDetail);
-    
     // Si el nuevo estado es ATENDIDA, mostrar el modal para agregar información al historial
     if (newStatus === 'ATENDIDA' && currentStatus !== 'ATENDIDA') {
-      console.log('✅ Mostrando modal de completar cita');
       setShowCompleteAppointmentModal(true);
       return;
     }
 
-    // Para otros estados, actualizar directamente
+    // Para otros estados, actualizar directamente con React Query
     try {
       setSaving(true);
-      console.log('💾 Guardando cambio de estado...');
       
-      // IMPORTANTE: Actualizar el estado local INMEDIATAMENTE para evitar parpadeo
-      const previousState = appointmentDetail?.estado;
-      setAppointmentDetail((prev: any) => ({
-        ...prev,
-        estado: newStatus
-      }));
-      console.log('✅ Estado local actualizado a:', newStatus);
-      
-      // Llamar al backend para guardar el cambio
-      console.log('🌐 Llamando a updateAppointmentStatus...');
-      await doctorAppointmentsService.updateAppointmentStatus(appointmentId, {
-        estado: newStatus
+      // ✅ USAR MUTATION de React Query
+      updateStatus.mutate({
+        citaId: appointmentId,
+        data: { estado: newStatus }
       });
-      console.log('✅ Backend respondió exitosamente');
       
       toast.success(`Estado actualizado a: ${statusConfig[newStatus as keyof typeof statusConfig]?.label}`);
-      
-      // Recargar los datos de la cita para asegurarse que todo está sincronizado
-      console.log('🔄 Recargando datos desde el backend...');
-      await loadAppointmentDetail();
-      console.log('✅ Datos recargados exitosamente');
     } catch (err: any) {
-      console.error('❌ Error al actualizar estado:', err);
-      console.error('❌ Error response:', err.response);
       toast.error(err.message || 'Error al actualizar el estado de la cita');
-      
-      // En caso de error, recargar para revertir el cambio local
-      console.log('🔄 Revirtiendo cambios debido a error...');
-      await loadAppointmentDetail();
     } finally {
       setSaving(false);
-      console.log('✅ handleStatusChange finalizado');
     }
   };
 
@@ -357,14 +302,10 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         toast.success('Receta guardada');
       }
 
-      // 4. Actualizar estado a ATENDIDA (actualizar local PRIMERO)
-      setAppointmentDetail((prev: any) => ({
-        ...prev,
-        estado: 'ATENDIDA'
-      }));
-      
-      await doctorAppointmentsService.updateAppointmentStatus(appointmentId, {
-        estado: 'ATENDIDA'
+      // 4. Actualizar estado a ATENDIDA usando mutation
+      updateStatus.mutate({
+        citaId: appointmentId,
+        data: { estado: 'ATENDIDA' }
       });
       
       toast.success('Cita completada exitosamente');
@@ -380,14 +321,12 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
         receta: { indicaciones: '', medicamentos: [] }
       });
       
-      // Recargar los datos de la cita para sincronizar con el backend
-      await loadAppointmentDetail();
+      // ✅ React Query: refetch automático
+      refetch();
     } catch (err: any) {
       console.error('Error al completar cita:', err);
       toast.error(err.message || 'Error al completar la cita');
-      
-      // En caso de error, recargar para revertir cambios locales
-      await loadAppointmentDetail();
+      refetch();
     } finally {
       setSaving(false);
     }
@@ -412,7 +351,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       setDiagnosisForm({ codigo: '', descripcion: '' });
       
       // Recargar los datos de la cita
-      await loadAppointmentDetail();
+      await refetch();
     } catch (err: any) {
       console.error('Error al guardar diagnóstico:', err);
       toast.error(err.message || 'Error al guardar el diagnóstico');
@@ -439,7 +378,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       setNoteForm({ contenido: '' });
       
       // Recargar los datos de la cita
-      await loadAppointmentDetail();
+      await refetch();
     } catch (err: any) {
       console.error('Error al guardar nota:', err);
       toast.error(err.message || 'Error al guardar la nota clínica');
@@ -500,7 +439,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       setPrescriptionForm({ indicaciones: '', medicamentos: [] });
       
       // Recargar los datos de la cita
-      await loadAppointmentDetail();
+      await refetch();
     } catch (err: any) {
       console.error('Error al guardar receta:', err);
       toast.error(err.message || 'Error al guardar la receta');
@@ -558,7 +497,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
       setDocumentForm({ categoria: 'LAB', notas: '', etiquetas: '', selectedFile: null });
       
       // Recargar los datos de la cita
-      await loadAppointmentDetail();
+      await refetch();
     } catch (err: any) {
       console.error('❌ Error al subir documento:', err);
       toast.error(err.message || 'Error al subir el documento');
@@ -623,7 +562,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                 <Button onClick={() => onNavigate('doctor-appointments')} variant="outline">
                   Volver a citas
                 </Button>
-                <Button onClick={loadAppointmentDetail}>
+                <Button onClick={refetch}>
                   Reintentar
                 </Button>
               </div>
@@ -655,7 +594,7 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                 Completar Cita
               </DialogTitle>
               <DialogDescription>
-                Agrega la información médica relevante antes de marcar la cita como atendida. Puedes seleccionar quê información deseas registrar.
+                Agrega la información médica relevante antes de marcar la cita como atendida. Puedes seleccionarquê información deseas registrar.
               </DialogDescription>
             </DialogHeader>
 
@@ -863,6 +802,12 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                                   </Button>
                                 </div>
                               ))}
+
+                              {completeAppointmentData.receta.medicamentos.length > 3 && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Y {completeAppointmentData.receta.medicamentos.length - 3} medicamento(s) más...
+                                </p>
+                              )}
                             </div>
                           </div>
                         )}
@@ -1359,525 +1304,6 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
                             </CardContent>
                           </Card>
                         )}
-
-                        <Separator />
-
-                        {/* Timeline de notas */}
-                        {notasClinicas.length === 0 ? (
-                          <div className="text-center py-12">
-                            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-1">Sin notas clínicas</p>
-                            <p className="text-sm text-gray-500">
-                              Las notas de la consulta aparecerán aquá
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-6 relative">
-                            {/* Lánea vertical del timeline */}
-                            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-[#2E8BC0]/20"></div>
-                          
-                            {notasClinicas.map((note: any) => (
-                              <div key={note.id} className="relative pl-10">
-                                {/* Punto del timeline */}
-                                <div className="absolute left-0 top-1 w-6 h-6 bg-[#2E8BC0] rounded-full border-4 border-white"></div>
-                              
-                                <Card>
-                                  <CardContent className="p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm font-medium text-[#2E8BC0]">
-                                        {new Date(note.fecha).toLocaleString('es-ES', {
-                                          weekday: 'long',
-                                          day: 'numeric',
-                                          month: 'long',
-                                          year: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
-                                      </p>
-                                    </div>
-                                    <p className="text-gray-700 leading-relaxed">{note.contenido}</p>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Sub-tab: Recetas */}
-                  <TabsContent value="recetas">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Medicamentos Recetados</CardTitle>
-                            <CardDescription>
-                              Prescripciones médicas con indicaciones detalladas
-                            </CardDescription>
-                          </div>
-                          {canAddToHistory && (
-                            <Button onClick={() => setShowPrescriptionForm(!showPrescriptionForm)} disabled={saving}>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Nueva Receta
-                            </Button>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Alerta de acceso disponible */}
-                        {canAddToHistory && !showPrescriptionForm && (
-                          <Alert className="bg-green-50 border-green-200">
-                            <Pill className="h-4 w-4 text-green-600" />
-                            <AlertDescription className="text-green-800">
-                              <div className="flex items-center justify-between">
-                                <span>Puedes prescribir medicamentos en esta cita</span>
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => setShowPrescriptionForm(true)}
-                                  className="bg-green-600 hover:bg-green-700 ml-2"
-                                >
-                                  <Plus className="h-3 w-3 mr-1" />
-                                  Agregar Ahora
-                                </Button>
-                              </div>
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        {showPrescriptionForm && canAddToHistory && (
-                          <Card className="border-2 border-[#2E8BC0] bg-blue-50/30">
-                            <CardContent className="pt-6 space-y-4">
-                              <div>
-                                <Label htmlFor="indicaciones">Indicaciones Generales (opcional)</Label>
-                                <Textarea
-                                  id="indicaciones"
-                                  placeholder="Instrucciones generales sobre el tratamiento, precauciones especiales, recomendaciones de estilo de vida..."
-                                  value={prescriptionForm.indicaciones}
-                                  onChange={(e) => setPrescriptionForm({ ...prescriptionForm, indicaciones: e.target.value })}
-                                  rows={2}
-                                  disabled={saving}
-                                />
-                              </div>
-
-                              <Separator />
-
-                              <div>
-                                <h4 className="font-semibold mb-4 flex items-center">
-                                  <Pill className="h-4 w-4 mr-2 text-[#2E8BC0]" />
-                                  Agregar Medicamentos
-                                </h4>
-                                
-                                <div className="space-y-3 mb-4">
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <Label htmlFor="medicamento">Medicamento *</Label>
-                                      <Input
-                                        id="medicamento"
-                                        placeholder="Nombre genérico o comercial"
-                                        value={currentMedicamento.medicamento}
-                                        onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, medicamento: e.target.value })}
-                                        disabled={saving}
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor="dosis">Dosis</Label>
-                                      <Input
-                                        id="dosis"
-                                        placeholder="Ej: 500mg, 10ml"
-                                        value={currentMedicamento.dosis}
-                                        onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, dosis: e.target.value })}
-                                        disabled={saving}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <Label htmlFor="frecuencia">Frecuencia</Label>
-                                      <Input
-                                        id="frecuencia"
-                                        placeholder="Ej: Cada 8 horas"
-                                        value={currentMedicamento.frecuencia}
-                                        onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, frecuencia: e.target.value })}
-                                        disabled={saving}
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor="duracion">Duración</Label>
-                                      <Input
-                                        id="duracion"
-                                        placeholder="Ej: 7 días"
-                                        value={currentMedicamento.duracion}
-                                        onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, duracion: e.target.value })}
-                                        disabled={saving}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <Label htmlFor="notas_med">Notas</Label>
-                                    <Input
-                                      id="notas_med"
-                                      placeholder="Instrucciones especiales para este medicamento"
-                                      value={currentMedicamento.notas}
-                                      onChange={(e) => setCurrentMedicamento({ ...currentMedicamento, notas: e.target.value })}
-                                      disabled={saving}
-                                    />
-                                  </div>
-
-                                  <Button type="button" variant="outline" onClick={handleAddMedicamento} className="w-full" disabled={saving}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Agregar a la lista
-                                  </Button>
-                                </div>
-
-                                {/* Lista de medicamentos agregados */}
-                                {prescriptionForm.medicamentos.length > 0 && (
-                                  <div className="border rounded-lg p-4 bg-white">
-                                    <h5 className="font-medium mb-3">Medicamentos en esta receta:</h5>
-                                    <div className="space-y-2">
-                                      {prescriptionForm.medicamentos.map((med, index) => (
-                                        <div key={index} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-                                          <div className="flex-1">
-                                            <p className="font-semibold text-gray-900">{med.medicamento}</p>
-                                            <p className="text-sm text-gray-600">
-                                              {med.dosis && `${med.dosis} á `}
-                                              {med.frecuencia && `${med.frecuencia} á `}
-                                              {med.duracion && med.duracion}
-                                            </p>
-                                            {med.notas && (
-                                              <p className="text-xs text-gray-500 mt-1">{med.notas}</p>
-                                            )}
-                                          </div>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRemoveMedicamento(index)}
-                                            disabled={saving}
-                                          >
-                                            <Trash2 className="h-4 w-4 text-red-600" />
-                                          </Button>
-                                        </div>
-                                      ))}
-
-                                      {prescriptionForm.medicamentos.length > 3 && (
-                                        <p className="text-xs text-gray-500 mt-2">
-                                          Y {prescriptionForm.medicamentos.length - 3} medicamento(s) más...
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex gap-2">
-                                <Button onClick={handleSavePrescription} className="bg-[#2E8BC0]" disabled={saving}>
-                                  {saving ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Guardando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Save className="h-4 w-4 mr-2" />
-                                      Guardar Receta
-                                    </>
-                                  )}
-                                </Button>
-                                <Button variant="outline" onClick={() => {
-                                  setShowPrescriptionForm(false);
-                                  setPrescriptionForm({ indicaciones: '', medicamentos: [] });
-                                }} disabled={saving}>
-                                  Cancelar
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        <Separator />
-
-                        {/* Lista de recetas */}
-                        {recetas.length === 0 ? (
-                          <div className="text-center py-12">
-                            <Pill className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-1">Sin recetas registradas</p>
-                            <p className="text-sm text-gray-500">
-                              Las prescripciones médicas aparecerán aquá
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {recetas.map((prescription: any) => (
-                              <Card key={prescription.id} className="border-l-4 border-l-[#2E8BC0]">
-                                <CardContent className="p-4">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className="bg-[#2E8BC0]/10 p-2 rounded-lg">
-                                        <Pill className="h-5 w-5 text-[#2E8BC0]" />
-                                      </div>
-                                      <div>
-                                        <p className="font-semibold">Receta #{prescription.id}</p>
-                                        <p className="text-sm text-gray-500">
-                                          {new Date(prescription.fecha).toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric'
-                                          })}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {prescription.indicaciones && (
-                                    <Alert className="mb-4 bg-blue-50 border-blue-200">
-                                      <AlertCircle className="h-4 w-4 text-blue-600" />
-                                      <AlertDescription className="text-blue-800">
-                                        {prescription.indicaciones}
-                                      </AlertDescription>
-                                    </Alert>
-                                  )}
-
-                                  <div className="border rounded-lg overflow-hidden">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow className="bg-gray-50">
-                                          <TableHead>Medicamento</TableHead>
-                                          <TableHead>Dosis</TableHead>
-                                          <TableHead>Frecuencia</TableHead>
-                                          <TableHead>Duración</TableHead>
-                                          <TableHead>Notas</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {prescription.medicamentos?.map((med: any, index: number) => (
-                                          <TableRow key={index}>
-                                            <TableCell className="font-semibold">{med.medicamento}</TableCell>
-                                            <TableCell>{med.dosis || '-'}</TableCell>
-                                            <TableCell>{med.frecuencia || '-'}</TableCell>
-                                            <TableCell>{med.duracion || '-'}</TableCell>
-                                            <TableCell className="text-sm text-gray-600">{med.notas || '-'}</TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Sub-tab: Documentos */}
-                  <TabsContent value="documentos">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Documentos Médicos</CardTitle>
-                            <CardDescription>
-                              Archivos, estudios e imágenes del paciente
-                            </CardDescription>
-                          </div>
-                          {canAddToHistory && (
-                            <Button onClick={() => setShowDocumentForm(!showDocumentForm)} disabled={saving}>
-                              <Upload className="h-4 w-4 mr-2" />
-                              Subir Documento
-                            </Button>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {showDocumentForm && canAddToHistory && (
-                          <Card className="border-2 border-[#2E8BC0] bg-blue-50/30">
-                            <CardContent className="pt-6 space-y-4">
-                              <div>
-                                <Label htmlFor="categoria">Categoría *</Label>
-                                <Select 
-                                  value={documentForm.categoria} 
-                                  onValueChange={(value: any) => setDocumentForm({ ...documentForm, categoria: value })}
-                                  disabled={saving}
-                                >
-                                  <SelectTrigger id="categoria">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="LAB">LAB - Estudios de laboratorio</SelectItem>
-                                    <SelectItem value="IMAGEN">IMAGEN - Imágenes médicas</SelectItem>
-                                    <SelectItem value="REFERENCIA">REFERENCIA - Referencias a especialistas</SelectItem>
-                                    <SelectItem value="CONSTANCIA">CONSTANCIA - Certificados médicos</SelectItem>
-                                    <SelectItem value="OTRO">OTRO - Otros documentos</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <div>
-                                <Label htmlFor="file">Archivo *</Label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#2E8BC0] transition-colores cursor-pointer">
-                                  <FileUp className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                  <input
-                                    id="file"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={handleFileUpload}
-                                    accept=".pdf,.jpg,.jpeg,.png,.dicom"
-                                    disabled={saving}
-                                  />
-                                  <label htmlFor="file" className="cursor-pointer">
-                                    <p className="text-sm text-gray-600 mb-1">
-                                      {documentForm.selectedFile ? documentForm.selectedFile.name : 'Click para seleccionar archivo'}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      PDF, JPG, PNG, DICOM (máx. 50MB)
-                                    </p>
-                                  </label>
-                                </div>
-                              </div>
-
-                              <div>
-                                <Label htmlFor="notas_doc">Notas (opcional)</Label>
-                                <Textarea
-                                  id="notas_doc"
-                                  placeholder="Comentarios adicionales sobre el documento..."
-                                  value={documentForm.notas}
-                                  onChange={(e) => setDocumentForm({ ...documentForm, notas: e.target.value })}
-                                  rows={2}
-                                  disabled={saving}
-                                />
-                              </div>
-
-                              <div>
-                                <Label htmlFor="etiquetas">Etiquetas (opcional)</Label>
-                                <Input
-                                  id="etiquetas"
-                                  placeholder="Separadas por comas: urgente, control, prequirárgico"
-                                  value={documentForm.etiquetas}
-                                  onChange={(e) => setDocumentForm({ ...documentForm, etiquetas: e.target.value })}
-                                  disabled={saving}
-                                />
-                              </div>
-
-                              <div className="flex gap-2">
-                                <Button onClick={handleSaveDocument} className="bg-[#2E8BC0]" disabled={saving}>
-                                  {saving ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Guardando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Save className="h-4 w-4 mr-2" />
-                                      Subir Documento
-                                    </>
-                                  )}
-                                </Button>
-                                <Button variant="outline" onClick={() => setShowDocumentForm(false)} disabled={saving}>
-                                  Cancelar
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        <Separator />
-
-                        {/* Lista de documentos */}
-                        {documentos.length === 0 ? (
-                          <div className="text-center py-12">
-                            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-1">Sin documentos subidos</p>
-                            <p className="text-sm text-gray-500">
-                              Los archivos médicos aparecerán aquá
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 gap-4">
-                            {documentos.map((doc: any) => {
-                              const categoryConfig = documentCategoryConfig[doc.categoria as keyof typeof documentCategoryConfig];
-                              const CategoryIcon = categoryConfig.icon;
-                              
-                              return (
-                                <Card key={doc.id} className="hover:shadow-md transition-shadow">
-                                  <CardContent className="p-4">
-                                    <div className="flex items-start gap-4">
-                                      <div className={`p-3 rounded-lg bg-gray-100 ${categoryConfig.color}`}>
-                                        <CategoryIcon className="h-6 w-6" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between mb-2">
-                                          <div className="flex-1">
-                                            <p className="font-semibold text-gray-900 truncate">{doc.nombreArchivo}</p>
-                                            <p className="text-sm text-gray-500">
-                                              {categoryConfig.label} á {(doc.tamanoBytes / 1024).toFixed(2)} KB
-                                            </p>
-                                          </div>
-                                          <Badge variant="outline">{doc.categoria}</Badge>
-                                        </div>
-                                        
-                                        {doc.notas && (
-                                          <p className="text-sm text-gray-600 mb-2">{doc.notas}</p>
-                                        )}
-                                        
-                                        {doc.etiquetas && doc.etiquetas.length > 0 && (
-                                          <div className="flex flex-wrap gap-1 mb-3">
-                                            {doc.etiquetas.map((tag: string, index: number) => (
-                                              <Badge key={index} variant="secondary" className="text-xs">
-                                                <Tag className="h-3 w-3 mr-1" />
-                                                {tag}
-                                              </Badge>
-                                            ))}
-                                          </div>
-                                        )}
-                                        
-                                        <div className="flex items-center justify-between">
-                                          <p className="text-xs text-gray-500">
-                                            Subido el {new Date(doc.fechaSubida).toLocaleDateString('es-ES')}
-                                          </p>
-                                          <div className="flex gap-2">
-                                            <Button 
-                                              size="sm" 
-                                              variant="ghost"
-                                              onClick={async () => {
-                                                try {
-                                                  await doctorAppointmentsService.viewDocument(doc.id);
-                                                } catch (error) {
-                                                  toast.error('Error al abrir el documento');
-                                                }
-                                              }}
-                                            >
-                                              <Eye className="h-4 w-4 mr-1" />
-                                              Ver
-                                            </Button>
-                                            <Button 
-                                              size="sm" 
-                                              variant="ghost"
-                                              onClick={async () => {
-                                                try {
-                                                  await doctorAppointmentsService.downloadDocument(doc.id, doc.nombreArchivo);
-                                                  toast.success('Descargando documento...');
-                                                } catch (error) {
-                                                  toast.error('Error al descargar el documento');
-                                                }
-                                              }}
-                                            >
-                                              <Download className="h-4 w-4 mr-1" />
-                                              Descargar
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -1885,84 +1311,9 @@ export function DoctorAppointmentDetailPage({ appointmentId, onNavigate, onLogou
               </TabsContent>
             </Tabs>
           </div>
-
-          {/* Sidebar - Información del paciente */}
-          <div className="space-y-6">
-            {/* Datos del paciente */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Datos del Paciente</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center mb-6">
-                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-border mb-3">
-                    <User className="h-12 w-12 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-lg text-center">
-                    {appointmentDetail.paciente?.nombre || 'Paciente'}
-                  </h3>
-                  {appointmentDetail.paciente?.edad && (
-                    <p className="text-sm text-gray-600">{appointmentDetail.paciente.edad} años</p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  {appointmentDetail.paciente?.correo && (
-                    <div className="flex items-start space-x-3">
-                      <Mail className="h-4 w-4 text-gray-500 mt-1" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-600 mb-1">Correo</p>
-                        <p className="text-sm font-medium break-all">{appointmentDetail.paciente.correo}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {appointmentDetail.paciente?.telefono && (
-                    <div className="flex items-start space-x-3">
-                      <Phone className="h-4 w-4 text-gray-500 mt-1" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-600 mb-1">Teléfono</p>
-                        <p className="text-sm font-medium">{appointmentDetail.paciente.telefono}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {appointmentDetail.paciente?.fechaNacimiento && (
-                    <div className="flex items-start space-x-3">
-                      <Calendar className="h-4 w-4 text-gray-500 mt-1" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-600 mb-1">Fecha de nacimiento</p>
-                        <p className="text-sm font-medium">
-                          {new Date(appointmentDetail.paciente.fechaNacimiento).toLocaleDateString('es-ES')}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Info adicional */}
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-3">
-                  <div className="bg-blue-500 p-2 rounded-lg flex-shrink-0">
-                    <ClipboardList className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-blue-900 mb-1">
-                      Sistema de Historial Médico
-                    </p>
-                    <p className="text-sm text-blue-700">
-                      Al cambiar el estado a "Atendida", podrás agregar diagnósticos, notas y recetas en un solo paso.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </DoctorLayout>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Plus, 
@@ -24,9 +23,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
-import { WeeklyScheduleBuilder } from '@/components/doctor/weekly-schedule-builder';
-import * as availabilityService from '@/services/api/doctor/doctorAvailabilityService';
-import type { DoctorSlot, SlotTipo, SlotEstado, WeeklyTimeSlot } from '@/services/api/doctor/doctorAvailabilityService';
+import type { DoctorSlot, SlotTipo, SlotEstado } from '@/services/api/doctor/doctorAvailabilityService';
+import { 
+  useDoctorSlots, 
+  useCreateSlot, 
+  useUpdateSlot, 
+  useDeleteSlot 
+} from '@/hooks/queries';
+import doctorAuthService from '@/services/api/auth/doctorAuthService';
 
 interface DoctorAvailabilityPageProps {
   onNavigate: (page: string) => void;
@@ -37,8 +41,18 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingSlot, setEditingSlot] = useState<DoctorSlot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+
+  // 🎯 Obtener ID del doctor desde el servicio de autenticación
+  const currentDoctor = doctorAuthService.getCurrentDoctor();
+  const doctorId = currentDoctor?.id?.toString() || '';
+
+  // 🎯 REACT QUERY: Obtener slots del doctor
+  const { data: slots = [], isLoading: loading } = useDoctorSlots(doctorId);
+  
+  // 🎯 REACT QUERY: Mutations
+  const createSlot = useCreateSlot();
+  const updateSlot = useUpdateSlot();
+  const deleteSlot = useDeleteSlot();
 
   const [newSlot, setNewSlot] = useState({
     fecha: new Date().toISOString().split('T')[0],
@@ -48,26 +62,6 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
     estado: 'DISPONIBLE' as SlotEstado,
   });
 
-  const [slots, setSlots] = useState<DoctorSlot[]>([]);
-
-  // Cargar slots al montar el componente
-  useEffect(() => {
-    loadSlots();
-  }, []);
-
-  const loadSlots = async () => {
-    try {
-      setLoading(true);
-      const data = await availabilityService.getSlots('DOC-001');
-      setSlots(data);
-    } catch (error) {
-      console.error('Error loading slots:', error);
-      toast.error('Error al cargar los horarios');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getSlotsForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     return slots.filter(slot => slot.fecha === dateStr)
@@ -75,59 +69,46 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
   };
 
   const handleCreateSlot = async () => {
-    try {
-      setSubmitting(true);
-      const created = await availabilityService.createSlot({
-        doctorId: 'DOC-001',
+    // ✅ USAR MUTATION de React Query
+    createSlot.mutate(
+      {
+        doctorId,
         ...newSlot,
-      });
-      
-      setSlots([...slots, created]);
-      toast.success('Horario creado correctamente');
-      setShowCreateDialog(false);
-      resetNewSlot();
-    } catch (error: any) {
-      console.error('Error creating slot:', error);
-      toast.error(error.message || 'Error al crear el horario');
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          setShowCreateDialog(false);
+          resetNewSlot();
+        }
+      }
+    );
   };
 
   const handleUpdateSlot = async () => {
     if (!editingSlot) return;
     
-    try {
-      setSubmitting(true);
-      const updated = await availabilityService.updateSlot(editingSlot.idSlot, {
-        horaInicio: editingSlot.horaInicio,
-        horaFin: editingSlot.horaFin,
-        tipo: editingSlot.tipo,
-        estado: editingSlot.estado,
-      });
-
-      setSlots(slots.map(s => 
-        s.idSlot === updated.idSlot ? updated : s
-      ));
-      toast.success('Horario actualizado correctamente');
-      setEditingSlot(null);
-    } catch (error: any) {
-      console.error('Error updating slot:', error);
-      toast.error(error.message || 'Error al actualizar el horario');
-    } finally {
-      setSubmitting(false);
-    }
+    // ✅ USAR MUTATION de React Query
+    updateSlot.mutate(
+      {
+        slotId: editingSlot.idSlot,
+        data: {
+          horaInicio: editingSlot.horaInicio,
+          horaFin: editingSlot.horaFin,
+          tipo: editingSlot.tipo,
+          estado: editingSlot.estado,
+        }
+      },
+      {
+        onSuccess: () => {
+          setEditingSlot(null);
+        }
+      }
+    );
   };
 
   const handleDeleteSlot = async (slotId: number) => {
-    try {
-      await availabilityService.deleteSlot(slotId);
-      setSlots(slots.filter(s => s.idSlot !== slotId));
-      toast.success('Horario eliminado correctamente');
-    } catch (error: any) {
-      console.error('Error deleting slot:', error);
-      toast.error(error.message || 'Error al eliminar el horario');
-    }
+    // ✅ USAR MUTATION de React Query
+    deleteSlot.mutate(slotId);
   };
 
   const resetNewSlot = () => {
@@ -188,6 +169,7 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
 
   const timeOptions = generateTimeOptions();
 
+  // ✅ Mostrar loading de React Query
   if (loading) {
     return (
       <DoctorLayout 
@@ -201,6 +183,29 @@ export function DoctorAvailabilityPage({ onNavigate, onLogout }: DoctorAvailabil
       </DoctorLayout>
     );
   }
+
+  // ✅ Verificar que el doctor esté autenticado
+  if (!doctorId) {
+    return (
+      <DoctorLayout 
+        currentPage="doctor-availability" 
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+      >
+        <div className="p-8">
+          <Alert className="bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              No se pudo obtener la información del doctor. Por favor, inicia sesión nuevamente.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </DoctorLayout>
+    );
+  }
+
+  // ✅ Estado de submitting combinado de todas las mutations
+  const submitting = createSlot.isPending || updateSlot.isPending || deleteSlot.isPending;
 
   return (
     <DoctorLayout 

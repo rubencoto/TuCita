@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +21,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import doctorProfileService, { DoctorProfileResponse, Especialidad } from '@/services/api/doctor/doctorProfileService';
+import doctorProfileService from '@/services/api/doctor/doctorProfileService';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
+import { 
+  useDoctorProfile, 
+  useUpdateDoctorProfile, 
+  useChangeDoctorPassword,
+  useUploadDoctorAvatar,
+  useEspecialidades 
+} from '@/hooks/queries';
 
 interface DoctorProfilePageProps {
   onNavigate: (page: string) => void;
@@ -30,22 +37,29 @@ interface DoctorProfilePageProps {
 }
 
 export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePageProps) {
-  const [profile, setProfile] = useState<DoctorProfileResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+  
+  // 🎯 React Query: Obtener perfil del doctor
+  const { data: profile, isLoading } = useDoctorProfile();
+  
+  // 🎯 React Query: Obtener especialidades
+  const { data: especialidades = [] } = useEspecialidades();
+  
+  // 🎯 React Query: Mutations
+  const updateProfile = useUpdateDoctorProfile();
+  const changePassword = useChangeDoctorPassword();
+  const uploadAvatar = useUploadDoctorAvatar();
   
   // Estado para el formulario de edición
   const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
-    telefono: '',
-    numeroLicencia: '',
-    biografia: '',
-    direccion: '',
+    nombre: profile?.nombre || '',
+    apellido: profile?.apellido || '',
+    email: profile?.email || '',
+    telefono: profile?.telefono || '',
+    numeroLicencia: profile?.numeroLicencia || '',
+    biografia: profile?.biografia || '',
+    direccion: profile?.direccion || '',
   });
 
   const [passwords, setPasswords] = useState({
@@ -54,44 +68,18 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
     confirm: '',
   });
 
-  // Cargar perfil y especialidades al montar
-  useEffect(() => {
-    loadProfile();
-    loadEspecialidades();
-  }, []);
-
-  const loadProfile = async () => {
-    setLoading(true);
-    try {
-      const profileData = await doctorProfileService.getProfile();
-      setProfile(profileData);
-      setFormData({
-        nombre: profileData.nombre,
-        apellido: profileData.apellido,
-        email: profileData.email,
-        telefono: profileData.telefono || '',
-        numeroLicencia: profileData.numeroLicencia || '',
-        biografia: profileData.biografia || '',
-        direccion: profileData.direccion || '',
-      });
-    } catch (error: any) {
-      console.error('Error al cargar perfil:', error);
-      toast.error('Error al cargar el perfil', {
-        description: error.message
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadEspecialidades = async () => {
-    try {
-      const especialidadesData = await doctorProfileService.getEspecialidades();
-      setEspecialidades(especialidadesData);
-    } catch (error) {
-      console.error('Error al cargar especialidades:', error);
-    }
-  };
+  // Actualizar formData cuando cambie el perfil
+  if (profile && formData.nombre === '' && !isEditing) {
+    setFormData({
+      nombre: profile.nombre,
+      apellido: profile.apellido,
+      email: profile.email,
+      telefono: profile.telefono || '',
+      numeroLicencia: profile.numeroLicencia || '',
+      biografia: profile.biografia || '',
+      direccion: profile.direccion || '',
+    });
+  }
 
   const handleSaveProfile = async () => {
     // Validaciones
@@ -116,20 +104,11 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const updatedProfile = await doctorProfileService.updateProfile(formData);
-      setProfile(updatedProfile);
-      setIsEditing(false);
-      toast.success('Perfil actualizado correctamente');
-    } catch (error: any) {
-      console.error('Error al actualizar perfil:', error);
-      toast.error('Error al actualizar el perfil', {
-        description: error.message
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    updateProfile.mutate(formData, {
+      onSuccess: () => {
+        setIsEditing(false);
+      }
+    });
   };
 
   const handleChangePassword = async () => {
@@ -146,22 +125,19 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
       return;
     }
 
-    try {
-      await doctorProfileService.changePassword({
+    changePassword.mutate(
+      {
         currentPassword: passwords.current,
         newPassword: passwords.new,
         confirmPassword: passwords.confirm
-      });
-      
-      toast.success('Contraseña actualizada correctamente');
-      setShowPasswordDialog(false);
-      setPasswords({ current: '', new: '', confirm: '' });
-    } catch (error: any) {
-      console.error('Error al cambiar contraseña:', error);
-      toast.error('Error al cambiar la contraseña', {
-        description: error.message
-      });
-    }
+      },
+      {
+        onSuccess: () => {
+          setShowPasswordDialog(false);
+          setPasswords({ current: '', new: '', confirm: '' });
+        }
+      }
+    );
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,7 +152,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
       return;
     }
 
-    // Validar tamaáo (máximo 5MB)
+    // Validar tamaño (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Error de validación', {
         description: 'La imagen no puede superar los 5MB'
@@ -184,23 +160,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
       return;
     }
 
-    try {
-      // Por ahora, solo mostrar preview local
-      // TODO: Implementar subida al servidor cuando está listo
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (profile) {
-          setProfile({ ...profile, avatar: reader.result as string });
-        }
-        toast.success('Foto actualizada correctamente');
-      };
-      reader.readAsDataURL(file);
-    } catch (error: any) {
-      console.error('Error al subir imagen:', error);
-      toast.error('Error al subir la imagen', {
-        description: error.message
-      });
-    }
+    uploadAvatar.mutate(file);
   };
 
   const handleCancelEdit = () => {
@@ -218,29 +178,41 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
     setIsEditing(false);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
-            <p className="text-gray-600">Cargando perfil...</p>
+      <DoctorLayout 
+        currentPage="doctor-profile" 
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+      >
+        <div className="p-8 max-w-5xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600">Cargando perfil...</p>
+            </div>
           </div>
         </div>
-      </div>
+      </DoctorLayout>
     );
   }
 
   if (!profile) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <Alert className="bg-red-50 border-red-200">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            No se pudo cargar el perfil del doctor
-          </AlertDescription>
-        </Alert>
-      </div>
+      <DoctorLayout 
+        currentPage="doctor-profile" 
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+      >
+        <div className="p-8 max-w-5xl mx-auto">
+          <Alert className="bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              No se pudo cargar el perfil del doctor
+            </AlertDescription>
+          </Alert>
+        </div>
+      </DoctorLayout>
     );
   }
 
@@ -284,14 +256,25 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                       accept="image/*"
                       className="hidden"
                       onChange={handleImageUpload}
+                      disabled={uploadAvatar.isPending}
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => document.getElementById('photo-upload')?.click()}
+                      disabled={uploadAvatar.isPending}
                     >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Cambiar foto
+                      {uploadAvatar.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Subiendo...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Cambiar foto
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
@@ -351,6 +334,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                           type="password"
                           value={passwords.current}
                           onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                          disabled={changePassword.isPending}
                         />
                       </div>
                       <div>
@@ -360,6 +344,7 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                           type="password"
                           value={passwords.new}
                           onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                          disabled={changePassword.isPending}
                         />
                       </div>
                       <div>
@@ -369,16 +354,28 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                           type="password"
                           value={passwords.confirm}
                           onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                          disabled={changePassword.isPending}
                         />
                       </div>
                       <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                          La contraseña debe tener al menos 8 caracteres, incluir mayásculas, minásculas y números
+                          La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números
                         </AlertDescription>
                       </Alert>
-                      <Button onClick={handleChangePassword} className="w-full bg-[#2E8BC0]">
-                        Actualizar contraseña
+                      <Button 
+                        onClick={handleChangePassword} 
+                        className="w-full bg-[#2E8BC0]"
+                        disabled={changePassword.isPending}
+                      >
+                        {changePassword.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Actualizando...
+                          </>
+                        ) : (
+                          'Actualizar contraseña'
+                        )}
                       </Button>
                     </div>
                   </DialogContent>
@@ -404,11 +401,19 @@ export function DoctorProfilePage({ onNavigate, onLogout }: DoctorProfilePagePro
                     </Button>
                   ) : (
                     <div className="space-x-2">
-                      <Button variant="outline" onClick={handleCancelEdit} disabled={isSaving}>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancelEdit} 
+                        disabled={updateProfile.isPending}
+                      >
                         Cancelar
                       </Button>
-                      <Button onClick={handleSaveProfile} className="bg-[#2E8BC0]" disabled={isSaving}>
-                        {isSaving ? (
+                      <Button 
+                        onClick={handleSaveProfile} 
+                        className="bg-[#2E8BC0]" 
+                        disabled={updateProfile.isPending}
+                      >
+                        {updateProfile.isPending ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             Guardando...

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,8 +31,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '@/components/common/ImageWithFallback';
-import doctorAppointmentsService, { DoctorAppointment, DoctorPatient } from '@/services/api/doctor/doctorAppointmentsService';
+import doctorAppointmentsService from '@/services/api/doctor/doctorAppointmentsService';
 import { DoctorLayout } from '@/components/layout/doctor/DoctorLayout';
+import { useDoctorAppointments, useDoctorPatients, useCreateAppointment } from '@/hooks/queries';
 
 interface DoctorAppointmentsPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -44,8 +45,6 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDate, setFilterDate] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
 
   const [newAppointment, setNewAppointment] = useState({
     pacienteId: 0,
@@ -56,58 +55,21 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
     estado: 'PENDIENTE',
   });
 
-  const [appointments, setAppointments] = useState<DoctorAppointment[]>([]);
-  const [pacientes, setPacientes] = useState<DoctorPatient[]>([]);
+  // 🎯 React Query: Obtener citas con filtros
+  const { data: appointments = [], isLoading } = useDoctorAppointments(
+    filterDate || undefined,
+    filterDate || undefined,
+    filterStatus !== 'all' ? filterStatus : undefined
+  );
 
-  // Cargar citas y pacientes al montar el componente
-  useEffect(() => {
-    loadAppointments();
-    loadPatients();
-  }, []);
+  // 🎯 React Query: Obtener pacientes del doctor
+  const { data: pacientes = [] } = useDoctorPatients();
 
-  // Recargar citas cuando cambian los filtros de fecha o estado
-  useEffect(() => {
-    loadAppointments();
-  }, [filterDate, filterStatus]);
+  // 🎯 React Query: Mutation para crear cita
+  const createAppointment = useCreateAppointment();
 
-  const loadAppointments = async () => {
-    try {
-      setLoading(true);
-      const fechaInicio = filterDate || undefined;
-      const fechaFin = filterDate || undefined;
-      const estado = filterStatus !== 'all' ? filterStatus : undefined;
-
-      const data = await doctorAppointmentsService.getDoctorAppointments(
-        fechaInicio,
-        fechaFin,
-        estado
-      );
-
-      setAppointments(data);
-    } catch (error: any) {
-      console.error('Error al cargar citas:', error);
-      toast.error('Error al cargar las citas', {
-        description: error.message || 'No se pudieron cargar las citas'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadPatients = async () => {
-    try {
-      const data = await doctorAppointmentsService.getDoctorPatients();
-      setPacientes(data);
-    } catch (error: any) {
-      console.error('Error al cargar pacientes:', error);
-      toast.error('Error al cargar pacientes', {
-        description: error.message || 'No se pudieron cargar los pacientes'
-      });
-    }
-  };
-
+  // Filtrar localmente por término de búsqueda
   const filteredAppointments = appointments.filter(apt => {
-    // Filtro por búsqueda (en memoria, ya que el backend filtra por fecha y estado)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       if (!apt.paciente.nombre.toLowerCase().includes(searchLower) &&
@@ -116,7 +78,6 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
         return false;
       }
     }
-
     return true;
   });
 
@@ -165,44 +126,35 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
       return;
     }
 
-    try {
-      setCreating(true);
-
-      const result = await doctorAppointmentsService.createDoctorAppointment({
+    createAppointment.mutate(
+      {
         pacienteId: newAppointment.pacienteId,
         fecha: newAppointment.fecha,
         hora: newAppointment.hora,
         motivo: newAppointment.motivo || undefined,
         observaciones: newAppointment.observaciones || undefined,
         estado: newAppointment.estado
-      });
+      },
+      {
+        onSuccess: (result) => {
+          toast.success('Cita creada correctamente', {
+            description: `Cita programada para ${result.paciente.nombre}`
+          });
 
-      toast.success('Cita creada correctamente', {
-        description: `Cita programada para ${result.paciente.nombre}`
-      });
+          // Limpiar formulario
+          setNewAppointment({
+            pacienteId: 0,
+            fecha: '',
+            hora: '',
+            motivo: '',
+            observaciones: '',
+            estado: 'PENDIENTE',
+          });
 
-      // Limpiar formulario
-      setNewAppointment({
-        pacienteId: 0,
-        fecha: '',
-        hora: '',
-        motivo: '',
-        observaciones: '',
-        estado: 'PENDIENTE',
-      });
-
-      setShowCreateDialog(false);
-
-      // Recargar lista de citas
-      await loadAppointments();
-    } catch (error: any) {
-      console.error('Error al crear cita:', error);
-      toast.error('Error al crear la cita', {
-        description: error.message || 'No se pudo crear la cita. Verifica que el horario está disponible.'
-      });
-    } finally {
-      setCreating(false);
-    }
+          setShowCreateDialog(false);
+        }
+      }
+    );
   };
 
   const getTabCount = (status: string) => {
@@ -255,7 +207,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       <Select
                         value={newAppointment.pacienteId.toString()}
                         onValueChange={(value: string) => setNewAppointment({ ...newAppointment, pacienteId: parseInt(value) })}
-                        disabled={creating || pacientes.length === 0}
+                        disabled={createAppointment.isPending || pacientes.length === 0}
                       >
                         <SelectTrigger id="paciente">
                           <SelectValue placeholder={pacientes.length === 0 ? "No hay pacientes disponibles" : "Seleccionar paciente"} />
@@ -279,7 +231,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       <Select
                         value={newAppointment.estado}
                         onValueChange={(value: string) => setNewAppointment({ ...newAppointment, estado: value })}
-                        disabled={creating}
+                        disabled={createAppointment.isPending}
                       >
                         <SelectTrigger id="estado">
                           <SelectValue />
@@ -299,7 +251,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                         type="date"
                         value={newAppointment.fecha}
                         onChange={(e) => setNewAppointment({ ...newAppointment, fecha: e.target.value })}
-                        disabled={creating}
+                        disabled={createAppointment.isPending}
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
@@ -310,7 +262,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                         type="time"
                         value={newAppointment.hora}
                         onChange={(e) => setNewAppointment({ ...newAppointment, hora: e.target.value })}
-                        disabled={creating}
+                        disabled={createAppointment.isPending}
                       />
                     </div>
                   </div>
@@ -321,7 +273,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       placeholder="Ej: Consulta general, seguimiento, etc."
                       value={newAppointment.motivo}
                       onChange={(e) => setNewAppointment({ ...newAppointment, motivo: e.target.value })}
-                      disabled={creating}
+                      disabled={createAppointment.isPending}
                     />
                   </div>
                   <div>
@@ -332,7 +284,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       value={newAppointment.observaciones}
                       onChange={(e) => setNewAppointment({ ...newAppointment, observaciones: e.target.value })}
                       rows={3}
-                      disabled={creating}
+                      disabled={createAppointment.isPending}
                     />
                   </div>
                 </div>
@@ -340,16 +292,16 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                   <Button 
                     variant="outline" 
                     onClick={() => setShowCreateDialog(false)}
-                    disabled={creating}
+                    disabled={createAppointment.isPending}
                   >
                     Cancelar
                   </Button>
                   <Button 
                     onClick={handleCreateAppointment} 
                     className="bg-[#2E8BC0]"
-                    disabled={creating}
+                    disabled={createAppointment.isPending}
                   >
-                    {creating ? (
+                    {createAppointment.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Creando...
@@ -374,7 +326,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
-                    disabled={loading}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -382,11 +334,11 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    disabled={loading}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Select value={filterStatus} onValueChange={setFilterStatus} disabled={loading}>
+                  <Select value={filterStatus} onValueChange={setFilterStatus} disabled={isLoading}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -406,7 +358,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
                       variant="outline"
                       size="icon"
                       onClick={clearFilters}
-                      disabled={loading}
+                      disabled={isLoading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -420,35 +372,35 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
         {/* Tabs por estado */}
         <Tabs value={filterStatus} onValueChange={setFilterStatus} className="mb-6">
           <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-            <TabsTrigger value="all" disabled={loading}>
+            <TabsTrigger value="all" disabled={isLoading}>
               Todas
               <Badge variant="secondary" className="ml-2">{getTabCount('all')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="PENDIENTE" disabled={loading}>
+            <TabsTrigger value="PENDIENTE" disabled={isLoading}>
               Pendientes
               <Badge variant="secondary" className="ml-2">{getTabCount('PENDIENTE')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="CONFIRMADA" disabled={loading}>
+            <TabsTrigger value="CONFIRMADA" disabled={isLoading}>
               Confirmadas
               <Badge variant="secondary" className="ml-2">{getTabCount('CONFIRMADA')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="EN_PROGRESO" disabled={loading}>
+            <TabsTrigger value="EN_PROGRESO" disabled={isLoading}>
               En Progreso
               <Badge variant="secondary" className="ml-2">{getTabCount('EN_PROGRESO')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="ATENDIDA" disabled={loading}>
+            <TabsTrigger value="ATENDIDA" disabled={isLoading}>
               Atendidas
               <Badge variant="secondary" className="ml-2">{getTabCount('ATENDIDA')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="CANCELADA" disabled={loading}>
+            <TabsTrigger value="CANCELADA" disabled={isLoading}>
               Canceladas
               <Badge variant="secondary" className="ml-2">{getTabCount('CANCELADA')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="RECHAZADA" disabled={loading}>
+            <TabsTrigger value="RECHAZADA" disabled={isLoading}>
               Rechazadas
               <Badge variant="secondary" className="ml-2">{getTabCount('RECHAZADA')}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="NO_ATENDIDA" disabled={loading}>
+            <TabsTrigger value="NO_ATENDIDA" disabled={isLoading}>
               No Asistió
               <Badge variant="secondary" className="ml-2">{getTabCount('NO_ATENDIDA')}</Badge>
             </TabsTrigger>
@@ -458,7 +410,7 @@ export function DoctorAppointmentsPage({ onNavigate, onLogout }: DoctorAppointme
         {/* Tabla de citas */}
         <Card>
           <CardContent className="p-6">
-            {loading ? (
+            {isLoading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-[#2E8BC0]" />
               </div>

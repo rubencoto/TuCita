@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,36 +14,31 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import adminEspecialidadesService, { EspecialidadDto } from '@/services/api/admin/adminEspecialidadesService';
+import { 
+  useAdminEspecialidades,
+  useCreateEspecialidad,
+  useUpdateEspecialidad,
+  useDeleteEspecialidad
+} from '@/hooks/queries';
+import { EspecialidadDto } from '@/services/api/admin/adminEspecialidadesService';
 
 export function AdminEspecialidades() {
-  const [especialidades, setEspecialidades] = useState<EspecialidadDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     nombre: ''
   });
-  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadEspecialidades();
-  }, []);
+  // 🎯 REACT QUERY: Obtener especialidades
+  const { data: especialidadesData = [], isLoading: loading } = useAdminEspecialidades();
 
-  const loadEspecialidades = async () => {
-    try {
-      setLoading(true);
-      const data = await adminEspecialidadesService.getAllEspecialidades();
-      // Ordenar por ID de forma ascendente para que la UI muestre los IDs en orden
-      data.sort((a: EspecialidadDto, b: EspecialidadDto) => a.id - b.id);
-      setEspecialidades(data);
-    } catch (error) {
-      console.error('Error al cargar especialidades:', error);
-      toast.error('Error al cargar especialidades');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 🎯 REACT QUERY: Mutations
+  const createEspecialidad = useCreateEspecialidad();
+  const updateEspecialidad = useUpdateEspecialidad();
+  const deleteEspecialidad = useDeleteEspecialidad();
+
+  // Ordenar por ID
+  const especialidades = [...especialidadesData].sort((a, b) => a.id - b.id);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -63,44 +58,41 @@ export function AdminEspecialidades() {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      
-      if (editingId) {
-        // Actualizar
-        await adminEspecialidadesService.updateEspecialidad(editingId, formData);
-        toast.success('Especialidad actualizada exitosamente');
-      } else {
-        // Crear
-        await adminEspecialidadesService.createEspecialidad(formData);
-        toast.success('Especialidad creada exitosamente');
-      }
-
-      setShowModal(false);
-      setFormData({ nombre: '' });
-      await loadEspecialidades();
-    } catch (error: any) {
-      console.error('Error al guardar:', error);
-      toast.error(error.message || 'Error al guardar especialidad');
-    } finally {
-      setSubmitting(false);
+    // ✅ USAR MUTATIONS de React Query
+    if (editingId) {
+      updateEspecialidad.mutate(
+        { id: editingId, data: formData },
+        { 
+          onSuccess: () => {
+            setShowModal(false);
+            setFormData({ nombre: '' });
+          }
+        }
+      );
+    } else {
+      createEspecialidad.mutate(
+        formData,
+        { 
+          onSuccess: () => {
+            setShowModal(false);
+            setFormData({ nombre: '' });
+          }
+        }
+      );
     }
   };
 
   const handleDelete = async (id: number, nombre: string) => {
-    if (!confirm(`¿Estó seguro que desea eliminar la especialidad "${nombre}"?`)) {
+    if (!confirm(`¿Está seguro que desea eliminar la especialidad "${nombre}"?`)) {
       return;
     }
 
-    try {
-      await adminEspecialidadesService.deleteEspecialidad(id);
-      toast.success('Especialidad eliminada exitosamente');
-      await loadEspecialidades();
-    } catch (error: any) {
-      console.error('Error al eliminar:', error);
-      toast.error(error.message || 'Error al eliminar especialidad');
-    }
+    // ✅ USAR MUTATION de React Query
+    deleteEspecialidad.mutate(id);
   };
+
+  // ✅ Estado de submitting desde React Query
+  const submitting = createEspecialidad.isPending || updateEspecialidad.isPending || deleteEspecialidad.isPending;
 
   if (loading) {
     return (
@@ -192,7 +184,7 @@ export function AdminEspecialidades() {
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nueva'} especialidad</DialogTitle>
             <DialogDescription>
-              {editingId ? 'Modifica los datos de la especialidad Médica' : 'Completa la información de la nueva especialidad Médica'}
+              {editingId ? 'Modifica los datos de la especialidad médica' : 'Completa la información de la nueva especialidad médica'}
             </DialogDescription>
           </DialogHeader>
 

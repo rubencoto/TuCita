@@ -131,6 +131,7 @@ builder.Services.AddScoped<IAdminEspecialidadesService, AdminEspecialidadesServi
 builder.Services.AddScoped<IAdminUsuariosService, AdminUsuariosService>();
 builder.Services.AddScoped<IAdminCitasService, AdminCitasService>();
 builder.Services.AddScoped<IAdminReportesService, AdminReportesService>();
+builder.Services.AddScoped<DoctorAvailabilityService>(); // ? Nuevo servicio para gestionar disponibilidad
 
 // Add Background Service para limpieza automática de turnos vencidos (AWS RDS)
 builder.Services.AddHostedService<ExpiredSlotsCleanupService>();

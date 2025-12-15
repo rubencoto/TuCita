@@ -24,7 +24,6 @@ import { AdminPanel } from './components/pages/admin/AdminPanel';
 import { authService, AuthResponse } from './services/api/auth/authService';
 import doctorAuthService from './services/api/auth/doctorAuthService';
 import adminAuthService from './services/api/auth/adminAuthService';
-import appointmentsService from './services/api/patient/appointmentsService';
 import { DoctorScheduleConfigPage } from './components/pages/doctor/doctor-schedule-config-page';
 import { PrivacyPolicyPage } from './components/pages/legal/privacy-policy-page';
 import { TermsConditionsPage } from './components/pages/legal/terms-conditions-page';
@@ -58,9 +57,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>(getPageFromUrl());
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [user, setUser] = useState<any | null>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
   const [pageData, setPageData] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [isDoctor, setIsDoctor] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
@@ -130,8 +127,6 @@ export default function App() {
             setIsLoggedIn(true);
             setIsDoctor(false);
             setIsAdmin(false);
-            // Cargar citas del usuario
-            loadUserAppointments();
             return;
           }
         }
@@ -153,18 +148,6 @@ export default function App() {
     
     checkAuth();
   }, []);
-
-  const loadUserAppointments = async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const userAppointments = await appointmentsService.getMyAppointments();
-      setAppointments(userAppointments);
-    } catch (error) {
-      console.error('Error al cargar citas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleNavigate = (page: string, data?: any): void => {
     console.log('🔄 Navegando a:', page, data);
@@ -196,8 +179,6 @@ export default function App() {
       console.log('👤 Usuario es paciente');
       setIsDoctor(false);
       setIsAdmin(false);
-      // Cargar citas del usuario recién logueado
-      await loadUserAppointments();
       handleNavigate('home');
     }
   };
@@ -217,73 +198,7 @@ export default function App() {
     setIsLoggedIn(false);
     setIsDoctor(false);
     setIsAdmin(false);
-    setAppointments([]);
     handleNavigate('home');
-  };
-
-  const handleBookAppointment = async (appointmentData: any): Promise<any> => {
-    try {
-      const newAppointment = await appointmentsService.createAppointment(appointmentData);
-      setAppointments(prev => [newAppointment, ...prev]);
-      return newAppointment;
-    } catch (error) {
-      console.error('Error al crear cita:', error);
-      throw error;
-    }
-  };
-
-  const handleUpdateAppointment = async (appointmentId: string, status: string): Promise<void> => {
-    try {
-      const updatedAppointment = await appointmentsService.updateAppointment(
-        Number(appointmentId),
-        { estado: status.toUpperCase() }
-      );
-      
-      if (updatedAppointment) {
-        setAppointments(prev =>
-          prev.map(apt =>
-            apt.id === Number(appointmentId) ? updatedAppointment : apt
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error al actualizar cita:', error);
-    }
-  };
-
-  const handleCancelAppointment = async (appointmentId: string): Promise<boolean> => {
-    try {
-      const success = await appointmentsService.cancelAppointment(Number(appointmentId));
-      if (success) {
-        await loadUserAppointments();
-      }
-      return success;
-    } catch (error) {
-      console.error('Error al cancelar cita:', error);
-      return false;
-    }
-  };
-
-  const handleRescheduleAppointment = async (appointmentId: string, newTurnoId: number): Promise<boolean> => {
-    try {
-      const rescheduledAppointment = await appointmentsService.rescheduleAppointmentToNewSlot(
-        Number(appointmentId), 
-        newTurnoId
-      );
-      
-      if (rescheduledAppointment) {
-        await loadUserAppointments();
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error al reagendar cita:', error);
-      return false;
-    }
-  };
-
-  const handleUpdateUser = (userData: any): void => {
-    setUser(userData);
   };
 
   const renderPage = () => {
@@ -338,7 +253,6 @@ export default function App() {
           <BookingPage
             doctor={pageData?.doctor}
             onNavigate={handleNavigate}
-            onBookAppointment={handleBookAppointment}
           />
         );
       
@@ -354,11 +268,7 @@ export default function App() {
         }
         return (
           <AppointmentsPage
-            appointments={appointments}
             onNavigate={handleNavigate}
-            onUpdateAppointment={handleUpdateAppointment}
-            onCancelAppointment={handleCancelAppointment}
-            loading={loading}
           />
         );
       
@@ -374,7 +284,6 @@ export default function App() {
         }
         return (
           <MedicalHistoryPage
-            appointments={appointments}
             onNavigate={handleNavigate}
           />
         );
@@ -410,7 +319,6 @@ export default function App() {
           <ReschedulePage
             appointment={pageData?.appointment}
             onNavigate={handleNavigate}
-            onRescheduleAppointment={handleRescheduleAppointment}
           />
         );
       
@@ -426,8 +334,8 @@ export default function App() {
         }
         return (
           <ProfilePage
-            user={user}
-            onUpdateUser={handleUpdateUser}
+            onNavigate={handleNavigate}
+            // ❌ REMOVED: user and onUpdateUser props - handled by React Query
           />
         );
       

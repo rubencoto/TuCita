@@ -10,11 +10,10 @@ import { toast } from 'sonner';
 import medicalHistoryService, { HistorialMedicoDto } from '@/services/api/patient/medicalHistoryService';
 
 interface MedicalHistoryPageProps {
-  appointments: any[];
   onNavigate: (page: string, data?: any) => void;
 }
 
-export function MedicalHistoryPage({ appointments, onNavigate }: MedicalHistoryPageProps) {
+export function MedicalHistoryPage({ onNavigate }: MedicalHistoryPageProps) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');

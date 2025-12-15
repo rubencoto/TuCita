@@ -35,8 +35,16 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Plus, Search, Edit, Power, Trash2, Loader2, User, Stethoscope, UserCog } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import adminUsuariosService, { Usuario, CrearUsuarioDto, ActualizarUsuarioDto } from '@/services/api/admin/adminUsuariosService';
 import adminEspecialidadesService from '@/services/api/admin/adminEspecialidadesService';
+import { 
+  useAdminUsuarios,
+  useAdminEspecialidades,
+  useCreateUsuario,
+  useUpdateUsuario,
+  useCambiarEstadoUsuario,
+  useDeleteUsuario
+} from '@/hooks/queries';
+import adminUsuariosService, { Usuario, CrearUsuarioDto, ActualizarUsuarioDto } from '@/services/api/admin/adminUsuariosService';
 
 const estadoColors: Record<string, string> = {
   Activo: 'bg-green-100 text-green-800',
@@ -110,18 +118,11 @@ const generarEmailAutomatico = (nombre: string, apellido: string, rol: string): 
 };
 
 export function AdminUsuarios() {
-  // State para datos
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [totalUsuarios, setTotalUsuarios] = useState(0);
-  const [totalPaginas, setTotalPaginas] = useState(1);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [especialidades, setEspecialidades] = useState<Array<{ id: number; nombre: string }>>([]);
-
   // State para filtros
   const [filterRole, setFilterRole] = useState('Todos');
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
   
   // State para modal
   const [showModal, setShowModal] = useState(false);
@@ -132,37 +133,50 @@ export function AdminUsuarios() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   
-  // Form state - CAMBIADO: rol ahora es string único en lugar de array
+  // Form state
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
-    rol: '', // CAMBIADO: de roles: [] a rol: ''
-    // Campos específicos de Doctor
+    rol: '',
     numeroLicencia: '',
     biografia: '',
     direccion: '',
     especialidadesIds: [] as number[],
-    // Campos específicos de Paciente
     identificacion: '',
     fechaNacimiento: '',
     telefonoEmergencia: '',
     activo: true
   });
 
-  // Cargar especialidades al montar
+  // 🎯 REACT QUERY: Obtener usuarios con filtros
+  const { data: usuariosData, isLoading: loading } = useAdminUsuarios({
+    busqueda: searchQuery || undefined,
+    rol: filterRole !== 'Todos' ? filterRole : undefined,
+    activo: filterStatus !== 'Todos' ? (filterStatus === 'Activo') : undefined,
+    pagina: paginaActual,
+    tamanoPagina: 10
+  });
+
+  // 🎯 REACT QUERY: Obtener especialidades
+  const { data: especialidades = [] } = useAdminEspecialidades();
+
+  // 🎯 REACT QUERY: Mutations
+  const createUsuario = useCreateUsuario();
+  const updateUsuario = useUpdateUsuario();
+  const cambiarEstado = useCambiarEstadoUsuario();
+  const deleteUsuario = useDeleteUsuario();
+
+  // Extract data with defaults
+  const usuarios = usuariosData?.usuarios || [];
+  const totalUsuarios = usuariosData?.total || 0;
+  const totalPaginas = usuariosData?.totalPaginas || 1;
+
+  // Reset page when filters change
   useEffect(() => {
-    const cargarEspecialidades = async () => {
-      try {
-        const result = await adminEspecialidadesService.getAllEspecialidades();
-        setEspecialidades(result);
-      } catch (error) {
-        console.error('Error al cargar especialidades:', error);
-      }
-    };
-    cargarEspecialidades();
-  }, []);
+    setPaginaActual(1);
+  }, [searchQuery, filterRole, filterStatus]);
 
   // Cargar usuarios cuando cambian los filtros
   useEffect(() => {
@@ -170,7 +184,6 @@ export function AdminUsuarios() {
   }, [searchQuery, filterRole, filterStatus, paginaActual]);
 
   const cargarUsuarios = async () => {
-    setLoading(true);
     try {
       const resultado = await adminUsuariosService.getUsuarios({
         busqueda: searchQuery || undefined,
@@ -357,137 +370,63 @@ export function AdminUsuarios() {
       }
     }
 
-    try {
-      setLoading(true);
+    // Preparar datos
+    const baseData: any = {
+      nombre: formData.nombre,
+      apellido: formData.apellido,
+      email: formData.email,
+      roles: [formData.rol],
+    };
 
-      if (editingUser) {
-        // Actualizar usuario existente
-        const updateData: any = {
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          email: formData.email,
-          roles: [formData.rol],
-          activo: formData.activo,
-        };
+    if (formData.telefono) baseData.telefono = formData.telefono;
 
-        // Agregar teléfono solo si existe
-        if (formData.telefono) {
-          updateData.telefono = formData.telefono;
-        }
+    if (formData.rol === 'MEDICO') {
+      baseData.numeroLicencia = `MED-${formData.numeroLicencia}`;
+      baseData.especialidadesIds = formData.especialidadesIds;
+      if (formData.biografia) baseData.biografia = formData.biografia;
+      if (formData.direccion) baseData.direccion = formData.direccion;
+    }
 
-        // Campos específicos para DOCTOR
-        if (formData.rol === 'MEDICO') {
-          updateData.numeroLicencia = `MED-${formData.numeroLicencia}`;
-          updateData.especialidadesIds = formData.especialidadesIds;
-          
-          if (formData.biografia) {
-            updateData.biografia = formData.biografia;
-          }
-          if (formData.direccion) {
-            updateData.direccion = formData.direccion;
-          }
-        }
+    if (formData.rol === 'PACIENTE') {
+      baseData.identificacion = formData.identificacion;
+      baseData.fechaNacimiento = formData.fechaNacimiento;
+      if (formData.telefonoEmergencia) baseData.telefonoEmergencia = formData.telefonoEmergencia;
+    }
 
-        // Campos específicos para PACIENTE
-        if (formData.rol === 'PACIENTE') {
-          updateData.identificacion = formData.identificacion;
-          updateData.fechaNacimiento = formData.fechaNacimiento;
-          
-          if (formData.telefonoEmergencia) {
-            updateData.telefonoEmergencia = formData.telefonoEmergencia;
-          }
-        }
-
-        console.log('Datos a actualizar:', updateData); // Para debugging
-
-        await adminUsuariosService.updateUsuario(editingUser.id, updateData as ActualizarUsuarioDto);
-        toast.success('Usuario actualizado exitosamente');
-      } else {
-        // Crear nuevo usuario
-        const createData: any = {
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          email: formData.email,
-          roles: [formData.rol],
-        };
-
-        // Agregar teléfono solo si existe
-        if (formData.telefono) {
-          createData.telefono = formData.telefono;
-        }
-
-        // Campos específicos para DOCTOR
-        if (formData.rol === 'MEDICO') {
-          createData.numeroLicencia = `MED-${formData.numeroLicencia}`;
-          createData.especialidadesIds = formData.especialidadesIds;
-          
-          if (formData.biografia) {
-            createData.biografia = formData.biografia;
-          }
-          if (formData.direccion) {
-            createData.direccion = formData.direccion;
-          }
-        }
-
-        // Campos específicos para PACIENTE
-        if (formData.rol === 'PACIENTE') {
-          createData.identificacion = formData.identificacion;
-          createData.fechaNacimiento = formData.fechaNacimiento;
-          
-          if (formData.telefonoEmergencia) {
-            createData.telefonoEmergencia = formData.telefonoEmergencia;
-          }
-        }
-
-        console.log('Datos a enviar:', createData); // Para debugging
-
-        await adminUsuariosService.createUsuario(createData as CrearUsuarioDto);
-        toast.success('Usuario creado exitosamente', {
-          description: 'Contraseña temporal asignada: TuCita2024!'
-        });
-      }
-
-      setShowModal(false);
-      cargarUsuarios();
-    } catch (error: any) {
-      console.error('Error al guardar usuario:', error);
-      toast.error('Error al guardar usuario', {
-        description: error.response?.data?.message || 'Ocurrió un error al guardar'
-      });
-    } finally {
-      setLoading(false);
+    // ✅ USAR MUTATIONS de React Query
+    if (editingUser) {
+      baseData.activo = formData.activo;
+      updateUsuario.mutate(
+        { id: editingUser.id, data: baseData as ActualizarUsuarioDto },
+        { onSuccess: () => setShowModal(false) }
+      );
+    } else {
+      createUsuario.mutate(
+        baseData as CrearUsuarioDto,
+        { onSuccess: () => setShowModal(false) }
+      );
     }
   };
 
   const handleToggleActive = async (userId: number, currentActive: boolean) => {
-    try {
-      await adminUsuariosService.cambiarEstado(userId, !currentActive);
-      toast.success(`Usuario ${!currentActive ? 'activado' : 'desactivado'} exitosamente`);
-      cargarUsuarios();
-    } catch (error: any) {
-      console.error('Error al cambiar estado:', error);
-      toast.error('Error al cambiar estado', {
-        description: error.response?.data?.message || 'Ocurrió un error'
-      });
-    }
+    // ✅ USAR MUTATION de React Query
+    cambiarEstado.mutate({ id: userId, activo: !currentActive });
   };
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
-    try {
-      await adminUsuariosService.deleteUsuario(userToDelete);
-      toast.success('Usuario eliminado exitosamente');
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
-      cargarUsuarios();
-    } catch (error: any) {
-      console.error('Error al eliminar usuario:', error);
-      toast.error('Error al eliminar usuario', {
-        description: error.response?.data?.message || 'Ocurrió un error al eliminar'
-      });
-    }
+    // ✅ USAR MUTATION de React Query
+    deleteUsuario.mutate(userToDelete, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+      }
+    });
   };
+
+  // ✅ Estado de submitting desde React Query
+  const submitting = createUsuario.isPending || updateUsuario.isPending || cambiarEstado.isPending || deleteUsuario.isPending;
 
   return (
     <div className="space-y-6">

@@ -15,13 +15,12 @@ import { ArrowLeft, Search, User, Calendar, Check, Loader2, AlertCircle } from '
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import adminCitasService, { 
-  PacienteSearch, 
-  DoctorConEspecialidad, 
-  SlotDisponible 
-} from '@/services/api/admin/adminCitasService';
-import adminUsuariosService, { Usuario } from '@/services/api/admin/adminUsuariosService';
+import { 
+  useSearchPacientes, 
+  useAdminDoctores, 
+  useAdminSlotsDisponibles, 
+  useCreateCitaAdmin 
+} from '@/hooks/queries';
 
 interface AdminCitasNuevaProps {
   onBack?: () => void;
@@ -34,146 +33,40 @@ export function AdminCitasNueva({ onBack, onClose, onSuccess }: AdminCitasNuevaP
   // Estados del wizard
   const [step, setStep] = useState(1);
   
-  // Estados de datos
-  const [selectedPatient, setSelectedPatient] = useState<PacienteSearch | null>(null);
-  const [selectedDoctor, setSelectedDoctor] = useState<DoctorConEspecialidad | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<SlotDisponible | null>(null);
+  // Estados de datos seleccionados
+  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<any | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
   
   // Estados de búsqueda
   const [searchPatient, setSearchPatient] = useState('');
-  const [pacientesEncontrados, setPacientesEncontrados] = useState<PacienteSearch[]>([]);
-  const [doctores, setDoctores] = useState<DoctorConEspecialidad[]>([]);
-  const [slots, setSlots] = useState<SlotDisponible[]>([]);
-  const [pacientesActivos, setPacientesActivos] = useState<PacienteSearch[]>([]);
-  
-  // Estados de formulario
   const [selectedDate, setSelectedDate] = useState('');
   const [motivo, setMotivo] = useState('');
   const [notasInternas, setNotasInternas] = useState('');
   const [enviarEmail, setEnviarEmail] = useState(true);
-  
-  // Estados de loading/error
-  const [searchingPatients, setSearchingPatients] = useState(false);
-  const [loadingDoctors, setLoadingDoctors] = useState(false);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [creatingAppointment, setCreatingAppointment] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Cargar lista de pacientes activos para que el admin pueda seleccionar
-  useEffect(() => {
-    const loadActivePatients = async () => {
-      try {
-        const response = await adminUsuariosService.getUsuarios({ rol: 'PACIENTE', activo: true, pagina: 1, tamanoPagina: 1000 });
-        const users = response.usuarios as Usuario[];
-        const mapped: PacienteSearch[] = users.map(u => ({
-          id: u.id,
-          nombre: u.nombre,
-          apellido: u.apellido,
-          nombreCompleto: u.nombreCompleto,
-          email: u.email,
-          telefono: u.telefono,
-          identificacion: u.identificacion,
-        }));
-        setPacientesActivos(mapped);
-        // Inicializar resultados con primeros pacientes activos
-        setPacientesEncontrados(mapped.slice(0, 50));
-      } catch (err) {
-        console.error('Error al cargar pacientes activos:', err);
-      }
-    };
+  // 🎯 REACT QUERY: Buscar pacientes (con enabled option)
+  const { data: pacientesEncontrados = [], isLoading: searchingPatients } = useSearchPacientes(
+    searchPatient,
+    searchPatient.length >= 2 // ✅ ARREGLAR: Pasar el enabled como segundo argumento
+  );
 
-    loadActivePatients();
-  }, []);
+  // 🎯 REACT QUERY: Obtener doctores
+  const { data: doctores = [], isLoading: loadingDoctors } = useAdminDoctores();
 
-  // Buscar pacientes cuando cambia el término de búsqueda
-  useEffect(() => {
-    const searchPacientes = async () => {
-      // Si el término es vacío, mostrar lista de pacientes activos (útil para admins)
-      if (searchPatient.length < 2) {
-        setPacientesEncontrados(pacientesActivos.slice(0, 50));
-        return;
-      }
+  // 🎯 REACT QUERY: Obtener slots disponibles (con enabled option)
+  const { data: slots = [], isLoading: loadingSlots } = useAdminSlotsDisponibles(
+    selectedDoctor?.id,
+    selectedDate,
+    !!selectedDoctor && !!selectedDate // ✅ ARREGLAR: Pasar el enabled como tercer argumento
+  );
 
-      setSearchingPatients(true);
-      setError(null);
+  // 🎯 REACT QUERY: Crear cita
+  const createCita = useCreateCitaAdmin();
 
-      try {
-        const results = await adminCitasService.searchPacientes(searchPatient);
-        setPacientesEncontrados(results);
-      } catch (err: any) {
-        console.error('Error al buscar pacientes:', err);
-        setError(err.message || 'Error al buscar pacientes');
-        setPacientesEncontrados([]);
-      } finally {
-        setSearchingPatients(false);
-      }
-    };
-
-    const timeoutId = setTimeout(searchPacientes, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchPatient, pacientesActivos]);
-
-  // Cargar doctores cuando se avanza al paso 2
-  useEffect(() => {
-    const loadDoctores = async () => {
-      if (step !== 2) return;
-
-      setLoadingDoctors(true);
-      setError(null);
-
-      try {
-        const result = await adminCitasService.getDoctores();
-        setDoctores(result);
-      } catch (err: any) {
-        console.error('Error al cargar doctores:', err);
-        setError(err.message || 'Error al cargar doctores');
-        toast.error('Error al cargar doctores');
-      } finally {
-        setLoadingDoctors(false);
-      }
-    };
-
-    loadDoctores();
-  }, [step]);
-
-  // Cargar slots cuando se selecciona una fecha
-  useEffect(() => {
-    const loadSlots = async () => {
-      if (!selectedDoctor || !selectedDate) {
-        setSlots([]);
-        return;
-      }
-
-      setLoadingSlots(true);
-      setError(null);
-
-      try {
-        const result = await adminCitasService.getSlotsDisponibles(
-          selectedDoctor.id,
-          selectedDate
-        );
-        setSlots(result);
-
-        if (result.length === 0) {
-          toast.warning('No hay horarios disponibles para esta fecha');
-        }
-      } catch (err: any) {
-        console.error('Error al cargar slots:', err);
-        setError(err.message || 'Error al cargar horarios');
-        toast.error('Error al cargar horarios disponibles');
-        setSlots([]);
-      } finally {
-        setLoadingSlots(false);
-      }
-    };
-
-    loadSlots();
-  }, [selectedDoctor, selectedDate]);
-
-  const handlePatientSelect = (patient: PacienteSearch) => {
+  const handlePatientSelect = (patient: any) => {
     setSelectedPatient(patient);
     setSearchPatient('');
-    setPacientesEncontrados([]);
   };
 
   const handleDoctorSelect = (doctorId: string) => {
@@ -181,52 +74,35 @@ export function AdminCitasNueva({ onBack, onClose, onSuccess }: AdminCitasNuevaP
     setSelectedDoctor(doctor || null);
     // Reset slot selection when doctor changes
     setSelectedSlot(null);
-    setSlots([]);
   };
 
-  const handleSlotSelect = (slot: SlotDisponible) => {
+  const handleSlotSelect = (slot: any) => {
     setSelectedSlot(slot);
   };
 
   const handleCreateAppointment = async () => {
     if (!selectedPatient || !selectedDoctor || !selectedSlot) {
-      toast.error('Faltan datos requeridos');
       return;
     }
 
-    setCreatingAppointment(true);
-    setError(null);
-
-    try {
-      const citaCreada = await adminCitasService.createCita({
+    // ✅ USAR MUTATION de React Query
+    createCita.mutate(
+      {
         pacienteId: selectedPatient.id,
         medicoId: selectedDoctor.id,
         turnoId: selectedSlot.turnoId,
         motivo: motivo || undefined,
         notasInternas: notasInternas || undefined,
         enviarEmail: enviarEmail
-      });
-
-      toast.success(
-        `Cita creada exitosamente!${citaCreada.emailEnviado ? ' Email enviado al paciente.' : ''}`,
-        {
-          description: `Cita para ${citaCreada.nombrePaciente} con ${citaCreada.nombreMedico}`
+      },
+      {
+        onSuccess: () => {
+          onSuccess?.();
+          onClose?.();
+          onBack?.();
         }
-      );
-
-      onSuccess?.();
-      onClose?.();
-      onBack?.();
-    } catch (err: any) {
-      console.error('Error al crear cita:', err);
-      const errorMsg = err.message || 'Error al crear la cita';
-      setError(errorMsg);
-      toast.error('Error al crear la cita', {
-        description: errorMsg
-      });
-    } finally {
-      setCreatingAppointment(false);
-    }
+      }
+    );
   };
 
   const canGoToNextStep = () => {
@@ -242,6 +118,9 @@ export function AdminCitasNueva({ onBack, onClose, onSuccess }: AdminCitasNuevaP
     }
   };
 
+  // ✅ Estado de creating desde React Query
+  const creatingAppointment = createCita.isPending;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -256,23 +135,11 @@ export function AdminCitasNueva({ onBack, onClose, onSuccess }: AdminCitasNuevaP
         </div>
       </div>
 
-      {/* Error Global */}
-      {error && (
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="h-5 w-5" />
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Progress Steps */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between max-w-3xl mx-auto">
-            {[
+            { [
               { num: 1, label: 'Paciente' },
               { num: 2, label: 'Doctor' },
               { num: 3, label: 'Fecha/Hora' },
@@ -471,7 +338,7 @@ export function AdminCitasNueva({ onBack, onClose, onSuccess }: AdminCitasNuevaP
         <Card>
           <CardHeader>
             <CardTitle>4. Detalles de la cita</CardTitle>
-            <CardDescription>información adicional y confirmación</CardDescription>
+            <CardDescription>Información adicional y confirmación</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
