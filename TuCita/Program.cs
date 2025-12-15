@@ -88,7 +88,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"?? JWT Authentication Failed: {context.Exception.Message}");
+            Console.WriteLine($"? JWT Authentication Failed: {context.Exception.Message}");
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
@@ -131,7 +131,7 @@ builder.Services.AddScoped<IAdminEspecialidadesService, AdminEspecialidadesServi
 builder.Services.AddScoped<IAdminUsuariosService, AdminUsuariosService>();
 builder.Services.AddScoped<IAdminCitasService, AdminCitasService>();
 builder.Services.AddScoped<IAdminReportesService, AdminReportesService>();
-builder.Services.AddScoped<DoctorAvailabilityService>(); // ? Nuevo servicio para gestionar disponibilidad
+builder.Services.AddScoped<DoctorAvailabilityService>(); // ?? Nuevo servicio para gestionar disponibilidad
 
 // Add Background Service para limpieza automática de turnos vencidos (AWS RDS)
 builder.Services.AddHostedService<ExpiredSlotsCleanupService>();
@@ -145,15 +145,15 @@ if (!string.IsNullOrEmpty(awsAccessKey) && !string.IsNullOrEmpty(awsSecretKey))
 {
     var credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
     
-    // ? Configuración explícita para forzar AWS Signature Version 4
+    // ?? Configuración explícita para forzar AWS Signature Version 4
     var config = new AmazonS3Config
     {
         RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion),
-        // ? CRÍTICO: Estas propiedades fuerzan Signature Version 4
+        // ?? CRÍTICO: Estas propiedades fuerzan Signature Version 4
         SignatureVersion = "4",
         SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA256,
         UseHttp = false,
-        // ? IMPORTANTE: NO usar ForcePathStyle para Signature V4
+        // ?? IMPORTANTE: NO usar ForcePathStyle para Signature V4
         // Virtual-hosted-style es requerido para Signature V4 en regiones nuevas
         ForcePathStyle = false
     };
@@ -196,7 +196,7 @@ builder.Services.AddSpaStaticFiles(configuration =>
 var app = builder.Build();
 
 // ========================================
-// ? CONFIGURACIÓN HTTPS PARA HEROKU
+// ?? CONFIGURACIÓN HTTPS PARA HEROKU
 // ========================================
 // Heroku maneja SSL y reenvía requests por HTTP al dyno
 // Debemos configurar Forwarded Headers para reconocer HTTPS correctamente
@@ -298,7 +298,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ========================================
-// ? FORZAR HTTPS EN TODOS LOS ENTORNOS
+// ?? FORZAR HTTPS EN TODOS LOS ENTORNOS
 // ========================================
 // UseForwardedHeaders debe ejecutarse ANTES de UseHttpsRedirection
 // Esto funciona tanto en local como en Heroku sin causar loops
