@@ -95,7 +95,7 @@ public static class EmailTemplates
 
               <div style=""margin-top:12px; font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:11px; color:#94a3b8; line-height:17px;"">
                 Este es un correo automático. No respondas a este mensaje.<br>
-                Para soporte, ingresá a tu cuenta en
+                Para soporte, ingresa a tu cuenta en
                 <a href=""{BaseUrl}"" style=""color:{PrimaryBlue}; text-decoration:none;"">{BaseUrl}</a>.
               </div>
             </td>
@@ -212,8 +212,8 @@ public static class EmailTemplates
 {Button("Ver mis citas", $"{BaseUrl}/appointments")}
 
 {Callout(
-    "¿Necesitás reprogramar o cancelar?",
-    "Podés hacerlo desde tu panel de citas. Si no podés asistir, cancelá con anticipación para liberar el horario.",
+    "¿Necesitas reprogramar o cancelar?",
+    "Puedes hacerlo desde tu panel de citas. Si no puedes asistir, cancela con anticipación para liberar el horario.",
     "#fff7ed",
     "#f59e0b",
     "#7c2d12"
@@ -243,7 +243,7 @@ public static class EmailTemplates
 
 {Button("Agendar nueva cita", $"{BaseUrl}/search")}
 
-{SmallMuted("Podés agendar una nueva cita cuando lo desees.")}";
+{SmallMuted("Puedes agendar una nueva cita cuando lo desees.")}";
 
         return GetBaseTemplate("Cita cancelada", content);
     }
@@ -268,7 +268,7 @@ public static class EmailTemplates
         var content = $@"
 <div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
 <div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
-  Tu cita fue reprogramada exitosamente. Revisá la información actualizada:
+  Tu cita fue reprogramada exitosamente. Revisa la información actualizada:
 </div>
 
 {Card(doctor, PrimaryBlue)}
@@ -279,7 +279,7 @@ public static class EmailTemplates
 
 {Callout(
     "Importante",
-    "Te enviaremos nuevos recordatorios antes de la cita. Asegurate de marcar la nueva fecha en tu calendario.",
+    "Te enviaremos nuevos recordatorios antes de la cita. Asegúrate de marcar la nueva fecha en tu calendario.",
     "#f0fdf4",
     TealGreen,
     "#14532d"
@@ -312,7 +312,7 @@ public static class EmailTemplates
 
 {Callout(
     "Recomendaciones",
-    "Llegá 10 minutos antes, llevá tu identificación oficial y cualquier estudio médico previo. Anotá dudas o síntomas para comentarlos.",
+    "Llega 10 minutos antes, lleva tu identificación oficial y cualquier estudio médico previo. Anota dudas o síntomas para comentarlos.",
     "#eff6ff",
     PrimaryBlue,
     "#0f172a"
@@ -321,8 +321,8 @@ public static class EmailTemplates
 {Button("Ver detalles de la cita", $"{BaseUrl}/appointments")}
 
 {Callout(
-    "Si no podés asistir",
-    "Cancelá tu cita con anticipación para que otro paciente pueda aprovechar el horario.",
+    "Si no puedes asistir",
+    "Cancela tu cita con anticipación para que otro paciente pueda aprovechar el horario.",
     "#fff7ed",
     "#f59e0b",
     "#7c2d12"
@@ -346,14 +346,14 @@ public static class EmailTemplates
         var content = $@"
 <div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
 <div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
-  Tu cita es en <strong style=""color:#dc2626;"">4 horas</strong>. Prepará lo necesario:
+  Tu cita es en <strong style=""color:#dc2626;"">4 horas</strong>. Prepara lo necesario:
 </div>
 
 {Card(details, "#ef4444")}
 
 {Callout(
-    "No olvidés llevar",
-    "Tu identificación, estudios médicos previos (si tenés), lista de medicamentos actuales y forma de pago (si aplica).",
+    "No olvides llevar",
+    "Tu identificación, estudios médicos previos (si tienes), lista de medicamentos actuales y forma de pago (si aplica).",
     "#fef2f2",
     "#ef4444",
     "#7f1d1d"
@@ -362,8 +362,8 @@ public static class EmailTemplates
 {Button("Ver detalles de la cita", $"{BaseUrl}/appointments", "#dc2626")}
 
 {Callout(
-    "Si no podés asistir",
-    "Cancelá tu cita ahora para liberar el horario.",
+    "Si no puedes asistir",
+    "Cancela tu cita ahora para liberar el horario.",
     "#fef2f2",
     "#ef4444",
     "#7f1d1d"
@@ -384,8 +384,8 @@ public static class EmailTemplates
 </div>
 
 {Callout(
-    "Si no fuiste vos",
-    "Podés ignorar este correo. Tu contraseña actual seguirá siendo válida.",
+    "Si no fuiste tú",
+    "Puedes ignorar este correo. Tu contraseña actual seguirá siendo válida.",
     "#fff7ed",
     "#f59e0b",
     "#7c2d12"
@@ -395,13 +395,13 @@ public static class EmailTemplates
 
 {Callout(
     "Consejos de seguridad",
-    "Este enlace es válido por 1 hora. Usá una contraseña fuerte y única. No compartás tu contraseña con nadie.",
+    "Este enlace es válido por 1 hora. Usa una contraseña fuerte y única. No compartas tu contraseña con nadie.",
     "#eff6ff",
     PrimaryBlue,
     "#0f172a"
 )}
 
-{SmallMuted($@"<strong>Si el botón no funciona:</strong> copiá y pegá este enlace en tu navegador:<br>
+{SmallMuted($@"<strong>Si el botón no funciona:</strong> copia y pega este enlace en tu navegador:<br>
 <span style=""word-break:break-all; color:{PrimaryBlue};"">{resetUrl}</span>")}";
 
         return GetBaseTemplate("Recuperación de contraseña", content);
