@@ -178,34 +178,6 @@ export function AdminUsuarios() {
     setPaginaActual(1);
   }, [searchQuery, filterRole, filterStatus]);
 
-  // Cargar usuarios cuando cambian los filtros
-  useEffect(() => {
-    cargarUsuarios();
-  }, [searchQuery, filterRole, filterStatus, paginaActual]);
-
-  const cargarUsuarios = async () => {
-    try {
-      const resultado = await adminUsuariosService.getUsuarios({
-        busqueda: searchQuery || undefined,
-        rol: filterRole !== 'Todos' ? filterRole : undefined,
-        activo: filterStatus !== 'Todos' ? (filterStatus === 'Activo') : undefined,
-        pagina: paginaActual,
-        tamanoPagina: 10
-      });
-      
-      setUsuarios(resultado.usuarios);
-      setTotalUsuarios(resultado.total);
-      setTotalPaginas(resultado.totalPaginas);
-    } catch (error: any) {
-      console.error('Error al cargar usuarios:', error);
-      toast.error('Error al cargar usuarios', {
-        description: error.response?.data?.message || 'Ocurrió un error al cargar los datos'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleEspecialidadToggle = (especialidadId: number) => {
     setFormData(prev => ({
       ...prev,

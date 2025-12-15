@@ -42,7 +42,6 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
 
       if (selectedRole === 'admin') {
         // Login como Admin
-        console.log('🔐 Intentando login como ADMIN...');
         userData = await adminAuthService.login({
           email: loginForm.email,
           password: loginForm.password,
@@ -56,7 +55,6 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
         onNavigate('admin-panel');
       } else {
         // Login como Doctor
-        console.log('🔐 Intentando login como DOCTOR...');
         userData = await doctorAuthService.login({
           email: loginForm.email,
           password: loginForm.password,
@@ -70,7 +68,7 @@ export function DoctorAuthPage({ onLogin, onNavigate }: DoctorAuthPageProps) {
         onNavigate('doctor-dashboard');
       }
     } catch (error: any) {
-      console.error('❌ Error en login:', error);
+      console.error('Error en login:', error);
       const errorMessage = error.message || 'Error al iniciar sesión';
       
       toast.error('Error al iniciar sesión', {

@@ -47,7 +47,6 @@ export function ProfilePage({ onNavigate }: { onNavigate?: (page: string) => voi
     lastName: '',
     email: '',
     phone: '',
-    birthDate: '',
     identification: '',
     emergencyPhone: '',
   });
@@ -72,7 +71,6 @@ export function ProfilePage({ onNavigate }: { onNavigate?: (page: string) => voi
         lastName: profile.apellido || '',
         email: profile.email || '',
         phone: profile.telefono || '',
-        birthDate: profile.fechaNacimiento || '',
         identification: profile.identificacion || '',
         emergencyPhone: profile.telefonoEmergencia || '',
       });
@@ -87,7 +85,6 @@ export function ProfilePage({ onNavigate }: { onNavigate?: (page: string) => voi
         apellido: personalInfo.lastName,
         email: personalInfo.email,
         telefono: personalInfo.phone || undefined,
-        fechaNacimiento: personalInfo.birthDate || undefined,
         identificacion: personalInfo.identification || undefined,
         telefonoEmergencia: personalInfo.emergencyPhone || undefined,
       },
@@ -299,17 +296,6 @@ export function ProfilePage({ onNavigate }: { onNavigate?: (page: string) => voi
                     id="phone"
                     value={personalInfo.phone}
                     onChange={(value) => setPersonalInfo(prev => ({ ...prev, phone: value }))}
-                    disabled={!isEditing || updateProfile.isPending}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                  <Input
-                    id="birthDate"
-                    type="date"
-                    value={personalInfo.birthDate}
-                    onChange={(e) => setPersonalInfo(prev => ({ ...prev, birthDate: e.target.value }))}
                     disabled={!isEditing || updateProfile.isPending}
                   />
                 </div>

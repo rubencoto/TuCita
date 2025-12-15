@@ -96,7 +96,6 @@ export default function App() {
         if (userRole === 'ADMIN') {
           const currentAdmin = adminAuthService.getCurrentAdmin();
           if (currentAdmin && adminAuthService.isAuthenticated()) {
-            console.log('✅ Sesión de admin detectada:', currentAdmin);
             setUser(currentAdmin);
             setIsLoggedIn(true);
             setIsAdmin(true);
@@ -109,7 +108,6 @@ export default function App() {
         if (userRole === 'DOCTOR') {
           const currentDoctor = doctorAuthService.getCurrentDoctor();
           if (currentDoctor && doctorAuthService.isAuthenticated()) {
-            console.log('✅ Sesión de doctor detectada:', currentDoctor);
             setUser(currentDoctor);
             setIsLoggedIn(true);
             setIsDoctor(true);
@@ -122,7 +120,6 @@ export default function App() {
         if (userRole === 'PACIENTE' || !userRole) {
           const currentUser = authService.getCurrentUser();
           if (currentUser && authService.isAuthenticated()) {
-            console.log('✅ Sesión de paciente detectada:', currentUser);
             setUser(currentUser);
             setIsLoggedIn(true);
             setIsDoctor(false);
@@ -132,13 +129,12 @@ export default function App() {
         }
         
         // Si llegamos aquí, limpiar sesión inválida
-        console.warn('⚠️ Sesión inválida detectada, limpiando localStorage');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('userRole');
         
       } catch (error) {
-        console.error('❌ Error al verificar autenticación:', error);
+        console.error('Error al verificar autenticación:', error);
         // Limpiar localStorage en caso de error
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -150,7 +146,6 @@ export default function App() {
   }, []);
 
   const handleNavigate = (page: string, data?: any): void => {
-    console.log('🔄 Navegando a:', page, data);
     const pageType = page as PageType;
     setCurrentPage(pageType);
     setPageData(data);
@@ -158,25 +153,21 @@ export default function App() {
   };
 
   const handleLogin = async (userData: any): Promise<void> => {
-    console.log('✅ Usuario autenticado:', userData);
     setUser(userData);
     setIsLoggedIn(true);
     
     // Verificar si es un admin
     if (userData.role === 'admin' || userData.role === 'ADMIN') {
-      console.log('👨‍💼 Usuario es administrador');
       setIsAdmin(true);
       setIsDoctor(false);
       handleNavigate('admin-panel');
     }
     // Verificar si es un doctor
     else if (userData.role === 'doctor' || userData.role === 'DOCTOR') {
-      console.log('👨‍⚕️ Usuario es doctor');
       setIsDoctor(true);
       setIsAdmin(false);
       handleNavigate('doctor-dashboard');
     } else {
-      console.log('👤 Usuario es paciente');
       setIsDoctor(false);
       setIsAdmin(false);
       handleNavigate('home');
@@ -184,8 +175,6 @@ export default function App() {
   };
 
   const handleLogout = async (): Promise<void> => {
-    console.log('👋 Cerrando sesión...');
-    
     if (isAdmin) {
       await adminAuthService.logout();
     } else if (isDoctor) {
