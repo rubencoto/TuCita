@@ -183,6 +183,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
         // Serializar enums como strings en lugar de números
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        // ? FORZAR UTF-8 ENCODING EN RESPUESTAS JSON
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
     });
 
 // Add SPA services - Frontend is built to wwwroot during publish
