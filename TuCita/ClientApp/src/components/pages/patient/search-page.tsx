@@ -13,7 +13,6 @@ import {
 import {
   Search,
   MapPin,
-  Star,
   Clock,
   Calendar,
   Heart,
@@ -117,17 +116,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                   ))}
                 </div>
               </div>
-              {doctor.rating && (
-                <div className="flex items-center space-x-1">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-sm font-medium">{doctor.rating}</span>
-                  {doctor.reviewCount && (
-                    <span className="text-xs text-muted-foreground">
-                      ({doctor.reviewCount})
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="mt-3 space-y-2">

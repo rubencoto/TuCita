@@ -16,7 +16,6 @@ import {
   CheckCircle,
   ArrowRight,
   Zap,
-  Users,
   MapPin,
   Smartphone,
   HeartPulse,
@@ -26,12 +25,7 @@ import {
   Globe,
   Headphones,
   BarChart,
-  Check,
-  X,
-  RefreshCw,
-  Building2,
-  UserCheck,
-  ClipboardList
+  RefreshCw
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -108,17 +102,6 @@ const whyChooseUs = [
     title: 'Transparencia',
     description: 'Sin costos ocultos'
   },
-];
-
-const comparisonItems = [
-  { feature: 'Disponibilidad 24/7', traditional: false, tucita: true },
-  { feature: 'Confirmación instantánea', traditional: false, tucita: true },
-  { feature: 'Recordatorios automáticos', traditional: false, tucita: true },
-  { feature: 'Sin llamadas telefónicas', traditional: false, tucita: true },
-  { feature: 'Reagendar en línea', traditional: false, tucita: true },
-  { feature: 'Historial de consultas', traditional: false, tucita: true },
-  { feature: 'Ver especialidades', traditional: true, tucita: true },
-  { feature: 'Múltiples formas de pago', traditional: true, tucita: true },
 ];
 
 export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
@@ -379,76 +362,6 @@ export function HomePage({ onNavigate, isLoggedIn }: HomePageProps) {
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* Comparison Table */}
-      <section className="bg-muted py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge className="bg-primary text-white mb-4">
-              Comparación
-            </Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-              Método tradicional vs TuCitaOnline
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Descubre cómo transformamos la experiencia de agendar consultas
-            </p>
-          </div>
-
-          <Card className="overflow-hidden shadow-xl">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-primary text-white">
-                    <tr>
-                      <th className="text-left p-6 font-semibold">Característica</th>
-                      <th className="text-center p-6 font-semibold">Método Tradicional</th>
-                      <th className="text-center p-6 font-semibold bg-blue-700">TuCitaOnline</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white">
-                    {comparisonItems.map((item, index) => (
-                      <tr key={index} className="border-b border-border last:border-0">
-                        <td className="p-6 font-medium text-foreground">{item.feature}</td>
-                        <td className="p-6 text-center">
-                          {item.traditional ? (
-                            <div className="flex justify-center">
-                              <div className="bg-green-100 p-2 rounded-full">
-                                <Check className="h-5 w-5 text-green-600" />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex justify-center">
-                              <div className="bg-red-100 p-2 rounded-full">
-                                <X className="h-5 w-5 text-red-600" />
-                              </div>
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-6 text-center bg-blue-50">
-                          {item.tucita ? (
-                            <div className="flex justify-center">
-                              <div className="bg-green-100 p-2 rounded-full">
-                                <Check className="h-5 w-5 text-green-600" />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex justify-center">
-                              <div className="bg-red-100 p-2 rounded-full">
-                                <X className="h-5 w-5 text-red-600" />
-                              </div>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </section>
 

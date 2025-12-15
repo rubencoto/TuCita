@@ -26,8 +26,6 @@ public class AuthService : IAuthService
     private readonly TuCitaDbContext _context;
     private readonly ILogger<AuthService> _logger;
     private readonly IEmailService _emailService;
-    // TODO: Implement distributed cache for password reset tokens
-    // private readonly IDistributedCache _cache;
 
     public AuthService(
         TuCitaDbContext context,
@@ -345,18 +343,13 @@ public class AuthService : IAuthService
                 return new AuthResult { Success = true };
             }
 
-            // Generar token único con GUID
-            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"); // Token más largo y seguro
+            // Generar token JWT con expiración de 60 minutos
+            var token = GeneratePasswordResetToken(usuario.Id, usuario.Email);
             
-            // TODO: Store token in distributed cache (Redis/Memory Cache) with expiration
-            // For now, we'll use a workaround or implement a separate password_reset_tokens table
-            // Example: await _cache.SetStringAsync($"reset:{token}", usuario.Id.ToString(), 
-            //          new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) });
-
             // Enviar email con el enlace
             await _emailService.SendPasswordResetLinkAsync(usuario.Email, token, usuario.Nombre);
 
-            _logger.LogInformation("Enlace de recuperación enviado a: {Email}", email);
+            _logger.LogInformation("Enlace de recuperación enviado a: {Email} (User ID: {UserId})", email, usuario.Id);
 
             return new AuthResult { Success = true };
         }
@@ -371,23 +364,53 @@ public class AuthService : IAuthService
     {
         try
         {
-            // TODO: Validate token from distributed cache
-            // Example: var userId = await _cache.GetStringAsync($"reset:{token});
-            // if (string.IsNullOrEmpty(userId)) return invalid result
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") 
+                ?? throw new InvalidOperationException("JWT_KEY no configurada en .env");
+            var key = Encoding.ASCII.GetBytes(jwtKey);
 
-            // For now, return a generic message
-            _logger.LogWarning("Password reset token validation not fully implemented. Token: {Token}", token.Substring(0, Math.Min(token.Length, 10)));
+            // Validar el token
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false, // No validamos issuer para tokens de reset
+                ValidateAudience = false, // No validamos audience para tokens de reset
+                ValidateLifetime = true, // Importante: validar que no haya expirado
+                ClockSkew = TimeSpan.Zero // Sin tolerancia adicional
+            };
+
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+            
+            // Verificar que es un token de tipo "password-reset"
+            var tokenTypeClaim = principal.FindFirst("token_type");
+            if (tokenTypeClaim?.Value != "password-reset")
+            {
+                _logger.LogWarning("Token inválido: no es de tipo password-reset");
+                return new AuthResult { Success = false, Message = "Token inválido" };
+            }
+
+            // Extraer el email del token
+            var emailClaim = principal.FindFirst(ClaimTypes.Email);
+            var email = emailClaim?.Value;
+
+            _logger.LogInformation("Token de reset validado correctamente para email: {Email}", email);
             
             return new AuthResult 
             { 
-                Success = false, 
-                Message = "La funcionalidad de recuperación de contraseña requiere configuración adicional (Redis/Cache)"
+                Success = true,
+                Message = "Token válido"
             };
+        }
+        catch (SecurityTokenExpiredException)
+        {
+            _logger.LogWarning("Token de reset expirado");
+            return new AuthResult { Success = false, Message = "El enlace ha expirado. Por favor, solicita uno nuevo." };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en ValidateResetTokenAsync");
-            return new AuthResult { Success = false, Message = "Error al validar token" };
+            _logger.LogError(ex, "Error al validar token de reset");
+            return new AuthResult { Success = false, Message = "Token inválido o expirado" };
         }
     }
 
@@ -395,23 +418,93 @@ public class AuthService : IAuthService
     {
         try
         {
-            // TODO: Implement with distributed cache
-            // Example:
-            // var userIdStr = await _cache.GetStringAsync($"reset:{request.Token});
-            // if (string.IsNullOrEmpty(userIdStr)) return invalid result
-            // var userId = long.Parse(userIdStr);
-            // var usuario = await _context.Usuarios.FindAsync(userId);
-            // ... update password
-            // await _cache.RemoveAsync($"reset:{request.Token}");
+            // Validar el token primero
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") 
+                ?? throw new InvalidOperationException("JWT_KEY no configurada en .env");
+            var key = Encoding.ASCII.GetBytes(jwtKey);
 
-            _logger.LogWarning("Password reset not fully implemented");
-            return new AuthResult { Success = false, Message = "La funcionalidad de recuperación de contraseña requiere configuración adicional (Redis/Cache)" };
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            var principal = tokenHandler.ValidateToken(request.Token, validationParameters, out var validatedToken);
+            
+            // Verificar que es un token de tipo "password-reset"
+            var tokenTypeClaim = principal.FindFirst("token_type");
+            if (tokenTypeClaim?.Value != "password-reset")
+            {
+                return new AuthResult { Success = false, Message = "Token inválido" };
+            }
+
+            // Extraer el user ID del token
+            var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out var userId))
+            {
+                return new AuthResult { Success = false, Message = "Token inválido" };
+            }
+
+            // Buscar el usuario
+            var usuario = await _context.Usuarios.FindAsync(userId);
+            if (usuario == null || !usuario.Activo)
+            {
+                _logger.LogWarning("Intento de reset para usuario no existente o inactivo: {UserId}", userId);
+                return new AuthResult { Success = false, Message = "Usuario no encontrado" };
+            }
+
+            // Actualizar la contraseña
+            usuario.PasswordHash = HashPassword(request.NuevaPassword);
+            usuario.ActualizadoEn = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Contraseña actualizada exitosamente para usuario: {UserId} ({Email})", userId, usuario.Email);
+
+            return new AuthResult { Success = true, Message = "Contraseña actualizada exitosamente" };
+        }
+        catch (SecurityTokenExpiredException)
+        {
+            _logger.LogWarning("Intento de reset con token expirado");
+            return new AuthResult { Success = false, Message = "El enlace ha expirado. Por favor, solicita uno nuevo." };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error en ResetPasswordAsync");
             return new AuthResult { Success = false, Message = "Error al restablecer contraseña" };
         }
+    }
+
+    private string GeneratePasswordResetToken(long userId, string email)
+    {
+        var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") 
+            ?? throw new InvalidOperationException("JWT_KEY no configurada en .env");
+        
+        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Email, email),
+            new Claim("token_type", "password-reset") // Identificador para este tipo de token
+        };
+
+        // Token expira en 60 minutos
+        var token = new JwtSecurityToken(
+            issuer: null,
+            audience: null,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(60),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private string GenerateJwtToken(Usuario usuario)

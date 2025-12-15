@@ -3,8 +3,8 @@ using System.Text;
 namespace TuCita.Services;
 
 /// <summary>
-/// Plantillas HTML profesionales para correos electrónicos
-/// Diseño moderno con colores de TuCitaOnline y soporte UTF-8
+/// Plantillas HTML profesionales para correos electrónicos (TuCitaOnline)
+/// Enfocado en compatibilidad real con Gmail/Outlook (layout con tablas + estilos inline)
 /// </summary>
 public static class EmailTemplates
 {
@@ -13,549 +13,397 @@ public static class EmailTemplates
     private const string TealGreen = "#14B8A6";
     private const string DarkBlue = "#1a5a7f";
     private const string LightBg = "#f0f4f8";
-    private const string CardBg = "#f8f9fa";
-    private const string TextDark = "#1f2937";
-    private const string TextLight = "#6b7280";
-    
+    private const string TextDark = "#0f172a";
+    private const string TextMuted = "#64748b";
+
     // URL base de la aplicación
     private const string BaseUrl = "https://tucitaonline.org";
 
-    /// <summary>
-    /// Template base con estructura común para todos los correos
-    /// </summary>
+    // ============================================================
+    // BASE TEMPLATE (PRO + COMPATIBLE)
+    // ============================================================
     private static string GetBaseTemplate(string title, string content, string footerNote = "")
     {
+        var preheader = "Notificación de TuCitaOnline: revisa los detalles de tu cita.";
+
         return $@"
-<!DOCTYPE html>
+<!doctype html>
 <html lang=""es"">
 <head>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8"">
-    <title>{title}</title>
-    <style>
-        body {{
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: {LightBg};
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }}
-        .email-wrapper {{
-            width: 100%;
-            background-color: {LightBg};
-            padding: 40px 20px;
-        }}
-        .email-container {{
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1);
-        }}
-        .header {{
-            background: linear-gradient(135deg, {PrimaryBlue} 0%, {DarkBlue} 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }}
-        .header-icon {{
-            font-size: 48px;
-            margin-bottom: 10px;
-            display: inline-block;
-            width: 60px;
-            height: 60px;
-            line-height: 60px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-        }}
-        .header h1 {{
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }}
-        .content {{
-            padding: 40px 30px;
-            color: {TextDark};
-        }}
-        .greeting {{
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: {TextDark};
-        }}
-        .info-card {{
-            background-color: {CardBg};
-            border-left: 4px solid {PrimaryBlue};
-            padding: 24px;
-            margin: 24px 0;
-            border-radius: 8px;
-        }}
-        .info-row {{
-            margin: 14px 0;
-            display: block;
-            padding: 8px 0;
-        }}
-        .info-label {{
-            font-weight: 600;
-            color: {PrimaryBlue};
-            display: inline-block;
-            min-width: 120px;
-        }}
-        .info-value {{
-            color: {TextDark};
-            display: inline;
-        }}
-        .button {{
-            display: inline-block;
-            background: linear-gradient(135deg, {PrimaryBlue} 0%, {TealGreen} 100%);
-            color: white !important;
-            padding: 16px 40px;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 24px 0;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(46, 139, 192, 0.3);
-        }}
-        .note {{
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 16px;
-            margin: 24px 0;
-            border-radius: 8px;
-            color: #92400e;
-            font-size: 14px;
-        }}
-        .tips {{
-            background-color: #dbeafe;
-            border-left: 4px solid {PrimaryBlue};
-            padding: 16px;
-            margin: 24px 0;
-            border-radius: 8px;
-        }}
-        .tips-title {{
-            font-weight: 600;
-            color: {PrimaryBlue};
-            margin-bottom: 12px;
-            font-size: 16px;
-        }}
-        .tips ul {{
-            margin: 8px 0;
-            padding-left: 20px;
-            color: {TextDark};
-        }}
-        .tips li {{
-            margin: 6px 0;
-            font-size: 14px;
-        }}
-        .footer {{
-            background-color: {CardBg};
-            padding: 30px;
-            text-align: center;
-            color: {TextLight};
-            font-size: 14px;
-            border-top: 1px solid #e5e7eb;
-        }}
-        .footer-logo {{
-            font-size: 24px;
-            font-weight: 700;
-            color: {PrimaryBlue};
-            margin-bottom: 8px;
-        }}
-        .footer p {{
-            margin: 8px 0;
-        }}
-        .footer-note {{
-            font-size: 12px;
-            color: #9ca3af;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e5e7eb;
-        }}
-        @media only screen and (max-width: 600px) {{
-            .email-wrapper {{
-                padding: 20px 10px;
-            }}
-            .header {{
-                padding: 30px 20px;
-            }}
-            .header h1 {{
-                font-size: 24px;
-            }}
-            .content {{
-                padding: 30px 20px;
-            }}
-            .info-card {{
-                padding: 20px;
-            }}
-            .button {{
-                padding: 14px 32px;
-                font-size: 15px;
-            }}
-        }}
-    </style>
+  <meta charset=""UTF-8"">
+  <meta http-equiv=""Content-Type"" content=""text/html; charset=UTF-8"">
+  <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+  <title>{title}</title>
 </head>
-<body>
-    <div class=""email-wrapper"">
-        <div class=""email-container"">
-            {content}
-            <div class=""footer"">
-                <div class=""footer-logo"">TuCitaOnline</div>
-                <p><strong>Sistema de Gesti&oacute;n de Citas M&eacute;dicas</strong></p>
-                <p>Simplificando el acceso a la salud</p>
-                {(string.IsNullOrEmpty(footerNote) ? "" : $@"<div class=""footer-note"">{footerNote}</div>")}
-                <div class=""footer-note"">
-                    Este es un correo autom&aacute;tico. Por favor, no respondas a este mensaje.<br>
-                    Si tienes alguna consulta, accede a tu cuenta en TuCitaOnline.
-                </div>
-            </div>
-        </div>
-    </div>
+<body style=""margin:0; padding:0; background-color:{LightBg};"">
+
+  <!-- Preheader (hidden): aparece como preview en bandeja de entrada -->
+  <div style=""display:none; font-size:1px; color:{LightBg}; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;"">
+    {preheader}
+  </div>
+
+  <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background-color:{LightBg}; padding:24px 0;"">
+    <tr>
+      <td align=""center"" style=""padding:0 12px;"">
+
+        <!-- Container -->
+        <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""600"" style=""width:600px; max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;"">
+
+          <!-- Brand Bar -->
+          <tr>
+            <td style=""padding:16px 22px; background-color:#ffffff; border-bottom:1px solid #eef2f7;"">
+              <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"">
+                <tr>
+                  <td style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:16px; font-weight:800; color:{PrimaryBlue}; letter-spacing:-0.2px;"">
+                    TuCitaOnline
+                  </td>
+                  <td align=""right"" style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:12px; color:#94a3b8;"">
+                    {DateTime.UtcNow:dd/MM/yyyy}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td style=""background-color:{DarkBlue}; padding:30px 26px; text-align:left;"">
+              <div style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:22px; font-weight:800; color:#ffffff; margin:0; letter-spacing:-0.3px;"">
+                {title}
+              </div>
+              <div style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:13px; color:rgba(255,255,255,0.85); margin-top:8px;"">
+                Sistema de Gestión de Citas Médicas
+              </div>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style=""padding:26px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:{TextDark};"">
+              {content}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style=""background-color:#f8fafc; padding:22px 26px; border-top:1px solid #eef2f7;"">
+              <div style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:12px; color:{TextMuted}; line-height:18px;"">
+                <strong>TuCitaOnline</strong> · Simplificando el acceso a la salud
+              </div>
+
+              {(string.IsNullOrEmpty(footerNote) ? "" : $@"<div style=""margin-top:10px; font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:12px; color:#94a3b8; line-height:18px;"">{footerNote}</div>")}
+
+              <div style=""margin-top:12px; font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:11px; color:#94a3b8; line-height:17px;"">
+                Este es un correo automático. No respondas a este mensaje.<br>
+                Para soporte, ingresá a tu cuenta en
+                <a href=""{BaseUrl}"" style=""color:{PrimaryBlue}; text-decoration:none;"">{BaseUrl}</a>.
+              </div>
+            </td>
+          </tr>
+
+        </table>
+
+        <div style=""height:18px;"">&nbsp;</div>
+
+      </td>
+    </tr>
+  </table>
+
 </body>
 </html>";
     }
 
+    // ============================================================
+    // COMPONENTES REUTILIZABLES
+    // ============================================================
+    private static string Button(string text, string url, string bgColor = PrimaryBlue)
+    {
+        return $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" style=""margin:18px 0;"">
+  <tr>
+    <td style=""background-color:{bgColor}; border-radius:12px;"">
+      <a href=""{url}"" style=""display:inline-block; padding:14px 18px; font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:15px; font-weight:800; color:#ffffff; text-decoration:none;"">
+        {text} ?
+      </a>
+    </td>
+  </tr>
+</table>";
+    }
+
+    private static string Card(string innerHtml, string accentColor = "")
+    {
+        var border = string.IsNullOrEmpty(accentColor) ? "#e5e7eb" : accentColor;
+
+        return $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border:1px solid #e5e7eb; border-left:5px solid {border}; border-radius:14px; background-color:#ffffff; margin:16px 0;"">
+  <tr>
+    <td style=""padding:18px;"">
+      {innerHtml}
+    </td>
+  </tr>
+</table>";
+    }
+
+    private static string InfoRow(string label, string value)
+    {
+        return $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""margin:8px 0;"">
+  <tr>
+    <td style=""width:160px; font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:13px; color:{TextMuted}; padding:4px 0;"">
+      <strong style=""color:{PrimaryBlue};"">{label}</strong>
+    </td>
+    <td style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:13px; color:{TextDark}; padding:4px 0;"">
+      {value}
+    </td>
+  </tr>
+</table>";
+    }
+
+    private static string Callout(string title, string body, string bg, string borderColor, string fg)
+    {
+        return $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background:{bg}; border:1px solid #e5e7eb; border-left:5px solid {borderColor}; border-radius:14px; margin:16px 0;"">
+  <tr>
+    <td style=""padding:16px;"">
+      <div style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:13px; font-weight:900; color:{fg}; margin-bottom:6px;"">{title}</div>
+      <div style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:13px; color:{fg}; line-height:20px;"">{body}</div>
+    </td>
+  </tr>
+</table>";
+    }
+
+    private static string SmallMuted(string html)
+    {
+        return $@"<div style=""font-family:Segoe UI, Roboto, Arial, sans-serif; font-size:12px; color:{TextMuted}; line-height:18px; margin-top:10px;"">{html}</div>";
+    }
+
+    // ============================================================
+    // TEMPLATES
+    // ============================================================
+
     /// <summary>
-    /// Template para notificación de cita creada
+    /// Notificación de cita creada
     /// </summary>
     public static string CitaCreada(string nombrePaciente, string nombreMedico, DateTime fechaCita, string motivo, string especialidad)
     {
+        var details =
+            InfoRow("Médico", $"Dr. {nombreMedico}") +
+            InfoRow("Especialidad", especialidad) +
+            InfoRow("Fecha", $"{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}") +
+            InfoRow("Hora", $"{fechaCita:HH:mm}") +
+            InfoRow("Motivo", motivo);
+
         var content = $@"
-            <div class=""header"">
-                <div class=""header-icon"">&#127973;</div>
-                <h1>Nueva Cita M&eacute;dica Creada</h1>
-            </div>
-            <div class=""content"">
-                <p class=""greeting"">Hola <strong>{nombrePaciente}</strong>,</p>
-                <p>Tu cita m&eacute;dica ha sido creada exitosamente. A continuaci&oacute;n, los detalles de tu consulta:</p>
-                
-                <div class=""info-card"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128104;&#8205;&#9877;&#65039; M&eacute;dico:</span>
-                        <span class=""info-value"">Dr. {nombreMedico}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#127973; Especialidad:</span>
-                        <span class=""info-value"">{especialidad}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128197; Fecha:</span>
-                        <span class=""info-value"">{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128336; Hora:</span>
-                        <span class=""info-value"">{fechaCita:HH:mm}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128221; Motivo:</span>
-                        <span class=""info-value"">{motivo}</span>
-                    </div>
-                </div>
+<div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
+<div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
+  Tu cita fue creada exitosamente. A continuación, los detalles:
+</div>
 
-                <div class=""tips"">
-                    <div class=""tips-title"">&#128161; Recordatorios importantes</div>
-                    <ul>
-                        <li>Te enviaremos recordatorios 24 horas y 4 horas antes de tu cita</li>
-                        <li>Llega 10 minutos antes de tu cita</li>
-                        <li>Trae tu identificaci&oacute;n y estudios m&eacute;dicos previos</li>
-                    </ul>
-                </div>
+{Card(details, PrimaryBlue)}
 
-                <center>
-                    <a href=""{BaseUrl}/appointments"" class=""button"">
-                        Ver Mis Citas &rarr;
-                    </a>
-                </center>
+{Callout(
+    "Recordatorios",
+    "Te enviaremos recordatorios 24 horas y 4 horas antes. Llega 10 minutos antes y trae tu identificación.",
+    "#eff6ff",
+    PrimaryBlue,
+    "#0f172a"
+)}
 
-                <div class=""note"">
-                    &#9888;&#65039; Si necesitas cancelar o reprogramar tu cita, puedes hacerlo desde tu panel de citas.
-                </div>
-            </div>
-        ";
+{Button("Ver mis citas", $"{BaseUrl}/appointments")}
 
-        return GetBaseTemplate("Nueva Cita M&eacute;dica - TuCitaOnline", content);
+{Callout(
+    "¿Necesitás reprogramar o cancelar?",
+    "Podés hacerlo desde tu panel de citas. Si no podés asistir, cancelá con anticipación para liberar el horario.",
+    "#fff7ed",
+    "#f59e0b",
+    "#7c2d12"
+)}";
+
+        return GetBaseTemplate("Nueva cita médica", content);
     }
 
     /// <summary>
-    /// Template para notificación de cita cancelada
+    /// Notificación de cita cancelada
     /// </summary>
     public static string CitaCancelada(string nombrePaciente, string nombreMedico, DateTime fechaCita, string especialidad)
     {
+        var details =
+            InfoRow("Médico", $"Dr. {nombreMedico}") +
+            InfoRow("Especialidad", especialidad) +
+            InfoRow("Fecha cancelada", $"{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}") +
+            InfoRow("Hora", $"{fechaCita:HH:mm}");
+
         var content = $@"
-            <div class=""header"">
-                <div class=""header-icon"">&#10060;</div>
-                <h1>Cita M&eacute;dica Cancelada</h1>
-            </div>
-            <div class=""content"">
-                <p class=""greeting"">Hola <strong>{nombrePaciente}</strong>,</p>
-                <p>Tu cita m&eacute;dica ha sido cancelada. A continuaci&oacute;n, los detalles de la cita cancelada:</p>
-                
-                <div class=""info-card"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128104;&#8205;&#9877;&#65039; M&eacute;dico:</span>
-                        <span class=""info-value"">Dr. {nombreMedico}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#127973; Especialidad:</span>
-                        <span class=""info-value"">{especialidad}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128197; Fecha cancelada:</span>
-                        <span class=""info-value"">{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128336; Hora cancelada:</span>
-                        <span class=""info-value"">{fechaCita:HH:mm}</span>
-                    </div>
-                </div>
+<div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
+<div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
+  Tu cita médica fue cancelada. Estos eran los detalles:
+</div>
 
-                <center>
-                    <a href=""{BaseUrl}/search"" class=""button"">
-                        Agendar Nueva Cita &rarr;
-                    </a>
-                </center>
+{Card(details, "#ef4444")}
 
-                <p style=""color: {TextLight}; font-size: 14px; margin-top: 30px; text-align: center;"">
-                    Puedes agendar una nueva cita cuando lo desees.
-                </p>
-            </div>
-        ";
+{Button("Agendar nueva cita", $"{BaseUrl}/search")}
 
-        return GetBaseTemplate("Cita Cancelada - TuCitaOnline", content);
+{SmallMuted("Podés agendar una nueva cita cuando lo desees.")}";
+
+        return GetBaseTemplate("Cita cancelada", content);
     }
 
     /// <summary>
-    /// Template para notificación de cita reprogramada
+    /// Notificación de cita reprogramada
     /// </summary>
     public static string CitaReprogramada(string nombrePaciente, string nombreMedico, DateTime fechaAnterior, DateTime fechaNueva, string especialidad)
     {
+        var doctor =
+            InfoRow("Médico", $"Dr. {nombreMedico}") +
+            InfoRow("Especialidad", especialidad);
+
+        var anterior =
+            InfoRow("Fecha anterior", $"{fechaAnterior:dddd, dd 'de' MMMM 'de' yyyy}") +
+            InfoRow("Hora anterior", $"{fechaAnterior:HH:mm}");
+
+        var nueva =
+            InfoRow("Nueva fecha", $"{fechaNueva:dddd, dd 'de' MMMM 'de' yyyy}") +
+            InfoRow("Nueva hora", $"{fechaNueva:HH:mm}");
+
         var content = $@"
-            <div class=""header"">
-                <div class=""header-icon"">&#128260;</div>
-                <h1>Cita M&eacute;dica Reprogramada</h1>
-            </div>
-            <div class=""content"">
-                <p class=""greeting"">Hola <strong>{nombrePaciente}</strong>,</p>
-                <p>Tu cita m&eacute;dica ha sido reprogramada exitosamente. A continuaci&oacute;n, los detalles actualizados:</p>
-                
-                <div class=""info-card"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128104;&#8205;&#9877;&#65039; M&eacute;dico:</span>
-                        <span class=""info-value"">Dr. {nombreMedico}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#127973; Especialidad:</span>
-                        <span class=""info-value"">{especialidad}</span>
-                    </div>
-                </div>
+<div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
+<div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
+  Tu cita fue reprogramada exitosamente. Revisá la información actualizada:
+</div>
 
-                <div class=""info-card"" style=""border-left-color: #ef4444; background-color: #fef2f2;"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128197; Fecha anterior:</span>
-                        <span class=""info-value"" style=""text-decoration: line-through; color: {TextLight};"">{fechaAnterior:dddd, dd 'de' MMMM 'de' yyyy} - {fechaAnterior:HH:mm}</span>
-                    </div>
-                </div>
+{Card(doctor, PrimaryBlue)}
 
-                <div class=""info-card"" style=""border-left-color: {TealGreen}; background-color: #f0fdf4;"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128197; Nueva fecha:</span>
-                        <span class=""info-value"" style=""color: #166534; font-weight: 600;"">{fechaNueva:dddd, dd 'de' MMMM 'de' yyyy}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128336; Nueva hora:</span>
-                        <span class=""info-value"" style=""color: #166534; font-weight: 600;"">{fechaNueva:HH:mm}</span>
-                    </div>
-                </div>
+{Card(anterior, "#ef4444")}
 
-                <div class=""tips"">
-                    <div class=""tips-title"">&#128161; Informaci&oacute;n importante</div>
-                    <ul>
-                        <li>Te enviaremos nuevos recordatorios antes de tu cita</li>
-                        <li>Aseg&uacute;rate de marcar la nueva fecha en tu calendario</li>
-                    </ul>
-                </div>
+{Card(nueva, TealGreen)}
 
-                <center>
-                    <a href=""{BaseUrl}/appointments"" class=""button"">
-                        Ver Mis Citas &rarr;
-                    </a>
-                </center>
-            </div>
-        ";
+{Callout(
+    "Importante",
+    "Te enviaremos nuevos recordatorios antes de la cita. Asegurate de marcar la nueva fecha en tu calendario.",
+    "#f0fdf4",
+    TealGreen,
+    "#14532d"
+)}
 
-        return GetBaseTemplate("Cita Reprogramada - TuCitaOnline", content);
+{Button("Ver mis citas", $"{BaseUrl}/appointments")}";
+
+        return GetBaseTemplate("Cita reprogramada", content);
     }
 
     /// <summary>
-    /// Template para recordatorio 24 horas antes
+    /// Recordatorio 24 horas antes
     /// </summary>
     public static string Recordatorio24Horas(string nombrePaciente, string nombreMedico, DateTime fechaCita, string especialidad, string direccion)
     {
+        var details =
+            InfoRow("Médico", $"Dr. {nombreMedico}") +
+            InfoRow("Especialidad", especialidad) +
+            InfoRow("Fecha", $"{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}") +
+            InfoRow("Hora", $"{fechaCita:HH:mm}") +
+            InfoRow("Ubicación", direccion);
+
         var content = $@"
-            <div class=""header"">
-                <div class=""header-icon"">&#9200;</div>
-                <h1>Recordatorio: Cita Ma&ntilde;ana</h1>
-            </div>
-            <div class=""content"">
-                <p class=""greeting"">Hola <strong>{nombrePaciente}</strong>,</p>
-                <p><strong>Tu cita m&eacute;dica es MA&Ntilde;ANA</strong>. Te recordamos los detalles:</p>
-                
-                <div class=""info-card"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128104;&#8205;&#9877;&#65039; M&eacute;dico:</span>
-                        <span class=""info-value"">Dr. {nombreMedico}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#127973; Especialidad:</span>
-                        <span class=""info-value"">{especialidad}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128197; Fecha:</span>
-                        <span class=""info-value"">{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128336; Hora:</span>
-                        <span class=""info-value"">{fechaCita:HH:mm}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128205; Ubicaci&oacute;n:</span>
-                        <span class=""info-value"">{direccion}</span>
-                    </div>
-                </div>
+<div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
+<div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
+  Te recordamos que tu cita es <strong>mañana</strong>. Estos son los detalles:
+</div>
 
-                <div class=""tips"">
-                    <div class=""tips-title"">&#128203; Recomendaciones</div>
-                    <ul>
-                        <li>Llega 10 minutos antes de tu cita</li>
-                        <li>Trae tu identificaci&oacute;n oficial</li>
-                        <li>Si tienes estudios m&eacute;dicos previos, ll&eacute;valos contigo</li>
-                        <li>Anota cualquier duda o s&iacute;ntoma que quieras comentar</li>
-                    </ul>
-                </div>
+{Card(details, PrimaryBlue)}
 
-                <center>
-                    <a href=""{BaseUrl}/appointments"" class=""button"">
-                        Ver Detalles de la Cita &rarr;
-                    </a>
-                </center>
+{Callout(
+    "Recomendaciones",
+    "Llegá 10 minutos antes, llevá tu identificación oficial y cualquier estudio médico previo. Anotá dudas o síntomas para comentarlos.",
+    "#eff6ff",
+    PrimaryBlue,
+    "#0f172a"
+)}
 
-                <div class=""note"">
-                    &#9888;&#65039; Si no puedes asistir, cancela tu cita con anticipaci&oacute;n para que otros pacientes puedan aprovechar el horario.
-                </div>
-            </div>
-        ";
+{Button("Ver detalles de la cita", $"{BaseUrl}/appointments")}
 
-        return GetBaseTemplate("Recordatorio de Cita - TuCitaOnline", content);
+{Callout(
+    "Si no podés asistir",
+    "Cancelá tu cita con anticipación para que otro paciente pueda aprovechar el horario.",
+    "#fff7ed",
+    "#f59e0b",
+    "#7c2d12"
+)}";
+
+        return GetBaseTemplate("Recordatorio de cita (24 horas)", content);
     }
 
     /// <summary>
-    /// Template para recordatorio urgente 4 horas antes
+    /// Recordatorio urgente 4 horas antes
     /// </summary>
     public static string Recordatorio4Horas(string nombrePaciente, string nombreMedico, DateTime fechaCita, string especialidad, string direccion)
     {
+        var details =
+            InfoRow("Médico", $"Dr. {nombreMedico}") +
+            InfoRow("Especialidad", especialidad) +
+            InfoRow("Fecha", $"{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}") +
+            InfoRow("Hora", $"<span style=\"font-size:16px; font-weight:900; color:#dc2626;\">{fechaCita:HH:mm}</span>") +
+            InfoRow("Ubicación", direccion);
+
         var content = $@"
-            <div class=""header"" style=""background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"">
-                <div class=""header-icon"">&#9888;&#65039;</div>
-                <h1>URGENTE: Cita en 4 Horas</h1>
-            </div>
-            <div class=""content"">
-                <p class=""greeting"">Hola <strong>{nombrePaciente}</strong>,</p>
-                <p><strong style=""color: #dc2626; font-size: 18px;"">Tu cita m&eacute;dica es en 4 HORAS</strong></p>
-                <p>Por favor, prep&aacute;rate para asistir a tu consulta:</p>
-                
-                <div class=""info-card"" style=""border-left-color: #ef4444; background-color: #fef2f2;"">
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128104;&#8205;&#9877;&#65039; M&eacute;dico:</span>
-                        <span class=""info-value"">Dr. {nombreMedico}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#127973; Especialidad:</span>
-                        <span class=""info-value"">{especialidad}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128197; Fecha:</span>
-                        <span class=""info-value"" style=""font-weight: 600;"">{fechaCita:dddd, dd 'de' MMMM 'de' yyyy}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128336; Hora:</span>
-                        <span class=""info-value"" style=""font-weight: 600; font-size: 20px; color: #dc2626;"">{fechaCita:HH:mm}</span>
-                    </div>
-                    <div class=""info-row"">
-                        <span class=""info-label"">&#128205; Ubicaci&oacute;n:</span>
-                        <span class=""info-value"">{direccion}</span>
-                    </div>
-                </div>
+<div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombrePaciente},</div>
+<div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
+  Tu cita es en <strong style=""color:#dc2626;"">4 horas</strong>. Prepará lo necesario:
+</div>
 
-                <div class=""tips"" style=""background-color: #fef2f2; border-left-color: #ef4444;"">
-                    <div class=""tips-title"" style=""color: #dc2626;"">&#9888;&#65039; No olvides llevar:</div>
-                    <ul style=""color: #991b1b;"">
-                        <li><strong>Tu identificaci&oacute;n oficial</strong></li>
-                        <li><strong>Estudios m&eacute;dicos previos</strong> (si tienes)</li>
-                        <li><strong>Lista de medicamentos actuales</strong></li>
-                        <li><strong>Forma de pago</strong> (si aplica)</li>
-                    </ul>
-                </div>
+{Card(details, "#ef4444")}
 
-                <center>
-                    <a href=""{BaseUrl}/appointments"" class=""button"" style=""background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"">
-                        Ver Detalles de la Cita &rarr;
-                    </a>
-                </center>
+{Callout(
+    "No olvidés llevar",
+    "Tu identificación, estudios médicos previos (si tenés), lista de medicamentos actuales y forma de pago (si aplica).",
+    "#fef2f2",
+    "#ef4444",
+    "#7f1d1d"
+)}
 
-                <div class=""note"" style=""background-color: #fef2f2; border-left-color: #ef4444; color: #991b1b;"">
-                    &#9888;&#65039; <strong>Si no puedes asistir, cancela tu cita AHORA</strong> para que otros pacientes puedan aprovechar el horario.
-                </div>
-            </div>
-        ";
+{Button("Ver detalles de la cita", $"{BaseUrl}/appointments", "#dc2626")}
 
-        return GetBaseTemplate("Recordatorio Urgente - TuCitaOnline", content);
+{Callout(
+    "Si no podés asistir",
+    "Cancelá tu cita ahora para liberar el horario.",
+    "#fef2f2",
+    "#ef4444",
+    "#7f1d1d"
+)}";
+
+        return GetBaseTemplate("Recordatorio urgente (4 horas)", content);
     }
 
     /// <summary>
-    /// Template para recuperación de contraseña
+    /// Recuperación de contraseña
     /// </summary>
     public static string RecuperacionPassword(string nombre, string resetUrl)
     {
         var content = $@"
-            <div class=""header"">
-                <div class=""header-icon"">&#128272;</div>
-                <h1>Recuperaci&oacute;n de Contrase&ntilde;a</h1>
-            </div>
-            <div class=""content"">
-                <p class=""greeting"">Hola <strong>{nombre}</strong>,</p>
-                <p>Recibimos una solicitud para restablecer la contrase&ntilde;a de tu cuenta en TuCitaOnline.</p>
-                
-                <div class=""note"">
-                    &#8505;&#65039; Si no solicitaste este cambio, puedes ignorar este correo. Tu contrase&ntilde;a actual seguir&aacute; siendo v&aacute;lida.
-                </div>
+<div style=""font-size:16px; font-weight:900; margin-bottom:8px;"">Hola {nombre},</div>
+<div style=""font-size:13px; color:{TextMuted}; line-height:20px;"">
+  Recibimos una solicitud para restablecer la contraseña de tu cuenta en TuCitaOnline.
+</div>
 
-                <center>
-                    <a href=""{resetUrl}"" class=""button"">
-                        Restablecer Contrase&ntilde;a &rarr;
-                    </a>
-                </center>
+{Callout(
+    "Si no fuiste vos",
+    "Podés ignorar este correo. Tu contraseña actual seguirá siendo válida.",
+    "#fff7ed",
+    "#f59e0b",
+    "#7c2d12"
+)}
 
-                <div class=""tips"">
-                    <div class=""tips-title"">&#128274; Consejos de seguridad</div>
-                    <ul>
-                        <li>Este enlace es v&aacute;lido por 1 hora</li>
-                        <li>Usa una contrase&ntilde;a fuerte y &uacute;nica</li>
-                        <li>No compartas tu contrase&ntilde;a con nadie</li>
-                        <li>Si no solicitaste este cambio, ignora este correo</li>
-                    </ul>
-                </div>
+{Button("Restablecer contraseña", resetUrl)}
 
-                <p style=""color: {TextLight}; font-size: 13px; margin-top: 30px;"">
-                    <strong>Nota:</strong> Si el bot&oacute;n no funciona, copia y pega este enlace en tu navegador:<br>
-                    <span style=""word-break: break-all; color: {PrimaryBlue};"">{resetUrl}</span>
-                </p>
-            </div>
-        ";
+{Callout(
+    "Consejos de seguridad",
+    "Este enlace es válido por 1 hora. Usá una contraseña fuerte y única. No compartás tu contraseña con nadie.",
+    "#eff6ff",
+    PrimaryBlue,
+    "#0f172a"
+)}
 
-        return GetBaseTemplate("Recuperaci&oacute;n de Contrase&ntilde;a - TuCitaOnline", content);
+{SmallMuted($@"<strong>Si el botón no funciona:</strong> copiá y pegá este enlace en tu navegador:<br>
+<span style=""word-break:break-all; color:{PrimaryBlue};"">{resetUrl}</span>")}";
+
+        return GetBaseTemplate("Recuperación de contraseña", content);
     }
 }
