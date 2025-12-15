@@ -218,7 +218,7 @@ public class DoctorsService : IDoctorsService
         var days = (nextSlot.Inicio.Date - now.Date).Days;
         
         if (days == 0) return $"Hoy {nextSlot.Inicio:HH:mm}";
-        if (days == 1) return $"Tomorrow {nextSlot.Inicio:HH:mm}";
+        if (days == 1) return $"Manana {nextSlot.Inicio:HH:mm}";
         if (days < 7) return nextSlot.Inicio.ToString("dddd HH:mm");
         
         return nextSlot.Inicio.ToString("dd/MM HH:mm");
