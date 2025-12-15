@@ -225,7 +225,7 @@ public class AdminDashboardService : IAdminDashboardService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener distribuci?n de estados");
+            _logger.LogError(ex, "Error al obtener distribución de estados");
             throw;
         }
     }
@@ -413,7 +413,7 @@ public class AdminDashboardService : IAdminDashboardService
     }
 
     /// <summary>
-    /// Obtiene el color hexadecimal para cada nombre de visualizaci?n de estado
+    /// Obtiene el color hexadecimal para cada nombre de visualización de estado
     /// </summary>
     private static string GetEstadoColorByDisplayName(string estadoDisplayName)
     {
