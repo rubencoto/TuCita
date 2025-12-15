@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text;
+using System.Globalization;
 
 namespace TuCita.Services;
 
@@ -29,6 +30,10 @@ public class EmailService : IEmailService
     public EmailService(ILogger<EmailService> logger)
     {
         _logger = logger;
+
+        // Configurar cultura española para fechas
+        CultureInfo.CurrentCulture = new CultureInfo("es-ES");
+        CultureInfo.CurrentUICulture = new CultureInfo("es-ES");
 
         var smtpServer = Environment.GetEnvironmentVariable("SMTP_SERVER") ?? "smtp.gmail.com";
         var smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587");
@@ -60,8 +65,13 @@ public class EmailService : IEmailService
                 Body = cuerpoHtml,
                 IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
-                SubjectEncoding = Encoding.UTF8
+                SubjectEncoding = Encoding.UTF8,
+                HeadersEncoding = Encoding.UTF8,
+                BodyTransferEncoding = System.Net.Mime.TransferEncoding.Base64
             };
+
+            // Agregar header para UTF-8
+            mensaje.Headers.Add("Content-Type", "text/html; charset=utf-8");
 
             mensaje.To.Add(destinatario);
             await _smtpClient.SendMailAsync(mensaje);
@@ -93,7 +103,10 @@ public class EmailService : IEmailService
         var asunto = "Recuperación de Contraseña - TuCitaOnline";
         var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3000";
         var resetUrl = $"{frontendUrl}/reset-password?token={token}";
-        var cuerpoHtml = $"<h2>Hola {nombre}</h2><p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p><a href='{resetUrl}'>Restablecer contraseña</a>";
+        
+        // ? Usar template profesional
+        var cuerpoHtml = EmailTemplates.RecuperacionPassword(nombre, resetUrl);
+        
         return await EnviarEmailAsync(email, asunto, cuerpoHtml);
     }
 
@@ -132,18 +145,9 @@ public class EmailService : IEmailService
     public async Task<bool> EnviarCitaCreadaAsync(string emailDestino, string nombrePaciente, string nombreMedico, DateTime fechaCita, string motivo, string especialidad)
     {
         var asunto = "Nueva Cita Médica Creada - TuCitaOnline";
-        var cuerpoHtml = $@"
-            <h2>Cita Médica Creada</h2>
-            <p>Hola {nombrePaciente},</p>
-            <p>Tu cita médica ha sido creada exitosamente:</p>
-            <ul>
-                <li><strong>Médico:</strong> Dr. {nombreMedico}</li>
-                <li><strong>Especialidad:</strong> {especialidad}</li>
-                <li><strong>Fecha:</strong> {fechaCita:dd/MM/yyyy}</li>
-                <li><strong>Hora:</strong> {fechaCita:HH:mm}</li>
-                <li><strong>Motivo:</strong> {motivo}</li>
-            </ul>
-            <p>Te enviaremos recordatorios antes de tu cita.</p>";
+        
+        // ? Usar template profesional con diseño moderno
+        var cuerpoHtml = EmailTemplates.CitaCreada(nombrePaciente, nombreMedico, fechaCita, motivo, especialidad);
         
         _logger.LogInformation("Enviando notificación de cita creada a: {Email}", emailDestino);
         return await EnviarEmailAsync(emailDestino, asunto, cuerpoHtml);
@@ -152,17 +156,9 @@ public class EmailService : IEmailService
     public async Task<bool> EnviarCitaCanceladaAsync(string emailDestino, string nombrePaciente, string nombreMedico, DateTime fechaCita, string especialidad)
     {
         var asunto = "Cita Médica Cancelada - TuCitaOnline";
-        var cuerpoHtml = $@"
-            <h2>Cita Cancelada</h2>
-            <p>Hola {nombrePaciente},</p>
-            <p>Tu cita médica ha sido cancelada:</p>
-            <ul>
-                <li><strong>Médico:</strong> Dr. {nombreMedico}</li>
-                <li><strong>Especialidad:</strong> {especialidad}</li>
-                <li><strong>Fecha cancelada:</strong> {fechaCita:dd/MM/yyyy}</li>
-                <li><strong>Hora cancelada:</strong> {fechaCita:HH:mm}</li>
-            </ul>
-            <p>Puedes agendar una nueva cita cuando lo desees.</p>";
+        
+        // ? Usar template profesional
+        var cuerpoHtml = EmailTemplates.CitaCancelada(nombrePaciente, nombreMedico, fechaCita, especialidad);
         
         _logger.LogInformation("Enviando notificación de cita cancelada a: {Email}", emailDestino);
         return await EnviarEmailAsync(emailDestino, asunto, cuerpoHtml);
@@ -171,18 +167,9 @@ public class EmailService : IEmailService
     public async Task<bool> EnviarCitaReprogramadaAsync(string emailDestino, string nombrePaciente, string nombreMedico, DateTime fechaAnterior, DateTime fechaNueva, string especialidad)
     {
         var asunto = "Cita Médica Reprogramada - TuCitaOnline";
-        var cuerpoHtml = $@"
-            <h2>Cita Reprogramada</h2>
-            <p>Hola {nombrePaciente},</p>
-            <p>Tu cita médica ha sido reprogramada:</p>
-            <ul>
-                <li><strong>Médico:</strong> Dr. {nombreMedico}</li>
-                <li><strong>Especialidad:</strong> {especialidad}</li>
-                <li><strong>Fecha anterior:</strong> <s>{fechaAnterior:dd/MM/yyyy HH:mm}</s></li>
-                <li><strong>Nueva fecha:</strong> {fechaNueva:dd/MM/yyyy}</li>
-                <li><strong>Nueva hora:</strong> {fechaNueva:HH:mm}</li>
-            </ul>
-            <p>Te enviaremos recordatorios antes de tu nueva cita.</p>";
+        
+        // ? Usar template profesional
+        var cuerpoHtml = EmailTemplates.CitaReprogramada(nombrePaciente, nombreMedico, fechaAnterior, fechaNueva, especialidad);
         
         _logger.LogInformation("Enviando notificación de cita reprogramada a: {Email}", emailDestino);
         return await EnviarEmailAsync(emailDestino, asunto, cuerpoHtml);
@@ -191,23 +178,9 @@ public class EmailService : IEmailService
     public async Task<bool> EnviarRecordatorio24HorasAsync(string emailDestino, string nombrePaciente, string nombreMedico, DateTime fechaCita, string especialidad, string direccion)
     {
         var asunto = "Recordatorio: Cita Médica Mañana - TuCitaOnline";
-        var cuerpoHtml = $@"
-            <h2>Recordatorio de Cita (24 horas)</h2>
-            <p>Hola {nombrePaciente},</p>
-            <p><strong>Tu cita médica es MAÑANA</strong></p>
-            <ul>
-                <li><strong>Médico:</strong> Dr. {nombreMedico}</li>
-                <li><strong>Especialidad:</strong> {especialidad}</li>
-                <li><strong>Fecha:</strong> {fechaCita:dd/MM/yyyy}</li>
-                <li><strong>Hora:</strong> {fechaCita:HH:mm}</li>
-                <li><strong>Ubicación:</strong> {direccion}</li>
-            </ul>
-            <p><strong>Recomendaciones:</strong></p>
-            <ul>
-                <li>Llega 10 minutos antes</li>
-                <li>Trae tu identificación</li>
-                <li>Si tienes estudios previos, llévalos contigo</li>
-            </ul>";
+        
+        // ? Usar template profesional
+        var cuerpoHtml = EmailTemplates.Recordatorio24Horas(nombrePaciente, nombreMedico, fechaCita, especialidad, direccion);
         
         _logger.LogInformation("Enviando recordatorio 24h a: {Email}", emailDestino);
         return await EnviarEmailAsync(emailDestino, asunto, cuerpoHtml);
@@ -216,24 +189,9 @@ public class EmailService : IEmailService
     public async Task<bool> EnviarRecordatorio4HorasAsync(string emailDestino, string nombrePaciente, string nombreMedico, DateTime fechaCita, string especialidad, string direccion)
     {
         var asunto = "URGENTE: Cita Médica en 4 Horas - TuCitaOnline";
-        var cuerpoHtml = $@"
-            <h2>Recordatorio URGENTE (4 horas)</h2>
-            <p>Hola {nombrePaciente},</p>
-            <p><strong style='color: red;'>Tu cita médica es en 4 HORAS</strong></p>
-            <ul>
-                <li><strong>Médico:</strong> Dr. {nombreMedico}</li>
-                <li><strong>Especialidad:</strong> {especialidad}</li>
-                <li><strong>Fecha:</strong> {fechaCita:dd/MM/yyyy}</li>
-                <li><strong>Hora:</strong> {fechaCita:HH:mm}</li>
-                <li><strong>Ubicación:</strong> {direccion}</li>
-            </ul>
-            <p><strong>No olvides llevar:</strong></p>
-            <ul>
-                <li>Tu identificación</li>
-                <li>Estudios médicos previos</li>
-                <li>Lista de medicamentos actuales</li>
-            </ul>
-            <p style='color: red;'><strong>Si no puedes asistir, cancela tu cita cuanto antes.</strong></p>";
+        
+        // ? Usar template profesional con diseño urgente
+        var cuerpoHtml = EmailTemplates.Recordatorio4Horas(nombrePaciente, nombreMedico, fechaCita, especialidad, direccion);
         
         _logger.LogInformation("Enviando recordatorio 4h a: {Email}", emailDestino);
         return await EnviarEmailAsync(emailDestino, asunto, cuerpoHtml);
